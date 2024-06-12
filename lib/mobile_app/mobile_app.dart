@@ -1,12 +1,11 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pongstrong/appstate.dart';
-import 'package:pongstrong/colors.dart';
-import 'package:pongstrong/field_view.dart';
-import 'package:pongstrong/mobile_drawer.dart';
-import 'package:pongstrong/test_objects.dart';
+import 'package:pongstrong/mobile_app/mobile_app_state.dart';
+import 'package:pongstrong/shared/colors.dart';
+import 'package:pongstrong/shared/field_view.dart';
+import 'package:pongstrong/mobile_app/mobile_drawer.dart';
+import 'package:pongstrong/shared/rules_view.dart';
+import 'package:pongstrong/shared/test_objects.dart';
 import 'package:provider/provider.dart';
 
 const String turnamentName = 'BMT-Cup';
@@ -21,6 +20,7 @@ class MobileApp extends StatelessWidget {
         fontFamily: GoogleFonts.notoSansMono().fontFamily,
       ),
       home: Scaffold(
+        key: Provider.of<MobileAppState>(context).scaffoldKey,
         drawer: const MobileDrawer(),
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -32,13 +32,15 @@ class MobileApp extends StatelessWidget {
         ),
         body: SingleChildScrollView(
           child: () {
-            switch (Provider.of<AppState>(context).state) {
-              case MobileAppState.runningMatches:
+            switch (Provider.of<MobileAppState>(context).state) {
+              case MobileAppView.runningMatches:
                 return runningGames();
-              case MobileAppState.upcomingMatches:
+              case MobileAppView.upcomingMatches:
                 return nextGames();
-              case MobileAppState.tables:
+              case MobileAppView.tables:
                 return currentTable();
+              case MobileAppView.rules:
+                return const RulesView();
               default:
                 return const Placeholder();
             }
@@ -63,7 +65,7 @@ FieldView currentTable() {
 
 FieldView nextGames() {
   return FieldView(
-    'Die Nächsten Spiele',
+    'Nächste Spiele',
     FieldColors.springgreen,
     FieldColors.springgreen.withOpacity(0.5),
     true,

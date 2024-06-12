@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:pongstrong/appstate.dart';
-import 'package:pongstrong/colors.dart';
+import 'package:pongstrong/mobile_app/mobile_app_state.dart';
+import 'package:pongstrong/shared/colors.dart';
 import 'package:provider/provider.dart';
 
+//? rename HomeDrawer
 class MobileDrawer extends StatelessWidget {
   const MobileDrawer({
     super.key,
@@ -11,6 +12,7 @@ class MobileDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      key: const Key('MobileDrawer'),
       child: ListView(
         padding: EdgeInsets.zero,
         children: <Widget>[
@@ -37,7 +39,8 @@ class MobileDrawer extends StatelessWidget {
           ),
           ListTile(
             title: const Text('Laufende Spiele'),
-            onTap: Provider.of<AppState>(context).setRunningMatches,
+            onTap: Provider.of<MobileAppState>(context, listen: false)
+                .setAppState(MobileAppView.runningMatches),
             trailing: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -48,7 +51,8 @@ class MobileDrawer extends StatelessWidget {
           ),
           ListTile(
             title: const Text('Nächste Spiele'),
-            onTap: Provider.of<AppState>(context).setUpcomingMatches,
+            onTap: Provider.of<MobileAppState>(context, listen: false)
+                .setAppState(MobileAppView.upcomingMatches),
             trailing: const Icon(Icons.event_available_rounded),
           ),
           const Divider(
@@ -63,23 +67,26 @@ class MobileDrawer extends StatelessWidget {
             children: [
               ListTile(
                 title: const Text('Tabelle'),
-                onTap: Provider.of<AppState>(context).setTables,
+                onTap: Provider.of<MobileAppState>(context, listen: false)
+                    .setAppState(MobileAppView.tables),
                 trailing: const Icon(Icons.leaderboard_rounded),
               ),
-              const ListTile(
-                title: Text('Turnierbaum'),
-                onTap: null,
-                trailing: Icon(Icons.account_tree_rounded),
-              ),
-              const ListTile(
-                title: Text('Regelwerk'),
-                onTap: null,
-                trailing: Icon(Icons.gavel_rounded),
+              ListTile(
+                title: const Text('Turnierbaum'),
+                onTap: Provider.of<MobileAppState>(context, listen: false)
+                    .setAppState(MobileAppView.tournamentTree),
+                trailing: const Icon(Icons.account_tree_rounded),
               ),
               const ListTile(
                 title: Text('Teams'),
                 onTap: null,
                 trailing: Icon(Icons.group_rounded),
+              ),
+              ListTile(
+                title: const Text('Regelwerk'),
+                onTap: Provider.of<MobileAppState>(context, listen: false)
+                    .setAppState(MobileAppView.rules),
+                trailing: const Icon(Icons.gavel_rounded),
               ),
             ],
           )

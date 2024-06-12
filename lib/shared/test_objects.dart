@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pongstrong/colors.dart';
-import 'package:pongstrong/match_view.dart';
+import 'package:pongstrong/shared/colors.dart';
+import 'package:pongstrong/shared/match_view.dart';
 
 /// Matches für das Spielfeld
 final runningMatches = [
