@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pongstrong/desktop_app/desktop_app_state.dart';
+import 'package:pongstrong/firebase/auth.dart';
 import 'package:pongstrong/mobile_app/mobile_app_state.dart';
 import 'package:pongstrong/desktop_app/desktop_app.dart';
 import 'package:pongstrong/mobile_app/mobile_app.dart';
@@ -16,6 +18,16 @@ Future<void> main() async {
           messagingSenderId: '21303267607',
           projectId: 'pong-strong'));
 
+  // get a anonymous user
+  final auth = AuthService();
+  if (auth.user == null) {
+    debugPrint('no user logged in -> signing in anonymously');
+    await auth.signInAnon();
+    debugPrint('user now logged in -> new uid: ${auth.user!.uid}');
+  } else {
+    debugPrint('user logged in -> uid: ${auth.user!.uid}');
+  }
+
   runApp(const MyApp());
 }
 
@@ -28,11 +40,21 @@ class MyApp extends StatelessWidget {
     return MediaQuery.of(context).size.width > 600
         ? ChangeNotifierProvider<DesktopAppState>.value(
             value: DesktopAppState(),
-            child: const DesktopApp(),
+            child: MaterialApp(
+              home: const DesktopApp(),
+              theme: ThemeData(
+                fontFamily: GoogleFonts.notoSansMono().fontFamily,
+              ),
+            ),
           )
         : ChangeNotifierProvider<MobileAppState>.value(
             value: MobileAppState(),
-            child: const MobileApp(),
+            child: MaterialApp(
+              home: const MobileApp(),
+              theme: ThemeData(
+                fontFamily: GoogleFonts.notoSansMono().fontFamily,
+              ),
+            ),
           );
   }
 }

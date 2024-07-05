@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:pongstrong/mobile_app/mobile_app_state.dart';
 import 'package:pongstrong/shared/colors.dart';
 import 'package:pongstrong/shared/field_view.dart';
 import 'package:pongstrong/mobile_app/mobile_drawer.dart';
+import 'package:pongstrong/shared/match_dialog.dart';
+import 'package:pongstrong/shared/match_view.dart';
 import 'package:pongstrong/shared/rules_view.dart';
 import 'package:pongstrong/shared/test_objects.dart';
 import 'package:provider/provider.dart';
@@ -15,37 +16,32 @@ class MobileApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        fontFamily: GoogleFonts.notoSansMono().fontFamily,
-      ),
-      home: Scaffold(
-        key: Provider.of<MobileAppState>(context).scaffoldKey,
-        drawer: const MobileDrawer(),
+    return Scaffold(
+      key: Provider.of<MobileAppState>(context).scaffoldKey,
+      drawer: const MobileDrawer(),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        shadowColor: Colors.black,
+        elevation: 10,
+        title: const Text(turnamentName),
+        centerTitle: true,
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          shadowColor: Colors.black,
-          elevation: 10,
-          title: const Text(turnamentName),
-          centerTitle: true,
-          backgroundColor: Colors.white,
-        ),
-        body: SingleChildScrollView(
-          child: () {
-            switch (Provider.of<MobileAppState>(context).state) {
-              case MobileAppView.runningMatches:
-                return runningGames();
-              case MobileAppView.upcomingMatches:
-                return nextGames();
-              case MobileAppView.tables:
-                return currentTable();
-              case MobileAppView.rules:
-                return const RulesView();
-              default:
-                return const Placeholder();
-            }
-          }(),
-        ),
+      ),
+      body: SingleChildScrollView(
+        child: () {
+          switch (Provider.of<MobileAppState>(context).state) {
+            case MobileAppView.runningMatches:
+              return runningGames(context);
+            case MobileAppView.upcomingMatches:
+              return nextGames(context);
+            case MobileAppView.tables:
+              return currentTable();
+            case MobileAppView.rules:
+              return const RulesView();
+            default:
+              return const Placeholder();
+          }
+        }(),
       ),
     );
   }
@@ -63,7 +59,7 @@ FieldView currentTable() {
   );
 }
 
-FieldView nextGames() {
+FieldView nextGames(BuildContext context) {
   return FieldView(
     'Nächste Spiele',
     FieldColors.springgreen,
@@ -71,12 +67,35 @@ FieldView nextGames() {
     true,
     Column(
       //alignment: WrapAlignment.center,
-      children: upcomingMatches,
+      children: [
+        for (var i = 0; i < 8; i++)
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: MatchView(
+              'Kotstulle',
+              'Testikuläre Torsion',
+              (i + 1).toString(),
+              TableColors.get(i),
+              true,
+              onTap: () {
+                startMatchDialog(
+                  context,
+                  'Kotstulle',
+                  'Testikuläre Torsion',
+                  <String>['Hubert', 'Klaus'],
+                  <String>['Giovanni', 'Karl'],
+                );
+                debugPrint('Match ${i + 1} pressed');
+              },
+              key: Key('cumatch_$i'), // is this needed?
+            ),
+          )
+      ],
     ),
   );
 }
 
-FieldView runningGames() {
+FieldView runningGames(BuildContext context) {
   return FieldView(
     'Laufende Spiele',
     FieldColors.tomato,
@@ -84,7 +103,25 @@ FieldView runningGames() {
     true,
     Column(
       //alignment: WrapAlignment.center,
-      children: runningMatches,
+      children: [
+        for (var i = 0; i < 8; i++)
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: MatchView(
+              'Kotstulle',
+              'Testikuläre Torsion',
+              (i + 1).toString(),
+              TableColors.get(i),
+              true,
+              onTap: () {
+                finnishMatchDialog(context, 'Kotstulle', 'Testikuläre Torsion',
+                    TextEditingController(), TextEditingController());
+                debugPrint('Match ${i + 1} pressed');
+              },
+              key: Key('cumatch_$i'), // is this needed?
+            ),
+          )
+      ],
     ),
   );
 }
