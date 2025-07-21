@@ -1,20 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/shared/colors.dart';
 import 'package:pongstrong/shared/match_view.dart';
+import 'package:pongstrong/shared/match_dialog.dart';
+
+//TODO: move all test objects to firestore
 
 /// Matches für das Spielfeld
 final runningMatches = [
   for (var i = 0; i < 8; i++)
-    Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: MatchView(
-        'Kotstulle',
-        'Testikuläre Torsion',
-        (i + 1).toString(),
-        TableColors.get(i),
-        true,
-        onTap: () => debugPrint('Match ${i + 1} pressed'),
-        key: Key('cumatch_$i'), // is this needed?
+    Builder(
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: MatchView(
+          'Kotstulle',
+          'Testikuläre Torsion',
+          (i + 1).toString(),
+          TableColors.get(i),
+          true,
+          onTap: () {
+            finnishMatchDialog(
+              context,
+              'Kotstulle',
+              'Testikuläre Torsion',
+              TextEditingController(),
+              TextEditingController(),
+            );
+            debugPrint('Match ${i + 1} pressed');
+          },
+          key: Key('cumatch_$i'), // is this needed?
+        ),
       ),
     )
 ];
@@ -22,16 +36,29 @@ final runningMatches = [
 /// Matches für das Spielfeld
 final upcomingMatches = [
   for (var i = 0; i < 8; i++)
-    Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: MatchView(
-        'WookieMookie',
-        'Penispumpe3000',
-        (i + 1).toString(),
-        TableColors.get(i),
-        i > 4 ? false : true,
-        onTap: i > 4 ? null : () => debugPrint('Match ${i + 1} pressed'),
-        key: Key('upmatch_$i'), // is this needed?
+    Builder(
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: MatchView(
+          'WookieMookie',
+          'Penispumpe3000',
+          (i + 1).toString(),
+          TableColors.get(i),
+          i > 4 ? false : true,
+          onTap: i > 4
+              ? null
+              : () {
+                  startMatchDialog(
+                    context,
+                    'WookieMookie',
+                    'Penispumpe3000',
+                    <String>['Hubert', 'Klaus'],
+                    <String>['Giovanni', 'Karl'],
+                  );
+                  debugPrint('Match ${i + 1} pressed');
+                },
+          key: Key('upmatch_$i'), // is this needed?
+        ),
       ),
     )
 ];

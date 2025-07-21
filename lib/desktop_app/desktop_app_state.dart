@@ -43,8 +43,6 @@ class DesktopAppState extends ChangeNotifier {
           _state = DesktopAppView.teams;
           notifyListeners();
         };
-      default:
-        return null;
     }
   }
 }

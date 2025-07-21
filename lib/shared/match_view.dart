@@ -77,7 +77,7 @@ class MatchView extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 50,
                   fontWeight: FontWeight.bold,
-                  color: tableColor.withOpacity(0.4),
+                  color: tableColor.withAlpha(100),
                 ),
               ),
             ),

@@ -25,7 +25,7 @@ class PlayingField extends StatelessWidget {
                     child: FieldView(
                       'Laufende Spiele',
                       FieldColors.tomato,
-                      FieldColors.tomato.withOpacity(0.5),
+                      FieldColors.tomato.withAlpha(128),
                       false,
                       Wrap(
                           alignment: WrapAlignment.center,
@@ -37,7 +37,7 @@ class PlayingField extends StatelessWidget {
                     child: FieldView(
                       'Nächste Spiele',
                       FieldColors.springgreen,
-                      FieldColors.springgreen.withOpacity(0.5),
+                      FieldColors.springgreen.withAlpha(128),
                       false,
                       Wrap(
                           alignment: WrapAlignment.center,
@@ -52,7 +52,7 @@ class PlayingField extends StatelessWidget {
               child: FieldView(
                 'Aktuelle Tabelle',
                 FieldColors.skyblue,
-                FieldColors.skyblue.withOpacity(0.5),
+                FieldColors.skyblue.withAlpha(128),
                 false,
                 Wrap(
                   children: tables,

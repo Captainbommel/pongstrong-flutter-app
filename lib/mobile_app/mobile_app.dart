@@ -51,7 +51,7 @@ FieldView currentTable() {
   return FieldView(
     'Aktuelle Tabelle',
     FieldColors.skyblue,
-    FieldColors.skyblue.withOpacity(0.6),
+    FieldColors.skyblue.withAlpha(153),
     true,
     Column(
       children: tables,
@@ -63,7 +63,7 @@ FieldView nextGames(BuildContext context) {
   return FieldView(
     'Nächste Spiele',
     FieldColors.springgreen,
-    FieldColors.springgreen.withOpacity(0.5),
+    FieldColors.springgreen.withAlpha(128),
     true,
     Column(
       //alignment: WrapAlignment.center,
@@ -99,7 +99,7 @@ FieldView runningGames(BuildContext context) {
   return FieldView(
     'Laufende Spiele',
     FieldColors.tomato,
-    FieldColors.tomato.withOpacity(0.5),
+    FieldColors.tomato.withAlpha(128),
     true,
     Column(
       //alignment: WrapAlignment.center,

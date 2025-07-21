@@ -7,7 +7,7 @@ Future<String> _loadRules() async {
   return rules;
 }
 
-//! Formatierung für mobile anpassen
+//TODO: Formatierung für mobile anpassen
 
 class RulesView extends StatelessWidget {
   const RulesView({super.key});

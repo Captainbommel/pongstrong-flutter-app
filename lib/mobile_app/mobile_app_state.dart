@@ -63,8 +63,6 @@ class MobileAppState extends ChangeNotifier {
           scaffoldKey.currentState!.closeDrawer();
           notifyListeners();
         };
-      default:
-        return null;
     }
   }
 }

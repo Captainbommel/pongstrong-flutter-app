@@ -10,6 +10,7 @@ Future<dynamic> finnishMatchDialog(
   TextEditingController cups1,
   TextEditingController cups2,
 ) {
+  //TODO: change appearance of finnishMatchDialog based on screen size
   return showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
@@ -69,14 +70,16 @@ Future<dynamic> finnishMatchDialog(
               ),
             ),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                //TODO: implement finish match logic
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   side: const BorderSide(color: FieldColors.skyblue, width: 3),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                overlayColor: FieldColors.skyblue.withOpacity(0.5),
+                overlayColor: FieldColors.skyblue.withAlpha(128),
               ),
               child: const Text(
                 'Spiel Abschließen',
@@ -96,7 +99,7 @@ SizedBox cupInput(TextEditingController cups1) {
     child: TextField(
       controller: cups1,
       keyboardType: TextInputType.number,
-      //* add a custom input formatter fitting for rules of the given game
+      //TODO: add a custom input formatter fitting for rules of the given game
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       textAlign: TextAlign.center,
       cursorColor: FieldColors.skyblue,
@@ -128,6 +131,7 @@ Future<dynamic> startMatchDialog(
   List<String> members1,
   List<String> members2,
 ) {
+  //TODO: change appearance of startMatchDialog based on screen size
   return showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
@@ -171,14 +175,16 @@ Future<dynamic> startMatchDialog(
               ],
             ),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                //TODO: implement start match logic
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   side: const BorderSide(color: FieldColors.skyblue, width: 3),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                overlayColor: FieldColors.skyblue.withOpacity(0.5),
+                overlayColor: FieldColors.skyblue.withAlpha(128),
               ),
               child: const Text(
                 'Spiel starten',
