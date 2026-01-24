@@ -6,17 +6,19 @@ import 'package:pongstrong/firebase/auth.dart';
 import 'package:pongstrong/mobile_app/mobile_app_state.dart';
 import 'package:pongstrong/desktop_app/desktop_app.dart';
 import 'package:pongstrong/mobile_app/mobile_app.dart';
+import 'package:pongstrong/shared/tournament_data_state.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
   // initialize Firebase
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-      options: const FirebaseOptions(
-          apiKey: 'AIzaSyBL6N6HwgspjRLukoVpsK6axdwU0GITKqc',
-          appId: '1:21303267607:web:d0cb107c989a02f8712752',
-          messagingSenderId: '21303267607',
-          projectId: 'pong-strong'));
+    options: const FirebaseOptions(
+        apiKey: 'AIzaSyBL6N6HwgspjRLukoVpsK6axdwU0GITKqc',
+        appId: '1:21303267607:web:d0cb107c989a02f8712752',
+        messagingSenderId: '21303267607',
+        projectId: 'pong-strong'),
+  );
 
   // get a anonymous user
   final auth = AuthService();
@@ -37,24 +39,25 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     //! App rebulds when screen size changes -> state should be determined before
-    return MediaQuery.of(context).size.width > 600
-        ? ChangeNotifierProvider<DesktopAppState>.value(
-            value: DesktopAppState(),
-            child: MaterialApp(
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => TournamentDataState()),
+        ChangeNotifierProvider(create: (_) => DesktopAppState()),
+        ChangeNotifierProvider(create: (_) => MobileAppState()),
+      ],
+      child: MediaQuery.of(context).size.width > 600
+          ? MaterialApp(
               home: const DesktopApp(),
               theme: ThemeData(
                 fontFamily: GoogleFonts.notoSansMono().fontFamily,
               ),
-            ),
-          )
-        : ChangeNotifierProvider<MobileAppState>.value(
-            value: MobileAppState(),
-            child: MaterialApp(
+            )
+          : MaterialApp(
               home: const MobileApp(),
               theme: ThemeData(
                 fontFamily: GoogleFonts.notoSansMono().fontFamily,
               ),
             ),
-          );
+    );
   }
 }

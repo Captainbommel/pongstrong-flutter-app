@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/desktop_app/desktop_app_state.dart';
+import 'package:pongstrong/desktop_app/test_helpers.dart';
 import 'package:pongstrong/shared/tree_view.dart';
 import 'package:pongstrong/desktop_app/playingfield_view.dart';
 import 'package:pongstrong/shared/rules_view.dart';
@@ -53,8 +54,8 @@ class DesktopApp extends StatelessWidget {
               child: const Text('Regeln', style: navbarStyle),
             ),
             TextButton(
-              onPressed: () {},
-              child: const Text('Test', style: navbarStyle),
+              onPressed: () => TestDataHelpers.uploadTeamsFromJson(context),
+              child: const Text('Load Teams', style: navbarStyle),
             ),
           ],
         ),
