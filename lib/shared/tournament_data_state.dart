@@ -10,6 +10,7 @@ class TournamentDataState extends ChangeNotifier {
   Tabellen _tabellen = Tabellen();
   Knockouts _knockouts = Knockouts();
   String _currentTournamentId = FirestoreService.defaultTournamentId;
+  bool _isKnockoutMode = false;
 
   // Stream subscriptions for real-time updates
   StreamSubscription? _gruppenphaseSubscription;
@@ -21,6 +22,7 @@ class TournamentDataState extends ChangeNotifier {
   Tabellen get tabellen => _tabellen;
   Knockouts get knockouts => _knockouts;
   String get currentTournamentId => _currentTournamentId;
+  bool get isKnockoutMode => _isKnockoutMode;
 
   bool get hasData => _teams.isNotEmpty;
 
@@ -42,6 +44,12 @@ class TournamentDataState extends ChangeNotifier {
         _tabellen = evalGruppen(gruppenphase);
         _knockouts = knockouts ?? Knockouts();
         _currentTournamentId = tournamentId;
+        // Check if knockouts have been initialized to determine mode
+        _isKnockoutMode = knockouts != null &&
+            knockouts.champions.rounds.isNotEmpty &&
+            knockouts.champions.rounds[0].isNotEmpty &&
+            (knockouts.champions.rounds[0][0].teamId1.isNotEmpty ||
+                knockouts.champions.rounds[0][0].teamId2.isNotEmpty);
         // Start listening to real-time updates
         _setupStreams();
         notifyListeners();
@@ -74,6 +82,7 @@ class TournamentDataState extends ChangeNotifier {
     _matchQueue = MatchQueue();
     _tabellen = Tabellen();
     _knockouts = Knockouts();
+    _isKnockoutMode = false;
     _cancelStreams();
     notifyListeners();
   }
@@ -202,6 +211,16 @@ class TournamentDataState extends ChangeNotifier {
       return false; // invalid score
     }
 
+    // Route to appropriate handler based on mode
+    if (_isKnockoutMode) {
+      return _finishKnockoutMatch(matchId, match);
+    } else {
+      return _finishGroupMatch(matchId, match);
+    }
+  }
+
+  /// Finish a group phase match
+  Future<bool> _finishGroupMatch(String matchId, Match match) async {
     // load gruppenphase
     final service = FirestoreService();
     final gruppenphase =
@@ -282,6 +301,88 @@ class TournamentDataState extends ChangeNotifier {
     }
   }
 
+  /// Finish a knockout match
+  Future<bool> _finishKnockoutMatch(String matchId, Match match) async {
+    final service = FirestoreService();
+
+    // Helper function to find and update match in knockout structure
+    bool findAndUpdateMatch(List<List<Match>> rounds) {
+      for (var round in rounds) {
+        for (var m in round) {
+          if (m.id == matchId) {
+            m.score1 = match.score1;
+            m.score2 = match.score2;
+            m.done = true;
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // Search and update in all knockout structures
+    bool found = findAndUpdateMatch(_knockouts.champions.rounds) ||
+        findAndUpdateMatch(_knockouts.europa.rounds) ||
+        findAndUpdateMatch(_knockouts.conference.rounds);
+
+    // Search in super cup if not found in other tournaments
+    if (!found) {
+      for (var m in _knockouts.superCup.matches) {
+        if (m.id == matchId) {
+          m.score1 = match.score1;
+          m.score2 = match.score2;
+          m.done = true;
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (!found) {
+      debugPrint('Match $matchId not found in knockouts');
+      return false;
+    }
+
+    debugPrint(
+      'Updated match $matchId in knockouts: ${match.score1}-${match.score2}',
+    );
+
+    // Store previous state for rollback
+    final previousMatchQueue = _matchQueue.clone();
+
+    // Remove from playing
+    _matchQueue.removeFromPlaying(matchId);
+
+    // Update knockout structure to move winners forward
+    _knockouts.update();
+
+    // Add new ready matches to queue
+    _matchQueue.updateKnockQueue(_knockouts);
+
+    // Save to Firestore
+    try {
+      await service.saveKnockouts(
+        _knockouts,
+        tournamentId: _currentTournamentId,
+      );
+      await service.saveMatchQueue(
+        _matchQueue,
+        tournamentId: _currentTournamentId,
+      );
+
+      debugPrint('Saved updated knockouts and match queue');
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error saving to Firestore: $e');
+      // Revert local changes on Firestore save failure
+      _matchQueue = previousMatchQueue;
+      debugPrint('Reverted local changes for match $matchId');
+      return false;
+    }
+  }
+
   /// Transition from group phase to knockout phase
   /// This will evaluate the group standings and populate the knockout structure
   Future<bool> transitionToKnockouts({int numberOfGroups = 8}) async {
@@ -315,8 +416,19 @@ class TournamentDataState extends ChangeNotifier {
 
       debugPrint("Here 4");
 
-      // Save knockouts to Firestore
+      // Clear match queue and fill with knockout matches
+      _matchQueue = MatchQueue(
+        waiting: List.generate(6, (_) => <Match>[]),
+        playing: [],
+      );
+      _matchQueue.updateKnockQueue(knockouts);
+
+      debugPrint("Match queue updated with knockout matches");
+
+      // Save knockouts and match queue to Firestore
       await service.saveKnockouts(knockouts,
+          tournamentId: _currentTournamentId);
+      await service.saveMatchQueue(_matchQueue,
           tournamentId: _currentTournamentId);
 
       debugPrint(
@@ -325,6 +437,7 @@ class TournamentDataState extends ChangeNotifier {
 
       // Update local state
       _knockouts = knockouts;
+      _isKnockoutMode = true;
       notifyListeners();
 
       debugPrint("Here 5");

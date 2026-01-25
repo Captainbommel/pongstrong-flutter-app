@@ -120,12 +120,50 @@ class Knockouts {
     superCup.instantiate();
   }
 
+  // updateMatchScore finds a match by ID and updates its score
+  // Returns true if the match was found and updated, false otherwise
+  bool updateMatchScore(String matchId, int score1, int score2) {
+    // Helper function to search and update in rounds
+    bool searchAndUpdate(List<List<Match>> rounds) {
+      for (var round in rounds) {
+        for (var match in round) {
+          if (match.id == matchId) {
+            match.score1 = score1;
+            match.score2 = score2;
+            match.done = true;
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // Search in all tournament structures
+    if (searchAndUpdate(champions.rounds)) return true;
+    if (searchAndUpdate(europa.rounds)) return true;
+    if (searchAndUpdate(conference.rounds)) return true;
+
+    // Search in super cup
+    for (var match in superCup.matches) {
+      if (match.id == matchId) {
+        match.score1 = score1;
+        match.score2 = score2;
+        match.done = true;
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   // update checks for finished matches and moves teams to the next round
   void update() {
     if (champions.rounds[0][0].teamId1.isEmpty &&
         champions.rounds[0][0].teamId2.isEmpty) {
       return;
     }
+
+    //TODO: the same team gets moved multiple times into the next round
 
     // champ
     for (int i = 0; i < champions.rounds.length - 1; i++) {
