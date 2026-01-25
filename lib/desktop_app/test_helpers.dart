@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:pongstrong/models/evaluation.dart';
 import 'package:pongstrong/services/firestore_service.dart';
 import 'package:pongstrong/services/import_service.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
@@ -79,7 +80,7 @@ class TestDataHelpers {
       final matchQueue = await service.loadMatchQueue(
         tournamentId: FirestoreService.defaultTournamentId,
       );
-      final tabellen = await service.loadTabellen(
+      final gruppenphase = await service.loadGruppenphase(
         tournamentId: FirestoreService.defaultTournamentId,
       );
 
@@ -87,11 +88,11 @@ class TestDataHelpers {
       if (context.mounted &&
           loadedTeams != null &&
           matchQueue != null &&
-          tabellen != null) {
+          gruppenphase != null) {
         Provider.of<TournamentDataState>(context, listen: false).loadData(
           teams: loadedTeams,
           matchQueue: matchQueue,
-          tabellen: tabellen,
+          tabellen: evalGruppen(gruppenphase),
         );
         debugPrint('✓ Data loaded into app state');
       }

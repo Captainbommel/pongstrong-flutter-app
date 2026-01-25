@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart' hide TableRow;
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service.dart';
-import 'package:pongstrong/models/evaluation.dart';
 
 /// Holds the current tournament data loaded from Firestore
 class TournamentDataState extends ChangeNotifier {
@@ -30,12 +29,13 @@ class TournamentDataState extends ChangeNotifier {
       final teams = await service.loadTeams(tournamentId: tournamentId);
       final matchQueue =
           await service.loadMatchQueue(tournamentId: tournamentId);
-      final tabellen = await service.loadTabellen(tournamentId: tournamentId);
+      final gruppenphase =
+          await service.loadGruppenphase(tournamentId: tournamentId);
 
-      if (teams != null && matchQueue != null && tabellen != null) {
+      if (teams != null && matchQueue != null && gruppenphase != null) {
         _teams = teams;
         _matchQueue = matchQueue;
-        _tabellen = tabellen;
+        _tabellen = evalGruppen(gruppenphase);
         _currentTournamentId = tournamentId;
         // Start listening to real-time updates
         _setupStreams();

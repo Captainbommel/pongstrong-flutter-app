@@ -245,7 +245,9 @@ class FirestoreService {
     await _getDoc(tournamentId, 'tabellen').set(data);
   }
 
-  /// Loads standings/tables from Firestore
+  /// Loads standings from Firestore.
+  /// Note: standings should be generated using evalGruppen,
+  /// this is just for the case that no Gruppenphase data is available.
   Future<Tabellen?> loadTabellen({
     String tournamentId = defaultTournamentId,
   }) async {
@@ -650,9 +652,10 @@ class FirestoreService {
     String tournamentId = defaultTournamentId,
     required int numberOfGroups,
   }) async {
-    // Load current standings
-    final tabellen = await loadTabellen(tournamentId: tournamentId);
-    if (tabellen == null) return;
+    // Load gruppenphase and calculate standings
+    final gruppenphase = await loadGruppenphase(tournamentId: tournamentId);
+    if (gruppenphase == null) return;
+    final tabellen = evalGruppen(gruppenphase);
 
     // Evaluate and create knockouts
     final knockouts = numberOfGroups == 8
