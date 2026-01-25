@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide TableRow;
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service.dart';
 
@@ -94,9 +94,86 @@ class TournamentDataState extends ChangeNotifier {
     return success;
   }
 
-  /// Remove a match from playing queue
-  void finishMatch(String matchId) {
+  /// Remove a match from playing queue and update standings
+  Future<bool> finishMatch(String matchId) async {
+    // find the match in playing
+    final match = _matchQueue.playing.firstWhere(
+      (m) => m.id == matchId,
+      orElse: () => Match(),
+    );
+    if (match.id.isEmpty) return false; // match not found
+
+    // validate score from queue
+    final points = match.getPoints();
+    if (points == null) {
+      debugPrint('Invalid score for match $matchId - not updating standings');
+      return false; // invalid score
+    }
+
+    // load gruppenphase
+    final service = FirestoreService();
+    final gruppenphase =
+        await service.loadGruppenphase(tournamentId: _currentTournamentId);
+
+    if (gruppenphase == null) {
+      debugPrint('Could not load gruppenphase for match $matchId');
+      return false;
+    }
+
+    // Find which group contains this match and update it
+    int groupIndex = -1;
+    Match? gruppenphasMatch;
+    for (int i = 0; i < gruppenphase.groups.length; i++) {
+      for (var m in gruppenphase.groups[i]) {
+        if (m.id == matchId) {
+          groupIndex = i;
+          gruppenphasMatch = m;
+          break;
+        }
+      }
+      if (gruppenphasMatch != null) break;
+    }
+
+    if (gruppenphasMatch == null) {
+      debugPrint('Match $matchId not found in gruppenphase');
+      return false;
+    }
+
+    // update the match with final scores
+    gruppenphasMatch.score1 = match.score1;
+    gruppenphasMatch.score2 = match.score2;
+    gruppenphasMatch.done = true;
+
+    debugPrint(
+      'Updated match $matchId in gruppenphase: ${match.score1}-${match.score2}',
+    );
+
+    // remove from playing
     _matchQueue.removeFromPlaying(matchId);
+
+    // recalculate tables
+    final updatedTables = evalGruppen(gruppenphase);
+    _tabellen = updatedTables;
+
+    // update Firestore
+    await service.saveGruppenphase(
+      gruppenphase,
+      tournamentId: _currentTournamentId,
+    );
+    await service.saveTabellen(
+      _tabellen,
+      tournamentId: _currentTournamentId,
+    );
+    await service.saveMatchQueue(
+      _matchQueue,
+      tournamentId: _currentTournamentId,
+    );
+
+    debugPrint(
+      'Saved updated gruppenphase, tables, and match queue for group $groupIndex',
+    );
+
     notifyListeners();
+    return true;
   }
 }

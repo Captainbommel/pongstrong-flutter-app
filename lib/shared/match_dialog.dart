@@ -88,7 +88,7 @@ Future<dynamic> finnishMatchDialog(
               ),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 // Update match with scores and mark as done
                 match.score1 = int.tryParse(cups1.text) ?? 0;
                 match.score2 = int.tryParse(cups2.text) ?? 0;
@@ -97,7 +97,20 @@ Future<dynamic> finnishMatchDialog(
                 // Remove match from playing queue through TournamentDataState
                 final tournamentData =
                     Provider.of<TournamentDataState>(context, listen: false);
-                tournamentData.finishMatch(match.id);
+                final success = await tournamentData.finishMatch(match.id);
+
+                if (!context.mounted) return;
+
+                if (!success) {
+                  // Show error if unable to finish match
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Fehler beim Abschließen des Spiels'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
 
                 // Close the dialog
                 Navigator.pop(context);

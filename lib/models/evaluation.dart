@@ -31,17 +31,32 @@ bool isValid(int b1, int b2) {
   return false;
 }
 
-// evaluate evaluates a slice of Matches and returns a table
+// evaluate evaluates a List of Matches and returns a table
 List<TableRow> evaluate(List<Match> matches) {
   final table = List.generate(4, (_) => TableRow());
-  const pattern = [0, 1, 2, 3, 0, 2, 1, 3, 3, 0, 1, 2];
 
-  for (int i = 0; i < matches.length; i++) {
-    final match = matches[i];
-    final t1 = pattern[i * 2];
-    final t2 = pattern[i * 2 + 1];
+  // Build a map of teamId -> table index by scanning all matches
+  final teamIndexMap = <String, int>{};
+  for (var match in matches) {
+    if (!teamIndexMap.containsKey(match.teamId1)) {
+      teamIndexMap[match.teamId1] = teamIndexMap.length;
+    }
+    if (!teamIndexMap.containsKey(match.teamId2)) {
+      teamIndexMap[match.teamId2] = teamIndexMap.length;
+    }
+  }
 
+  // Set team IDs in table based on their assigned indices
+  for (var entry in teamIndexMap.entries) {
+    table[entry.value].teamId = entry.key;
+  }
+
+  // Calculate standings for each finished match
+  for (var match in matches) {
     if (match.done) {
+      final t1 = teamIndexMap[match.teamId1]!;
+      final t2 = teamIndexMap[match.teamId2]!;
+
       final points = match.getPoints();
       if (points != null) {
         table[t1].punkte += points.$1;
@@ -54,12 +69,6 @@ List<TableRow> evaluate(List<Match> matches) {
       table[t1].becher += cups(match.score1);
       table[t2].becher += cups(match.score2);
     }
-  }
-
-  // Set team IDs
-  for (int i = 0; i < 2; i++) {
-    table[pattern[i * 2]].teamId = matches[0].teamId1;
-    table[pattern[i * 2 + 1]].teamId = matches[0].teamId2;
   }
 
   return table;

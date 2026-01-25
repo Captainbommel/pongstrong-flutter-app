@@ -62,9 +62,15 @@ class Match {
       return (looser[0], winner[0]);
     }
     // overtime
-    if (score1 >= 10 && score2 >= 10 && score1 > score2) {
+    if ((score1 == 16 || score1 == 19) && score1 > score2) {
       return (winner[1], looser[1]);
-    } else if (score1 >= 10 && score2 >= 10 && score2 > score1) {
+    } else if ((score2 == 16 || score2 == 19) && score2 > score1) {
+      return (looser[1], winner[1]);
+    }
+    // 1 on 1
+    if (score2 >= 19 && score1 > score2) {
+      return (winner[1], looser[1]);
+    } else if (score1 >= 19 && score2 > score1) {
       return (looser[1], winner[1]);
     }
     return null; // invalid scores
