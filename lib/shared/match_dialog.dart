@@ -122,14 +122,37 @@ Future<dynamic> finnishMatchDialog(
   );
 }
 
+class CupsTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // allow empty input
+    if (newValue.text.isEmpty) return newValue;
+
+    // allow digits and minus sign
+    if (!RegExp(r'^-?[0-9]*$').hasMatch(newValue.text)) {
+      return oldValue;
+    }
+
+    // only allow integers between -2 and 100
+    final int? value = int.tryParse(newValue.text);
+    if (value == null || value < -2 || value > 100) {
+      return oldValue;
+    }
+
+    return newValue;
+  }
+}
+
 SizedBox cupInput(TextEditingController cups1) {
   return SizedBox(
     width: 100,
     child: TextField(
       controller: cups1,
       keyboardType: TextInputType.number,
-      //TODO: add a custom input formatter fitting for rules of the given game
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      inputFormatters: [CupsTextInputFormatter()],
       textAlign: TextAlign.center,
       cursorColor: FieldColors.skyblue,
       decoration: InputDecoration(
