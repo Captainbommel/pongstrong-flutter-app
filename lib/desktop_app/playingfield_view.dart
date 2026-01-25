@@ -102,6 +102,7 @@ class PlayingField extends StatelessWidget {
               team2?.name ?? 'Team 2',
               TextEditingController(),
               TextEditingController(),
+              match,
             );
           },
           key: Key('playing_${match.id}'),
@@ -142,6 +143,7 @@ class PlayingField extends StatelessWidget {
                     team2?.name ?? 'Team 2',
                     [team1?.mem1 ?? '', team1?.mem2 ?? ''],
                     [team2?.mem1 ?? '', team2?.mem2 ?? ''],
+                    match,
                   );
                 }
               : null,

@@ -13,62 +13,73 @@ class MatchQueue {
         playing = playing ?? [];
 
   // switchPlaying moves the match at index from Waiting to Playing
-  bool switchPlaying(int index) {
-    if (waiting[index].isEmpty) return false;
-    if (!isFree(index + 1)) return false;
+  bool switchPlaying(String matchId) {
+    Match? match;
+    int groupIndex = -1;
 
-    final match = waiting[index][0];
-    waiting[index].removeAt(0);
+    // find the match by ID in waiting lists
+    for (int i = 0; i < waiting.length; i++) {
+      if (waiting[i].isNotEmpty && waiting[i][0].id == matchId) {
+        match = waiting[i][0];
+        groupIndex = i;
+        break;
+      }
+    }
+
+    if (match == null) return false;
+    if (!isFree(match.tischNr)) return false;
+
+    waiting[groupIndex].removeAt(0);
     playing.add(match);
     return true;
   }
 
-  // remove removes the Match from the MatchQueue
+  // removeFromPlaying removes the Match from the MatchQueue
   bool removeFromPlaying(String id) {
-    final index = playing.indexWhere((m) => m.id == id);
+    final index = playing.indexWhere((match) => match.id == id);
+
     if (index != -1) {
       playing.removeAt(index);
       return true;
     }
+
     return false;
   }
 
-  // Next returns the first Match from Queue index
-  Match? next(int index) {
-    if (waiting[index].isEmpty) return null;
-    return waiting[index][0];
-  }
-
-  // nextMatches returns all Matches with unoccupied table
+  // nextMatches returns all Matches with unoccupied table that are next in line
   List<Match> nextMatches() {
     final matches = <Match>[];
+
     for (int i = 0; i < waiting.length; i++) {
       if (waiting[i].isNotEmpty && isFree(waiting[i][0].tischNr)) {
         matches.add(waiting[i][0]);
       }
     }
+
     return matches;
   }
 
-  // NextNextMatch returns all Matches with occupied table
+  // nextNextMatches returns all Matches with occupied table that are next in line
   List<Match> nextNextMatches() {
     final matches = <Match>[];
+
     for (int i = 0; i < waiting.length; i++) {
       if (waiting[i].isNotEmpty && !isFree(waiting[i][0].tischNr)) {
         matches.add(waiting[i][0]);
       }
     }
+
     return matches;
   }
 
-  // getMatchID returns the ID of the Match at table t if in Playing
-  String? getMatchId(int index) {
+  // isFree checks if table tischNr is free
+  bool isFree(int tischNr) {
     for (var match in playing) {
-      if (match.tischNr == index) {
-        return match.id;
+      if (match.tischNr == tischNr) {
+        return false;
       }
     }
-    return null;
+    return true;
   }
 
   // contains checks if a Match is already in the MatchQueue
@@ -84,18 +95,10 @@ class MatchQueue {
     return false;
   }
 
-  // isFree checks if table index is free
-  bool isFree(int index) {
-    for (var m in playing) {
-      if (m.tischNr == index) return false;
-    }
-    return true;
-  }
-
   // isEmpty returns true if q is completely empty
   bool isEmpty() {
-    for (var line in waiting) {
-      if (line.isNotEmpty) return false;
+    for (var group in waiting) {
+      if (group.isNotEmpty) return false;
     }
     return playing.isEmpty;
   }
@@ -147,17 +150,17 @@ class MatchQueue {
     );
 
     const pattern = [
-      [0, 1, 2, 3, 4, 5],
-      [1, 2, 3, 4, 5, 0],
-      [2, 3, 4, 5, 0, 1],
-      [3, 4, 5, 0, 1, 2],
-      [4, 5, 0, 1, 2, 3],
-      [5, 0, 1, 2, 3, 4],
+      [1, 2, 5, 6, 3, 4],
+      [3, 4, 1, 2, 5, 6],
+      [5, 6, 3, 4, 1, 2],
+      [1, 2, 5, 6, 3, 4],
+      [3, 4, 1, 2, 5, 6],
+      [5, 6, 3, 4, 1, 2],
     ];
 
     for (int i = 0; i < pattern[0].length; i++) {
       for (int j = 0; j < gruppenphase.groups.length; j++) {
-        queue.waiting[i].add(gruppenphase.groups[pattern[j][i]][i]);
+        queue.waiting[pattern[j][i] - 1].add(gruppenphase.groups[j][i]);
       }
     }
 

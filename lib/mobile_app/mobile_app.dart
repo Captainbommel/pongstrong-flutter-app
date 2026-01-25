@@ -162,59 +162,47 @@ FieldView nextGames(BuildContext context) {
     Consumer<TournamentDataState>(
       builder: (context, data, child) {
         if (!data.hasData) {
-          return FieldView(
-            'Laufende Spiele',
-            FieldColors.tomato,
-            FieldColors.tomato.withAlpha(128),
-            true,
-            const Center(child: Text('Keine Daten geladen')),
-          );
+          return const Center(child: Text('Keine Daten geladen'));
         }
 
-        final playing = data.getPlayingMatches();
+        final nextMatches = data.getNextMatches();
+        final nextNextMatches = data.getNextNextMatches();
+        final allNextMatches = [...nextMatches, ...nextNextMatches];
 
-        if (playing.isEmpty) {
-          return FieldView(
-            'Laufende Spiele',
-            FieldColors.tomato,
-            FieldColors.tomato.withAlpha(128),
-            true,
-            const Center(child: Text('Keine laufenden Spiele')),
-          );
+        if (allNextMatches.isEmpty) {
+          return const Center(child: Text('Keine nächsten Spiele'));
         }
 
-        return FieldView(
-          'Laufende Spiele',
-          FieldColors.tomato,
-          FieldColors.tomato.withAlpha(128),
-          true,
-          Column(
-            children: playing.map((match) {
-              final team1 = data.getTeam(match.teamId1);
-              final team2 = data.getTeam(match.teamId2);
+        return Column(
+          children: allNextMatches.map((match) {
+            final team1 = data.getTeam(match.teamId1);
+            final team2 = data.getTeam(match.teamId2);
+            final isReady = nextMatches.contains(match);
 
-              return Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: MatchView(
-                  team1?.name ?? 'Team 1',
-                  team2?.name ?? 'Team 2',
-                  match.tischNr.toString(),
-                  TableColors.get(match.tischNr - 1),
-                  true,
-                  onTap: () {
-                    finnishMatchDialog(
-                      context,
-                      team1?.name ?? 'Team 1',
-                      team2?.name ?? 'Team 2',
-                      TextEditingController(),
-                      TextEditingController(),
-                    );
-                  },
-                  key: Key('playing_${match.id}'),
-                ),
-              );
-            }).toList(),
-          ),
+            return Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: MatchView(
+                team1?.name ?? 'Team 1',
+                team2?.name ?? 'Team 2',
+                match.tischNr.toString(),
+                TableColors.get(match.tischNr - 1),
+                isReady,
+                onTap: isReady
+                    ? () {
+                        startMatchDialog(
+                          context,
+                          team1?.name ?? 'Team 1',
+                          team2?.name ?? 'Team 2',
+                          [team1?.mem1 ?? '', team1?.mem2 ?? ''],
+                          [team2?.mem1 ?? '', team2?.mem2 ?? ''],
+                          match,
+                        );
+                      }
+                    : null,
+                key: Key('next_${match.id}'),
+              ),
+            );
+          }).toList(),
         );
       },
     ),
@@ -227,27 +215,47 @@ FieldView runningGames(BuildContext context) {
     FieldColors.tomato,
     FieldColors.tomato.withAlpha(128),
     true,
-    Column(
-      //alignment: WrapAlignment.center,
-      children: [
-        for (var i = 0; i < 8; i++)
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: MatchView(
-              'Kotstulle',
-              'Testikuläre Torsion',
-              (i + 1).toString(),
-              TableColors.get(i),
-              true,
-              onTap: () {
-                finnishMatchDialog(context, 'Kotstulle', 'Testikuläre Torsion',
-                    TextEditingController(), TextEditingController());
-                debugPrint('Match ${i + 1} pressed');
-              },
-              key: Key('cumatch_$i'), // is this needed?
-            ),
-          )
-      ],
+    Consumer<TournamentDataState>(
+      builder: (context, data, child) {
+        if (!data.hasData) {
+          return const Center(child: Text('Keine Daten geladen'));
+        }
+
+        final playing = data.getPlayingMatches();
+
+        if (playing.isEmpty) {
+          return const Center(child: Text('Keine laufenden Spiele'));
+        }
+
+        return Column(
+          children: playing.map((match) {
+            final team1 = data.getTeam(match.teamId1);
+            final team2 = data.getTeam(match.teamId2);
+
+            return Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: MatchView(
+                team1?.name ?? 'Team 1',
+                team2?.name ?? 'Team 2',
+                match.tischNr.toString(),
+                TableColors.get(match.tischNr - 1),
+                true,
+                onTap: () {
+                  finnishMatchDialog(
+                    context,
+                    team1?.name ?? 'Team 1',
+                    team2?.name ?? 'Team 2',
+                    TextEditingController(),
+                    TextEditingController(),
+                    match,
+                  );
+                },
+                key: Key('playing_${match.id}'),
+              ),
+            );
+          }).toList(),
+        );
+      },
     ),
   );
 }

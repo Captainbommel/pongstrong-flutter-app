@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pongstrong/shared/colors.dart';
 import 'package:pongstrong/shared/match_view.dart';
 import 'package:pongstrong/shared/match_dialog.dart';
+import 'package:pongstrong/models/match.dart';
 
 //TODO: move all test objects to firestore
 
@@ -24,6 +25,7 @@ final runningMatches = [
               'Testikuläre Torsion',
               TextEditingController(),
               TextEditingController(),
+              Match(id: 'test_$i', tischNr: i + 1),
             );
             debugPrint('Match ${i + 1} pressed');
           },
@@ -54,6 +56,7 @@ final upcomingMatches = [
                     'Penispumpe3000',
                     <String>['Hubert', 'Klaus'],
                     <String>['Giovanni', 'Karl'],
+                    Match(id: 'test_$i', tischNr: i + 1),
                   );
                   debugPrint('Match ${i + 1} pressed');
                 },

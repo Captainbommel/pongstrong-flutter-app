@@ -2,6 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pongstrong/shared/colors.dart';
+import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/shared/tournament_data_state.dart';
+import 'package:provider/provider.dart';
 
 Future<dynamic> finnishMatchDialog(
   BuildContext context,
@@ -9,18 +12,33 @@ Future<dynamic> finnishMatchDialog(
   String team2,
   TextEditingController cups1,
   TextEditingController cups2,
+  Match match,
 ) {
-  //TODO: change appearance of finnishMatchDialog based on screen size
   return showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      final isLargeScreen = screenWidth > 600;
+
       return Container(
         height: MediaQuery.of(context).size.height / 3,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
-          border: Border(
-            top: BorderSide(color: FieldColors.skyblue, width: 14.0),
-          ),
+          border: isLargeScreen
+              ? const Border(
+                  top: BorderSide(color: FieldColors.skyblue, width: 14.0),
+                  left: BorderSide(color: FieldColors.skyblue, width: 14.0),
+                  right: BorderSide(color: FieldColors.skyblue, width: 14.0),
+                )
+              : const Border(
+                  top: BorderSide(color: FieldColors.skyblue, width: 14.0),
+                ),
+          borderRadius: isLargeScreen
+              ? const BorderRadius.only(
+                  topLeft: Radius.circular(12.0),
+                  topRight: Radius.circular(12.0),
+                )
+              : BorderRadius.zero,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -71,7 +89,18 @@ Future<dynamic> finnishMatchDialog(
             ),
             ElevatedButton(
               onPressed: () {
-                //TODO: implement finish match logic
+                // Update match with scores and mark as done
+                match.score1 = int.tryParse(cups1.text) ?? 0;
+                match.score2 = int.tryParse(cups2.text) ?? 0;
+                match.done = true;
+
+                // Remove match from playing queue through TournamentDataState
+                final tournamentData =
+                    Provider.of<TournamentDataState>(context, listen: false);
+                tournamentData.finishMatch(match.id);
+
+                // Close the dialog
+                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
@@ -130,18 +159,33 @@ Future<dynamic> startMatchDialog(
   String team2,
   List<String> members1,
   List<String> members2,
+  Match match,
 ) {
-  //TODO: change appearance of startMatchDialog based on screen size
   return showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      final isLargeScreen = screenWidth > 600;
+
       return Container(
         height: MediaQuery.of(context).size.height / 3,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
-          border: Border(
-            top: BorderSide(color: FieldColors.skyblue, width: 14.0),
-          ),
+          border: isLargeScreen
+              ? const Border(
+                  top: BorderSide(color: FieldColors.skyblue, width: 14.0),
+                  left: BorderSide(color: FieldColors.skyblue, width: 14.0),
+                  right: BorderSide(color: FieldColors.skyblue, width: 14.0),
+                )
+              : const Border(
+                  top: BorderSide(color: FieldColors.skyblue, width: 14.0),
+                ),
+          borderRadius: isLargeScreen
+              ? const BorderRadius.only(
+                  topLeft: Radius.circular(12.0),
+                  topRight: Radius.circular(12.0),
+                )
+              : BorderRadius.zero,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -176,7 +220,24 @@ Future<dynamic> startMatchDialog(
             ),
             ElevatedButton(
               onPressed: () {
-                //TODO: implement start match logic
+                final tournamentData =
+                    Provider.of<TournamentDataState>(context, listen: false);
+                final matchId = match.id;
+                debugPrint(
+                    'Starting match with ID $matchId at table ${match.tischNr}');
+
+                // Try to move match from waiting to playing
+                if (tournamentData.startMatch(matchId)) {
+                  Navigator.pop(context);
+                } else {
+                  // Show error if table not available
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Tisch nicht verfügbar'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
