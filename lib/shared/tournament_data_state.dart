@@ -141,10 +141,11 @@ class TournamentDataState extends ChangeNotifier {
 
   /// Move a match from waiting to playing queue
   Future<bool> startMatch(String matchId) async {
+    // Store previous state for rollback
+    final previousMatchQueue = _matchQueue.clone();
+
     final success = _matchQueue.switchPlaying(matchId);
     if (!success) return false;
-
-    //TODO: If saving to firestore fails, we should revert the change locally
 
     // Save updated match queue to Firestore
     try {
@@ -156,6 +157,9 @@ class TournamentDataState extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('Error saving match queue: $e');
+      // Revert local changes on Firestore save failure
+      _matchQueue = previousMatchQueue;
+      debugPrint('Reverted local match queue changes for match $matchId');
       return false;
     }
   }
@@ -214,6 +218,10 @@ class TournamentDataState extends ChangeNotifier {
       'Updated match $matchId in gruppenphase: ${match.score1}-${match.score2}',
     );
 
+    // Store previous state for rollback
+    final previousMatchQueue = _matchQueue.clone();
+    final previousTabellen = _tabellen.clone();
+
     // remove from playing
     _matchQueue.removeFromPlaying(matchId);
 
@@ -222,24 +230,33 @@ class TournamentDataState extends ChangeNotifier {
     _tabellen = updatedTables;
 
     // update Firestore
-    await service.saveGruppenphase(
-      gruppenphase,
-      tournamentId: _currentTournamentId,
-    );
-    await service.saveTabellen(
-      _tabellen,
-      tournamentId: _currentTournamentId,
-    );
-    await service.saveMatchQueue(
-      _matchQueue,
-      tournamentId: _currentTournamentId,
-    );
+    try {
+      await service.saveGruppenphase(
+        gruppenphase,
+        tournamentId: _currentTournamentId,
+      );
+      await service.saveTabellen(
+        _tabellen,
+        tournamentId: _currentTournamentId,
+      );
+      await service.saveMatchQueue(
+        _matchQueue,
+        tournamentId: _currentTournamentId,
+      );
 
-    debugPrint(
-      'Saved updated gruppenphase, tables, and match queue for group $groupIndex',
-    );
+      debugPrint(
+        'Saved updated gruppenphase, tables, and match queue for group $groupIndex',
+      );
 
-    notifyListeners();
-    return true;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error saving to Firestore: $e');
+      // Revert local changes on Firestore save failure
+      _matchQueue = previousMatchQueue;
+      _tabellen = previousTabellen;
+      debugPrint('Reverted local changes for match $matchId');
+      return false;
+    }
   }
 }

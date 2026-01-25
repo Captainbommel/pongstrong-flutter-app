@@ -64,4 +64,8 @@ class Tabellen {
                 .toList())
             .toList(),
       );
+
+  /// Creates a deep copy of this Tabellen.
+  /// Note: This uses JSON serialization and should be used sparingly for performance reasons.
+  Tabellen clone() => Tabellen.fromJson(toJson());
 }

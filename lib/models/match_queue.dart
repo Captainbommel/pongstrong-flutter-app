@@ -186,4 +186,8 @@ class MatchQueue {
                 .toList() ??
             [],
       );
+
+  /// Creates a deep copy of this MatchQueue.
+  /// Note: This uses JSON serialization and should be used sparingly for performance reasons.
+  MatchQueue clone() => MatchQueue.fromJson(toJson());
 }
