@@ -8,6 +8,7 @@ import 'package:pongstrong/desktop_app/desktop_app.dart';
 import 'package:pongstrong/mobile_app/mobile_app.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
 import 'package:pongstrong/shared/tournament_selection_state.dart';
+import 'package:pongstrong/shared/tournament_selection_dialog.dart';
 import 'package:pongstrong/services/firestore_service.dart';
 import 'package:provider/provider.dart';
 
@@ -58,174 +59,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// Dialog for selecting a tournament
-class _TournamentSelectionDialog extends StatefulWidget {
-  const _TournamentSelectionDialog();
-
-  @override
-  State<_TournamentSelectionDialog> createState() =>
-      _TournamentSelectionDialogState();
-}
-
-class _TournamentSelectionDialogState
-    extends State<_TournamentSelectionDialog> {
-  late Future<List<String>> _tournamentsFuture;
-  final FirestoreService _firestoreService = FirestoreService();
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _tournamentsFuture = _firestoreService.listTournaments();
-  }
-
-  Future<void> _onTournamentSelected(String tournamentId) async {
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Load tournament data
-    final success =
-        await Provider.of<TournamentDataState>(context, listen: false)
-            .loadTournamentData(tournamentId);
-
-    if (mounted) {
-      if (success) {
-        // Mark tournament as selected and close the selection dialog
-        Provider.of<TournamentSelectionState>(context, listen: false)
-            .setSelectedTournament(tournamentId);
-        Navigator.pop(context); // Close tournament selection dialog
-      } else {
-        // Show error
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to load tournament data'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<String>>(
-      future: _tournamentsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Dialog(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Loading tournaments...'),
-                ],
-              ),
-            ),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Dialog(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Error loading tournaments',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(snapshot.error.toString()),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Close'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        final tournaments = snapshot.data ?? [];
-
-        if (tournaments.isEmpty) {
-          return const Dialog(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'No tournaments available',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 16),
-                  Text('Please create a tournament first.'),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Select Tournament',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                if (_isLoading)
-                  const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Loading tournament data...'),
-                    ],
-                  )
-                else
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 300),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: tournaments.length,
-                      itemBuilder: (context, index) {
-                        final tournamentId = tournaments[index];
-                        return ListTile(
-                          title: Text(tournamentId),
-                          onTap: () => _onTournamentSelected(tournamentId),
-                        );
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
 /// Widget that selects between Desktop and Mobile app based on screen size
 class AppSelector extends StatefulWidget {
   const AppSelector({super.key});
@@ -242,12 +75,32 @@ class _AppSelectorState extends State<AppSelector> {
   }
 
   void _checkAndShowTournamentDialog() {
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 300), () async {
       if (mounted) {
         final selectionState =
             Provider.of<TournamentSelectionState>(context, listen: false);
         if (!selectionState.hasSelectedTournament) {
-          _showTournamentSelectionDialog();
+          // Check if there's only one tournament
+          final firestoreService = FirestoreService();
+          try {
+            final tournaments = await firestoreService.listTournaments();
+            if (mounted) {
+              if (tournaments.length == 1) {
+                // Automatically load the single tournament
+                await Provider.of<TournamentDataState>(context, listen: false)
+                    .loadTournamentData(tournaments[0]);
+                selectionState.setSelectedTournament(tournaments[0]);
+              } else {
+                // Show dialog if multiple tournaments or none
+                _showTournamentSelectionDialog();
+              }
+            }
+          } catch (e) {
+            // Show dialog if error fetching tournaments
+            if (mounted) {
+              _showTournamentSelectionDialog();
+            }
+          }
         }
       }
     });
@@ -257,7 +110,7 @@ class _AppSelectorState extends State<AppSelector> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const _TournamentSelectionDialog(),
+      builder: (context) => const TournamentSelectionDialog(),
     );
   }
 
