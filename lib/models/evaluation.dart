@@ -143,12 +143,25 @@ Knockouts evaluateGroups6(Tabellen tabellen) {
   knock.instantiate();
 
   // CHAMP
-  const first = [1, 4, 2, 5, 3, 6];
+
+  /// The first number refers to the 8 slots in the first round of the champions knockout,
+  /// the second number indicates the empty team slot.
+  const firstsSlotPattern = [
+    [1, 0],
+    [4, 0],
+    [2, 0],
+    [5, 0],
+    [3, 0],
+    [6, 0],
+  ];
+
   for (int j = 0; j < 6; j++) {
-    knock.champions.rounds[0][first[j] - 1].teamId1 = teamIds[j][0];
+    knock.champions.rounds[0][firstsSlotPattern[j][0]].teamId1 = teamIds[j][0];
   }
 
-  const second = [
+  /// The first number refers to the 8 slots in the first round of the champions knockout,
+  /// the second number indicates the empty team slot.
+  const secondsSlotPattern = [
     [7, 0],
     [0, 0],
     [5, 1],
@@ -157,10 +170,14 @@ Knockouts evaluateGroups6(Tabellen tabellen) {
     [0, 1]
   ];
   for (int j = 0; j < 6; j++) {
-    if (second[j][0] == 0) continue;
-    final idx = second[j][0] - 1;
-    final teamIdx = second[j][1];
-    knock.champions.rounds[0][idx].teamId2 = teamIds[j][teamIdx];
+    final idx = secondsSlotPattern[j][0];
+    final slot = secondsSlotPattern[j][1];
+
+    if (slot == 0) {
+      knock.champions.rounds[0][idx].teamId1 = teamIds[j][1];
+    } else {
+      knock.champions.rounds[0][idx].teamId2 = teamIds[j][1];
+    }
   }
 
   // Find best thirds
@@ -173,7 +190,10 @@ Knockouts evaluateGroups6(Tabellen tabellen) {
   final thirdIds = allThirds.map((row) => row.teamId).toList();
   final bestThirdIds = thirdIds.sublist(0, 4);
 
-  const pattern = [
+  /// The first number refers to the 8 slots in the first round of the champions knockout,
+  /// the list indicates all allowed origin groups (0-5) for that slot, so
+  /// that no two teams from the same group meet in the second round.
+  const bestThirdsSlotPattern = [
     [
       [1],
       [2, 3, 4]
@@ -191,52 +211,76 @@ Knockouts evaluateGroups6(Tabellen tabellen) {
       [1, 2, 3]
     ]
   ];
+  for (int i = 0; i < 4; i++) {
+    final remainingThirds = List.of(bestThirdIds);
 
-  // Fill remaining slots 1, 3, 4, 6 with best thirds
-  for (int i = 0; i < 3; i++) {
-    for (var posPattern in pattern) {
-      if (posPattern[1].contains(thirdIds.indexOf(bestThirdIds[i]))) {
-        knock.champions.rounds[0][posPattern[0][0] - 1].teamId2 =
-            bestThirdIds[i];
-        break;
+    for (int j = 0; j < remainingThirds.length; j++) {
+      // find origin group of this third placed team
+      final origin = tabellen.tables.indexWhere(
+        (table) => table.any((row) => row.teamId == remainingThirds[j]),
+      );
+
+      // loop over allowed slots of pattern_i
+      for (int k = 0; k < 3; k++) {
+        // check if origin matches an allowed origin
+        if (bestThirdsSlotPattern[i][1][k] == origin + 1) {
+          knock.champions.rounds[0][bestThirdsSlotPattern[i][0][0]].teamId2 =
+              remainingThirds[j];
+          remainingThirds.removeAt(j);
+          break;
+        }
       }
     }
+
+    if (remainingThirds.isEmpty) {
+      break;
+    }
+
+    bestThirdIds.insertAll(0, bestThirdIds.sublist(3));
+    bestThirdIds.removeRange(3, bestThirdIds.length);
   }
 
-  // EUROPA - find best fourths
+  // EUROPA
+
+  // find best fourths
   final allFourth = <TableRow>[];
   for (int i = 0; i < 6; i++) {
     allFourth.add(tabellen.tables[i][3]);
   }
+
   Tabellen.sortTable(allFourth);
 
   final fourthIds = allFourth.map((row) => row.teamId).toList();
-  final bestFourthIds = fourthIds.sublist(0, 4);
 
-  var i = 0;
-  var j = 0;
-  while (j < 8) {
-    if (i % 2 == 0) {
-      knock.europa.rounds[0][j ~/ 2].teamId1 = bestFourthIds[i];
-    } else {
-      knock.europa.rounds[0][j ~/ 2].teamId2 = bestFourthIds[i];
-      j++;
-    }
-    i++;
-  }
+  // 5th-6th best thirds and top 2 fourths
+  final euroTeamIds = <String>[
+    thirdIds[4],
+    thirdIds[5],
+    fourthIds[0],
+    fourthIds[1],
+  ];
+
+  // skips round 0
+  knock.europa.rounds[1][0].teamId1 = euroTeamIds[0];
+  knock.europa.rounds[1][0].teamId2 = euroTeamIds[1];
+  knock.europa.rounds[1][1].teamId1 = euroTeamIds[2];
+  knock.europa.rounds[1][1].teamId2 = euroTeamIds[3];
 
   // CONFERENCE
-  i = 0;
-  j = 0;
-  while (j < 8) {
-    if (i % 2 == 0) {
-      knock.conference.rounds[0][j ~/ 2].teamId1 = fourthIds[i + 4];
-    } else {
-      knock.conference.rounds[0][j ~/ 2].teamId2 = fourthIds[i + 4];
-      j++;
-    }
-    i++;
-  }
+
+  // 3rd-6th best fourths
+  final confTeamIds = <String>[
+    fourthIds[2],
+    fourthIds[3],
+    fourthIds[4],
+    fourthIds[5],
+  ];
+
+  // skips round 0
+  knock.conference.rounds[1][0].teamId1 = confTeamIds[0];
+  knock.conference.rounds[1][0].teamId2 = confTeamIds[1];
+  knock.conference.rounds[1][1].teamId1 = confTeamIds[2];
+  knock.conference.rounds[1][1].teamId2 = confTeamIds[3];
 
   mapTables(knock);
   return knock;

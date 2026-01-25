@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/shared/colors.dart';
+import 'package:pongstrong/shared/tournament_data_state.dart';
+import 'package:provider/provider.dart';
 
 class TreeViewPage extends StatefulWidget {
   const TreeViewPage({super.key});
@@ -12,7 +14,6 @@ class TreeViewPage extends StatefulWidget {
 
 class TreeViewPageState extends State<TreeViewPage>
     with SingleTickerProviderStateMixin {
-  late Knockouts knockouts;
   late TabController _tabController;
 
   // Colors for each tournament
@@ -30,7 +31,6 @@ class TreeViewPageState extends State<TreeViewPage>
     _tabController.addListener(() {
       setState(() {}); // Rebuild to update indicator color
     });
-    _initializeTestData();
   }
 
   @override
@@ -39,93 +39,108 @@ class TreeViewPageState extends State<TreeViewPage>
     super.dispose();
   }
 
-  void _initializeTestData() {
-    knockouts = Knockouts();
-    knockouts.instantiate();
-
-    // Add test data for Champions League
-    knockouts.champions.rounds[0][0].teamId1 = 'team1';
-    knockouts.champions.rounds[0][0].teamId2 = 'team2';
-    knockouts.champions.rounds[0][0].score1 = 10;
-    knockouts.champions.rounds[0][0].score2 = 5;
-    knockouts.champions.rounds[0][0].done = true;
-
-    knockouts.champions.rounds[0][1].teamId1 = 'team3';
-    knockouts.champions.rounds[0][1].teamId2 = 'team4';
-    knockouts.champions.rounds[0][1].score1 = 8;
-    knockouts.champions.rounds[0][1].score2 = 10;
-    knockouts.champions.rounds[0][1].done = true;
-
-    knockouts.champions.rounds[0][2].teamId1 = 'team5';
-    knockouts.champions.rounds[0][2].teamId2 = 'team6';
-
-    knockouts.champions.rounds[0][3].teamId1 = 'team7';
-    knockouts.champions.rounds[0][3].teamId2 = 'team8';
-
-    // Add test data for Europa League
-    knockouts.europa.rounds[0][0].teamId1 = 'team9';
-    knockouts.europa.rounds[0][0].teamId2 = 'team10';
-    knockouts.europa.rounds[0][0].score1 = 10;
-    knockouts.europa.rounds[0][0].score2 = 7;
-    knockouts.europa.rounds[0][0].done = true;
-
-    knockouts.europa.rounds[0][1].teamId1 = 'team11';
-    knockouts.europa.rounds[0][1].teamId2 = 'team12';
-
-    // Add test data for Conference League
-    knockouts.conference.rounds[0][0].teamId1 = 'team13';
-    knockouts.conference.rounds[0][0].teamId2 = 'team14';
-
-    knockouts.conference.rounds[0][1].teamId1 = 'team15';
-    knockouts.conference.rounds[0][1].teamId2 = 'team16';
-
-    // Update knockouts to propagate winners
-    knockouts.update();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          color: TreeColors.cornsilk,
-          child: TabBar(
-            controller: _tabController,
-            labelColor: Colors.black,
-            indicatorColor: _tournamentColors[_tabController.index],
-            indicatorWeight: 4,
-            tabs: const [
-              Tab(text: 'Champions League'),
-              Tab(text: 'Europa League'),
-              Tab(text: 'Conference League'),
-              Tab(text: 'Super Cup'),
-            ],
+    final tournamentData = Provider.of<TournamentDataState>(context);
+    final knockouts = tournamentData.knockouts;
+
+    // Check if knockouts are empty (not yet generated)
+    final hasKnockouts = knockouts.champions.rounds.isNotEmpty &&
+        knockouts.champions.rounds[0].isNotEmpty &&
+        (knockouts.champions.rounds[0][0].teamId1.isNotEmpty ||
+            knockouts.champions.rounds[0][0].teamId2.isNotEmpty);
+
+    return Scaffold(
+      body: Column(
+        children: [
+          Container(
+            color: TreeColors.cornsilk,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: Colors.black,
+              indicatorColor: _tournamentColors[_tabController.index],
+              indicatorWeight: 4,
+              tabs: const [
+                Tab(text: 'Champions League'),
+                Tab(text: 'Europa League'),
+                Tab(text: 'Conference League'),
+                Tab(text: 'Super Cup'),
+              ],
+            ),
           ),
-        ),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildTournamentTree(
-                'Champions League',
-                knockouts.champions.rounds,
-                TreeColors.rebeccapurple,
-              ),
-              _buildTournamentTree(
-                'Europa League',
-                knockouts.europa.rounds,
-                TreeColors.royalblue,
-              ),
-              _buildTournamentTree(
-                'Conference League',
-                knockouts.conference.rounds,
-                TreeColors.yellowgreen,
-              ),
-              _buildSuperCupTree(),
-            ],
+          Expanded(
+            child: hasKnockouts
+                ? TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildTournamentTree(
+                        'Champions League',
+                        knockouts.champions.rounds,
+                        TreeColors.rebeccapurple,
+                      ),
+                      _buildTournamentTree(
+                        'Europa League',
+                        knockouts.europa.rounds,
+                        TreeColors.royalblue,
+                      ),
+                      _buildTournamentTree(
+                        'Conference League',
+                        knockouts.conference.rounds,
+                        TreeColors.yellowgreen,
+                      ),
+                      _buildSuperCupTree(knockouts),
+                    ],
+                  )
+                : const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.account_tree,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Knockout phase not yet generated',
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Click the button below to transition to knockouts',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
           ),
-        ),
-      ],
+        ],
+      ),
+      floatingActionButton: !hasKnockouts
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                final success = await tournamentData.transitionToKnockouts(
+                  numberOfGroups: tournamentData.tabellen.tables.length,
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        success
+                            ? 'Successfully transitioned to knockout phase!'
+                            : 'Failed to transition to knockouts',
+                      ),
+                      backgroundColor: success ? Colors.green : Colors.red,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.account_tree),
+              label: const Text('Generate Knockouts'),
+              backgroundColor: TreeColors.rebeccapurple,
+              foregroundColor: Colors.white,
+            )
+          : null,
     );
   }
 
@@ -198,6 +213,17 @@ class TreeViewPageState extends State<TreeViewPage>
   }
 
   Widget _buildMatchNode(Match match, Color borderColor) {
+    // Access the team data from the provider
+    final tournamentData =
+        Provider.of<TournamentDataState>(context, listen: false);
+
+    // Get team names or fallback to IDs
+    String getTeamName(String teamId) {
+      if (teamId.isEmpty) return '';
+      final team = tournamentData.getTeam(teamId);
+      return team?.name ?? teamId;
+    }
+
     // Determine if match is ready (both teams are assigned)
     final bool isReady = match.teamId1.isNotEmpty && match.teamId2.isNotEmpty;
 
@@ -222,7 +248,7 @@ class TreeViewPageState extends State<TreeViewPage>
               children: [
                 Expanded(
                   child: Text(
-                    match.teamId1.isEmpty ? '' : match.teamId1,
+                    getTeamName(match.teamId1),
                     textAlign: match.done ? TextAlign.start : TextAlign.center,
                     style: TextStyle(
                       fontWeight:
@@ -242,7 +268,7 @@ class TreeViewPageState extends State<TreeViewPage>
               children: [
                 Expanded(
                   child: Text(
-                    match.teamId2.isEmpty ? '' : match.teamId2,
+                    getTeamName(match.teamId2),
                     textAlign: match.done ? TextAlign.start : TextAlign.center,
                     style: TextStyle(
                       fontWeight:
@@ -262,7 +288,7 @@ class TreeViewPageState extends State<TreeViewPage>
     );
   }
 
-  Widget _buildSuperCupTree() {
+  Widget _buildSuperCupTree(Knockouts knockouts) {
     final graph = Graph()..isTree = true;
     final builder = BuchheimWalkerConfiguration();
 
