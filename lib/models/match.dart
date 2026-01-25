@@ -69,6 +69,7 @@ class Match {
     }
     // 1 on 1
     if (score2 >= 19 && score1 > score2) {
+      //TODO: there should only be a 1 cup difference after first 4?
       return (winner[1], looser[1]);
     } else if (score1 >= 19 && score2 > score1) {
       return (looser[1], winner[1]);

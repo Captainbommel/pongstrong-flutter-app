@@ -255,7 +255,7 @@ Future<dynamic> startMatchDialog(
               ],
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final tournamentData =
                     Provider.of<TournamentDataState>(context, listen: false);
                 final matchId = match.id;
@@ -263,7 +263,11 @@ Future<dynamic> startMatchDialog(
                     'Starting match with ID $matchId at table ${match.tischNr}');
 
                 // Try to move match from waiting to playing
-                if (tournamentData.startMatch(matchId)) {
+                final success = await tournamentData.startMatch(matchId);
+
+                if (!context.mounted) return;
+
+                if (success) {
                   Navigator.pop(context);
                 } else {
                   // Show error if table not available

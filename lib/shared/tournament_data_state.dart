@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart' hide TableRow;
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service.dart';
+import 'package:pongstrong/models/evaluation.dart';
 
 /// Holds the current tournament data loaded from Firestore
 class TournamentDataState extends ChangeNotifier {
@@ -8,6 +10,10 @@ class TournamentDataState extends ChangeNotifier {
   MatchQueue _matchQueue = MatchQueue();
   Tabellen _tabellen = Tabellen();
   String _currentTournamentId = FirestoreService.defaultTournamentId;
+
+  // Stream subscriptions for real-time updates
+  StreamSubscription? _gruppenphaseSubscription;
+  StreamSubscription? _matchQueueSubscription;
 
   List<Team> get teams => _teams;
   MatchQueue get matchQueue => _matchQueue;
@@ -31,6 +37,8 @@ class TournamentDataState extends ChangeNotifier {
         _matchQueue = matchQueue;
         _tabellen = tabellen;
         _currentTournamentId = tournamentId;
+        // Start listening to real-time updates
+        _setupStreams();
         notifyListeners();
         return true;
       }
@@ -58,7 +66,53 @@ class TournamentDataState extends ChangeNotifier {
     _teams = [];
     _matchQueue = MatchQueue();
     _tabellen = Tabellen();
+    _cancelStreams();
     notifyListeners();
+  }
+
+  /// Setup real-time streams from Firestore
+  void _setupStreams() {
+    _cancelStreams(); // Cancel any existing subscriptions
+
+    final service = FirestoreService();
+
+    // Listen to gruppenphase changes
+    _gruppenphaseSubscription = service
+        .gruppenphaseStream(tournamentId: _currentTournamentId)
+        .listen((gruppenphase) {
+      if (gruppenphase != null) {
+        debugPrint('Gruppenphase updated from Firestore');
+        _tabellen = evalGruppen(gruppenphase);
+        notifyListeners();
+      }
+    }, onError: (e) {
+      debugPrint('Error in gruppenphase stream: $e');
+    });
+
+    // Listen to match queue changes
+    _matchQueueSubscription = service
+        .matchQueueStream(tournamentId: _currentTournamentId)
+        .listen((queue) {
+      if (queue != null) {
+        debugPrint('Match queue updated from Firestore');
+        _matchQueue = queue;
+        notifyListeners();
+      }
+    }, onError: (e) {
+      debugPrint('Error in match queue stream: $e');
+    });
+  }
+
+  /// Cancel all stream subscriptions
+  void _cancelStreams() {
+    _gruppenphaseSubscription?.cancel();
+    _matchQueueSubscription?.cancel();
+  }
+
+  @override
+  void dispose() {
+    _cancelStreams();
+    super.dispose();
   }
 
   /// Get team by ID
@@ -86,12 +140,24 @@ class TournamentDataState extends ChangeNotifier {
   }
 
   /// Move a match from waiting to playing queue
-  bool startMatch(String matchId) {
+  Future<bool> startMatch(String matchId) async {
     final success = _matchQueue.switchPlaying(matchId);
-    if (success) {
+    if (!success) return false;
+
+    //TODO: If saving to firestore fails, we should revert the change locally
+
+    // Save updated match queue to Firestore
+    try {
+      final service = FirestoreService();
+      await service.saveMatchQueue(_matchQueue,
+          tournamentId: _currentTournamentId);
+      debugPrint('Saved match queue after starting match $matchId');
       notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error saving match queue: $e');
+      return false;
     }
-    return success;
   }
 
   /// Remove a match from playing queue and update standings
