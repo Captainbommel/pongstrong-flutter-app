@@ -6,6 +6,7 @@ import 'package:pongstrong/mobile_app/mobile_drawer.dart';
 import 'package:pongstrong/shared/match_dialog.dart';
 import 'package:pongstrong/shared/match_view.dart';
 import 'package:pongstrong/shared/rules_view.dart';
+import 'package:pongstrong/shared/teams_view.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
 import 'package:provider/provider.dart';
 
@@ -36,6 +37,8 @@ class MobileApp extends StatelessWidget {
               return nextGames(context);
             case MobileAppView.tables:
               return currentTable();
+            case MobileAppView.teams:
+              return const TeamsView();
             case MobileAppView.rules:
               return const RulesView();
             default:

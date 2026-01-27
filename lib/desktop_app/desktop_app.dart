@@ -4,6 +4,7 @@ import 'package:pongstrong/desktop_app/test_helpers.dart';
 import 'package:pongstrong/shared/tree_view.dart';
 import 'package:pongstrong/desktop_app/playingfield_view.dart';
 import 'package:pongstrong/shared/rules_view.dart';
+import 'package:pongstrong/shared/teams_view.dart';
 import 'package:provider/provider.dart';
 
 const String turnamentName = 'BMT-Cup';
@@ -43,7 +44,10 @@ class DesktopApp extends StatelessWidget {
               child: const Text('Turnierbaum', style: navbarStyle),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Provider.of<DesktopAppState>(context, listen: false)
+                    .setAppState(DesktopAppView.teams)!();
+              },
               child: const Text('Teams', style: navbarStyle),
             ),
             TextButton(
@@ -67,6 +71,8 @@ class DesktopApp extends StatelessWidget {
             return const PlayingField();
           case DesktopAppView.rules:
             return const RulesView();
+          case DesktopAppView.teams:
+            return const TeamsView();
           case DesktopAppView.tournamentTree:
             return const TreeViewPage();
           default:
