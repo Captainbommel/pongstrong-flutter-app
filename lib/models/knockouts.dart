@@ -158,83 +158,85 @@ class Knockouts {
 
   // update checks for finished matches and moves teams to the next round
   void update() {
+    //TODO: improve or remove this check
     if (champions.rounds[0][0].teamId1.isEmpty &&
         champions.rounds[0][0].teamId2.isEmpty) {
       return;
     }
 
-    //TODO: the same team gets moved multiple times into the next round
+    _updateLeagueRounds(champions.rounds);
+    _updateLeagueRounds(europa.rounds);
+    _updateLeagueRounds(conference.rounds);
 
-    // champ
-    for (int i = 0; i < champions.rounds.length - 1; i++) {
-      for (int j = 0; j < champions.rounds[i].length; j++) {
-        if (champions.rounds[i][j].done &&
-            champions.rounds[i + 1][j ~/ 2].teamId1.isEmpty) {
-          champions.rounds[i + 1][j ~/ 2].teamId1 =
-              champions.rounds[i][j].getWinnerId()!;
-        } else if (champions.rounds[i][j].done &&
-            champions.rounds[i + 1][j ~/ 2].teamId2.isEmpty) {
-          champions.rounds[i + 1][j ~/ 2].teamId2 =
-              champions.rounds[i][j].getWinnerId()!;
+    _updateSuperCup();
+  }
+
+  void _updateLeagueRounds(List<List<Match>> rounds) {
+    for (int roundIndex = 0; roundIndex < rounds.length - 1; roundIndex++) {
+      final currentRound = rounds[roundIndex];
+      final nextRound = rounds[roundIndex + 1];
+
+      for (int matchIndex = 0; matchIndex < currentRound.length; matchIndex++) {
+        final currentMatch = currentRound[matchIndex];
+
+        // skip unfinished matches
+        if (!currentMatch.done) continue;
+        final winnerId = currentMatch.getWinnerId();
+        if (winnerId == null || winnerId.isEmpty) continue;
+
+        // find index of next match
+        final nextMatchIndex = matchIndex ~/ 2;
+        final nextMatch = nextRound[nextMatchIndex];
+
+        // find empty slot
+        final canPlaceInSlot1 =
+            nextMatch.teamId1.isEmpty && winnerId != nextMatch.teamId2;
+        final canPlaceInSlot2 =
+            nextMatch.teamId2.isEmpty && winnerId != nextMatch.teamId1;
+
+        if (canPlaceInSlot1) {
+          nextMatch.teamId1 = winnerId;
+        } else if (canPlaceInSlot2) {
+          nextMatch.teamId2 = winnerId;
         }
       }
     }
+  }
 
-    // euro
-    for (int i = 0; i < europa.rounds.length - 1; i++) {
-      for (int j = 0; j < europa.rounds[i].length; j++) {
-        if (europa.rounds[i][j].done &&
-            europa.rounds[i + 1][j ~/ 2].teamId1.isEmpty) {
-          europa.rounds[i + 1][j ~/ 2].teamId1 =
-              europa.rounds[i][j].getWinnerId()!;
-        } else if (europa.rounds[i][j].done &&
-            europa.rounds[i + 1][j ~/ 2].teamId2.isEmpty) {
-          europa.rounds[i + 1][j ~/ 2].teamId2 =
-              europa.rounds[i][j].getWinnerId()!;
-        }
-      }
-    }
-
-    // conf
-    for (int i = 0; i < conference.rounds.length - 1; i++) {
-      for (int j = 0; j < conference.rounds[i].length; j++) {
-        if (conference.rounds[i][j].done &&
-            conference.rounds[i + 1][j ~/ 2].teamId1.isEmpty) {
-          conference.rounds[i + 1][j ~/ 2].teamId1 =
-              conference.rounds[i][j].getWinnerId()!;
-        } else if (conference.rounds[i][j].done &&
-            conference.rounds[i + 1][j ~/ 2].teamId2.isEmpty) {
-          conference.rounds[i + 1][j ~/ 2].teamId2 =
-              conference.rounds[i][j].getWinnerId()!;
-        }
-      }
-    }
-
-    // super
+  void _updateSuperCup() {
+    // Update the first super cup match if done
     if (superCup.matches[0].done) {
-      superCup.matches[1].teamId1 = superCup.matches[0].getWinnerId()!;
+      final winnerId = superCup.matches[0].getWinnerId();
+      if (winnerId != null && winnerId.isNotEmpty) {
+        superCup.matches[1].teamId1 = winnerId;
+      }
     }
 
-    // move league winners to super
-    if (europa.rounds.last[0].done) {
-      final winnerId = europa.rounds.last[0].getWinnerId()!;
-      if (superCup.matches[0].teamId1.isEmpty) {
-        superCup.matches[0].teamId1 = winnerId;
-      } else if (superCup.matches[0].teamId2.isEmpty) {
-        superCup.matches[0].teamId2 = winnerId;
+    // Move league winners to the super cup
+    for (var leagueFinal in [
+      europa.rounds.last[0],
+      conference.rounds.last[0]
+    ]) {
+      if (leagueFinal.done) {
+        final winnerId = leagueFinal.getWinnerId();
+        if (winnerId != null && winnerId.isNotEmpty) {
+          final firstMatch = superCup.matches[0];
+          if (firstMatch.teamId1.isEmpty && winnerId != firstMatch.teamId2) {
+            firstMatch.teamId1 = winnerId;
+          } else if (firstMatch.teamId2.isEmpty &&
+              winnerId != firstMatch.teamId1) {
+            firstMatch.teamId2 = winnerId;
+          }
+        }
       }
     }
-    if (conference.rounds.last[0].done) {
-      final winnerId = conference.rounds.last[0].getWinnerId()!;
-      if (superCup.matches[0].teamId1.isEmpty) {
-        superCup.matches[0].teamId1 = winnerId;
-      } else if (superCup.matches[0].teamId2.isEmpty) {
-        superCup.matches[0].teamId2 = winnerId;
-      }
-    }
+
+    // Move champions league winner to the second super cup match
     if (champions.rounds.last[0].done) {
-      final winnerId = champions.rounds.last[0].getWinnerId()!;
-      if (superCup.matches[1].teamId2.isEmpty &&
+      final winnerId = champions.rounds.last[0].getWinnerId();
+      if (winnerId != null &&
+          winnerId.isNotEmpty &&
+          superCup.matches[1].teamId2.isEmpty &&
           superCup.matches[1].teamId1.isNotEmpty) {
         superCup.matches[1].teamId2 = winnerId;
       }
