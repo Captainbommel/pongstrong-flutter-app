@@ -203,6 +203,28 @@ Future<dynamic> startMatchDialog(
       final screenWidth = MediaQuery.of(context).size.width;
       final isLargeScreen = screenWidth > 600;
 
+      Future<void> handleStartMatch() async {
+        final tournamentData =
+            Provider.of<TournamentDataState>(context, listen: false);
+        final matchId = match.id;
+        debugPrint('Starting match with ID $matchId at table ${match.tischNr}');
+
+        final success = await tournamentData.startMatch(matchId);
+
+        if (!context.mounted) return;
+
+        if (success) {
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tisch nicht verfügbar'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+
       return Container(
         height: MediaQuery.of(context).size.height / 3,
         decoration: BoxDecoration(
@@ -255,30 +277,8 @@ Future<dynamic> startMatchDialog(
               ],
             ),
             ElevatedButton(
-              onPressed: () async {
-                final tournamentData =
-                    Provider.of<TournamentDataState>(context, listen: false);
-                final matchId = match.id;
-                debugPrint(
-                    'Starting match with ID $matchId at table ${match.tischNr}');
-
-                // Try to move match from waiting to playing
-                final success = await tournamentData.startMatch(matchId);
-
-                if (!context.mounted) return;
-
-                if (success) {
-                  Navigator.pop(context);
-                } else {
-                  // Show error if table not available
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Tisch nicht verfügbar'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
+              // autofocus: true,
+              onPressed: handleStartMatch,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
