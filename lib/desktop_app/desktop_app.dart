@@ -39,16 +39,16 @@ class DesktopApp extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Provider.of<DesktopAppState>(context, listen: false)
-                    .setAppState(DesktopAppView.tournamentTree)!();
+                    .setAppState(DesktopAppView.teams)!();
               },
-              child: const Text('Turnierbaum', style: navbarStyle),
+              child: const Text('Gruppenphase', style: navbarStyle),
             ),
             TextButton(
               onPressed: () {
                 Provider.of<DesktopAppState>(context, listen: false)
-                    .setAppState(DesktopAppView.teams)!();
+                    .setAppState(DesktopAppView.tournamentTree)!();
               },
-              child: const Text('Teams', style: navbarStyle),
+              child: const Text('Turnierbaum', style: navbarStyle),
             ),
             TextButton(
               onPressed: () {

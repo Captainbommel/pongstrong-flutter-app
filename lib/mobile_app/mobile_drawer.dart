@@ -73,16 +73,16 @@ class MobileDrawer extends StatelessWidget {
                 trailing: const Icon(Icons.leaderboard_rounded),
               ),
               ListTile(
+                title: const Text('Gruppenphase'),
+                onTap: Provider.of<MobileAppState>(context, listen: false)
+                    .setAppState(MobileAppView.teams),
+                trailing: const Icon(Icons.group_rounded),
+              ),
+              ListTile(
                 title: const Text('Turnierbaum'),
                 onTap: Provider.of<MobileAppState>(context, listen: false)
                     .setAppState(MobileAppView.tournamentTree),
                 trailing: const Icon(Icons.account_tree_rounded),
-              ),
-              ListTile(
-                title: const Text('Teams'),
-                onTap: Provider.of<MobileAppState>(context, listen: false)
-                    .setAppState(MobileAppView.teams),
-                trailing: const Icon(Icons.group_rounded),
               ),
               ListTile(
                 title: const Text('Regelwerk'),
