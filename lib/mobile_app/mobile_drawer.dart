@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/mobile_app/mobile_app_state.dart';
 import 'package:pongstrong/shared/colors.dart';
+import 'package:pongstrong/shared/tournament_selection_state.dart';
 import 'package:provider/provider.dart';
 
 //? rename HomeDrawer
@@ -62,36 +63,71 @@ class MobileDrawer extends StatelessWidget {
             indent: 0,
             color: FieldColors.springgreen,
           ),
-          ExpansionTile(
-            shape: const Border(),
-            title: const Text('Übersicht'),
-            children: [
-              ListTile(
-                title: const Text('Tabelle'),
-                onTap: Provider.of<MobileAppState>(context, listen: false)
-                    .setAppState(MobileAppView.tables),
-                trailing: const Icon(Icons.leaderboard_rounded),
-              ),
-              ListTile(
-                title: const Text('Gruppenphase'),
-                onTap: Provider.of<MobileAppState>(context, listen: false)
-                    .setAppState(MobileAppView.teams),
-                trailing: const Icon(Icons.group_rounded),
-              ),
-              ListTile(
-                title: const Text('Turnierbaum'),
-                onTap: Provider.of<MobileAppState>(context, listen: false)
-                    .setAppState(MobileAppView.tournamentTree),
-                trailing: const Icon(Icons.account_tree_rounded),
-              ),
-              ListTile(
-                title: const Text('Regelwerk'),
-                onTap: Provider.of<MobileAppState>(context, listen: false)
-                    .setAppState(MobileAppView.rules),
-                trailing: const Icon(Icons.gavel_rounded),
-              ),
-            ],
-          )
+          ListTile(
+            title: const Text('Tabelle'),
+            onTap: Provider.of<MobileAppState>(context, listen: false)
+                .setAppState(MobileAppView.tables),
+            trailing: const Icon(Icons.leaderboard_rounded),
+          ),
+          ListTile(
+            title: const Text('Gruppenphase'),
+            onTap: Provider.of<MobileAppState>(context, listen: false)
+                .setAppState(MobileAppView.teams),
+            trailing: const Icon(Icons.group_rounded),
+          ),
+          ListTile(
+            title: const Text('Turnierbaum'),
+            onTap: Provider.of<MobileAppState>(context, listen: false)
+                .setAppState(MobileAppView.tournamentTree),
+            trailing: const Icon(Icons.account_tree_rounded),
+          ),
+          ListTile(
+            title: const Text('Regelwerk'),
+            onTap: Provider.of<MobileAppState>(context, listen: false)
+                .setAppState(MobileAppView.rules),
+            trailing: const Icon(Icons.gavel_rounded),
+          ),
+          const Divider(
+            height: 20,
+            thickness: 5,
+            indent: 0,
+            color: FieldColors.tomato,
+          ),
+          ListTile(
+            title: const Text('Turnier wechseln'),
+            onTap: () async {
+              Navigator.pop(context); // Close drawer first
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Turnier verlassen?'),
+                  content: const Text(
+                    'Möchtest du wirklich zurück zur Turnierübersicht?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Abbrechen'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: FieldColors.tomato,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Zurück'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true && context.mounted) {
+                Provider.of<TournamentSelectionState>(context, listen: false)
+                    .clearSelectedTournament();
+              }
+            },
+            trailing: const Icon(Icons.swap_horiz_rounded),
+          ),
         ],
       ),
     );

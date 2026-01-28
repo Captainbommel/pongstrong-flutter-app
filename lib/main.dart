@@ -6,10 +6,9 @@ import 'package:pongstrong/firebase/auth.dart';
 import 'package:pongstrong/mobile_app/mobile_app_state.dart';
 import 'package:pongstrong/desktop_app/desktop_app.dart';
 import 'package:pongstrong/mobile_app/mobile_app.dart';
+import 'package:pongstrong/shared/landing_page.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
 import 'package:pongstrong/shared/tournament_selection_state.dart';
-import 'package:pongstrong/shared/tournament_selection_dialog.dart';
-import 'package:pongstrong/services/firestore_service.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
@@ -60,63 +59,23 @@ class MyApp extends StatelessWidget {
 }
 
 /// Widget that selects between Desktop and Mobile app based on screen size
-class AppSelector extends StatefulWidget {
+class AppSelector extends StatelessWidget {
   const AppSelector({super.key});
-
-  @override
-  State<AppSelector> createState() => _AppSelectorState();
-}
-
-class _AppSelectorState extends State<AppSelector> {
-  @override
-  void initState() {
-    super.initState();
-    _checkAndShowTournamentDialog();
-  }
-
-  void _checkAndShowTournamentDialog() {
-    Future.delayed(const Duration(milliseconds: 300), () async {
-      if (mounted) {
-        final selectionState =
-            Provider.of<TournamentSelectionState>(context, listen: false);
-        if (!selectionState.hasSelectedTournament) {
-          // Check if there's only one tournament
-          final firestoreService = FirestoreService();
-          try {
-            final tournaments = await firestoreService.listTournaments();
-            if (mounted) {
-              if (tournaments.length == 1) {
-                // Automatically load the single tournament
-                await Provider.of<TournamentDataState>(context, listen: false)
-                    .loadTournamentData(tournaments[0]);
-                selectionState.setSelectedTournament(tournaments[0]);
-              } else {
-                // Show dialog if multiple tournaments or none
-                _showTournamentSelectionDialog();
-              }
-            }
-          } catch (e) {
-            // Show dialog if error fetching tournaments
-            if (mounted) {
-              _showTournamentSelectionDialog();
-            }
-          }
-        }
-      }
-    });
-  }
-
-  void _showTournamentSelectionDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const TournamentSelectionDialog(),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     final isLargeScreen = MediaQuery.of(context).size.width > 600;
+
+    // Check if a tournament is selected
+    final hasSelectedTournament =
+        Provider.of<TournamentSelectionState>(context).hasSelectedTournament;
+
+    if (!hasSelectedTournament) {
+      // Show landing page if no tournament is selected
+      return LandingPage(isDesktop: isLargeScreen);
+    }
+
+    // Show the appropriate app based on screen size
     return isLargeScreen ? const DesktopApp() : const MobileApp();
   }
 }

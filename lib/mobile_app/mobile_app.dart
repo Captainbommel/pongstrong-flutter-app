@@ -8,6 +8,7 @@ import 'package:pongstrong/shared/match_view.dart';
 import 'package:pongstrong/shared/rules_view.dart';
 import 'package:pongstrong/shared/teams_view.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
+import 'package:pongstrong/shared/tournament_selection_state.dart';
 import 'package:provider/provider.dart';
 
 const String turnamentName = 'BMT-Cup';
@@ -17,6 +18,9 @@ class MobileApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedTournament =
+        Provider.of<TournamentSelectionState>(context).selectedTournamentId;
+
     return Scaffold(
       key: Provider.of<MobileAppState>(context).scaffoldKey,
       drawer: const MobileDrawer(),
@@ -24,7 +28,7 @@ class MobileApp extends StatelessWidget {
       appBar: AppBar(
         shadowColor: Colors.black,
         elevation: 10,
-        title: const Text(turnamentName),
+        title: Text(selectedTournament ?? turnamentName),
         centerTitle: true,
         backgroundColor: Colors.white,
       ),
