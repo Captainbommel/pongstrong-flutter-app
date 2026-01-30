@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/services/firestore_service.dart';
+import 'package:pongstrong/shared/auth_state.dart';
 import 'package:pongstrong/shared/colors.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
 import 'package:pongstrong/shared/tournament_selection_state.dart';
@@ -28,7 +29,53 @@ class _LandingPageState extends State<LandingPage> {
     _tournamentsFuture = _firestoreService.listTournaments();
   }
 
+  void _refreshTournaments() {
+    setState(() {
+      _tournamentsFuture = _firestoreService.listTournaments();
+    });
+  }
+
   Future<void> _onTournamentSelected(String tournamentId) async {
+    if (!mounted) return;
+
+    final authState = Provider.of<AuthState>(context, listen: false);
+
+    // Check if user is the creator of this tournament
+    final isCreator = authState.isEmailUser &&
+        authState.userId != null &&
+        await _firestoreService.isCreator(tournamentId, authState.userId!);
+
+    if (isCreator) {
+      // Creator can join without password
+      await _joinTournament(tournamentId);
+    } else {
+      // Check if tournament has a password
+      final hasPassword =
+          await _firestoreService.tournamentHasPassword(tournamentId);
+
+      if (hasPassword) {
+        // Show password dialog for other users
+        if (mounted) {
+          _showPasswordDialog(tournamentId);
+        }
+      } else {
+        // No password set - allow direct access (legacy tournaments)
+        await _joinTournament(tournamentId);
+      }
+    }
+  }
+
+  void _showPasswordDialog(String tournamentId) {
+    showDialog(
+      context: context,
+      builder: (context) => TournamentPasswordDialog(
+        tournamentId: tournamentId,
+        onSuccess: () => _joinTournament(tournamentId),
+      ),
+    );
+  }
+
+  Future<void> _joinTournament(String tournamentId) async {
     if (!mounted) return;
 
     setState(() => _isLoadingTournament = true);
@@ -44,7 +91,7 @@ class _LandingPageState extends State<LandingPage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to load tournament data'),
+            content: Text('Turnier konnte nicht geladen werden'),
             backgroundColor: Colors.red,
           ),
         );
@@ -56,14 +103,23 @@ class _LandingPageState extends State<LandingPage> {
   void _showCreateTournamentDialog() {
     showDialog(
       context: context,
-      builder: (context) => const CreateTournamentDialog(),
+      builder: (context) => CreateTournamentDialog(
+        onTournamentCreated: (tournamentId) {
+          _refreshTournaments();
+          _joinTournament(tournamentId);
+        },
+      ),
     );
   }
 
   void _showLoginDialog() {
     showDialog(
       context: context,
-      builder: (context) => const LoginDialog(),
+      builder: (context) => LoginDialog(
+        onLoginSuccess: () {
+          _refreshTournaments();
+        },
+      ),
     );
   }
 
@@ -123,7 +179,7 @@ class _LandingPageState extends State<LandingPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildLoginButton(isLarge: true),
+                    _buildUserInfo(isLarge: true),
                     const SizedBox(height: 48),
                     _buildTournamentSelection(isLarge: true),
                     const SizedBox(height: 32),
@@ -160,12 +216,7 @@ class _LandingPageState extends State<LandingPage> {
               child: Column(
                 children: [
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      _buildLoginButton(isLarge: false),
-                    ],
-                  ),
+                  _buildUserInfo(isLarge: false),
                   const SizedBox(height: 24),
                   _buildLogo(isLarge: false),
                   const SizedBox(height: 24),
@@ -288,6 +339,108 @@ class _LandingPageState extends State<LandingPage> {
     );
   }
 
+  Widget _buildUserInfo({required bool isLarge}) {
+    return Consumer<AuthState>(
+      builder: (context, authState, _) {
+        if (authState.isEmailUser) {
+          // User is logged in with email
+          return _buildLoggedInUserInfo(authState, isLarge: isLarge);
+        } else {
+          // Anonymous user - show login button
+          return _buildLoginButton(isLarge: isLarge);
+        }
+      },
+    );
+  }
+
+  Widget _buildLoggedInUserInfo(AuthState authState, {required bool isLarge}) {
+    if (isLarge) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: GroupPhaseColors.cupred.withAlpha(20),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: GroupPhaseColors.cupred.withAlpha(50)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: GroupPhaseColors.cupred,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.person, color: Colors.white),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Eingeloggt als',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    authState.userEmail ?? '',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => authState.signOut(),
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text('Abmelden'),
+              style: TextButton.styleFrom(
+                foregroundColor: GroupPhaseColors.cupred,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(200),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.person,
+                    size: 18, color: GroupPhaseColors.cupred),
+                const SizedBox(width: 8),
+                Text(
+                  authState.userEmail?.split('@')[0] ?? '',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => authState.signOut(),
+                  child: const Icon(Icons.logout, size: 18, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+  }
+
   Widget _buildLoginButton({required bool isLarge}) {
     if (isLarge) {
       return Align(
@@ -304,13 +457,18 @@ class _LandingPageState extends State<LandingPage> {
         ),
       );
     } else {
-      return TextButton.icon(
-        onPressed: _showLoginDialog,
-        icon: const Icon(Icons.login, size: 20),
-        label: const Text('Login'),
-        style: TextButton.styleFrom(
-          foregroundColor: GroupPhaseColors.cupred,
-        ),
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          TextButton.icon(
+            onPressed: _showLoginDialog,
+            icon: const Icon(Icons.login, size: 20),
+            label: const Text('Login'),
+            style: TextButton.styleFrom(
+              foregroundColor: GroupPhaseColors.cupred,
+            ),
+          ),
+        ],
       );
     }
   }
@@ -433,6 +591,44 @@ class _LandingPageState extends State<LandingPage> {
 
         return Column(
           children: tournaments.map((tournamentId) {
+            return _buildTournamentListItem(tournamentId);
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildTournamentListItem(String tournamentId) {
+    return Consumer<AuthState>(
+      builder: (context, authState, _) {
+        // Use FutureBuilder to check both creator status and password status
+        return FutureBuilder<List<bool>>(
+          future: Future.wait([
+            authState.isEmailUser && authState.userId != null
+                ? _firestoreService.isCreator(tournamentId, authState.userId!)
+                : Future.value(false),
+            _firestoreService.tournamentHasPassword(tournamentId),
+          ]),
+          builder: (context, snapshot) {
+            final isCreator = snapshot.data?[0] ?? false;
+            final hasPassword =
+                snapshot.data?[1] ?? true; // Default to true for safety
+
+            // Determine the subtitle text based on access level
+            String subtitleText;
+            IconData trailingIcon;
+
+            if (isCreator) {
+              subtitleText = 'Dein Turnier • Tippen zum Öffnen';
+              trailingIcon = Icons.arrow_forward_ios;
+            } else if (hasPassword) {
+              subtitleText = 'Tippen für Passwort-Eingabe';
+              trailingIcon = Icons.lock_outline;
+            } else {
+              subtitleText = 'Tippen zum Beitreten';
+              trailingIcon = Icons.arrow_forward_ios;
+            }
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
               child: Material(
@@ -445,19 +641,27 @@ class _LandingPageState extends State<LandingPage> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(
+                        color: isCreator
+                            ? GroupPhaseColors.cupred.withAlpha(100)
+                            : Colors.grey.shade300,
+                      ),
                     ),
                     child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: GroupPhaseColors.steelblue.withAlpha(30),
+                            color: isCreator
+                                ? GroupPhaseColors.cupred.withAlpha(30)
+                                : GroupPhaseColors.steelblue.withAlpha(30),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(
-                            Icons.sports_esports,
-                            color: GroupPhaseColors.steelblue,
+                          child: Icon(
+                            isCreator ? Icons.star : Icons.sports_esports,
+                            color: isCreator
+                                ? GroupPhaseColors.cupred
+                                : GroupPhaseColors.steelblue,
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -474,17 +678,19 @@ class _LandingPageState extends State<LandingPage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Tippen zum Beitreten',
+                                subtitleText,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade600,
+                                  color: isCreator
+                                      ? GroupPhaseColors.cupred
+                                      : Colors.grey.shade600,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(
-                          Icons.arrow_forward_ios,
+                        Icon(
+                          trailingIcon,
                           size: 16,
                           color: Colors.grey,
                         ),
@@ -494,7 +700,7 @@ class _LandingPageState extends State<LandingPage> {
                 ),
               ),
             );
-          }).toList(),
+          },
         );
       },
     );
@@ -527,60 +733,61 @@ class _LandingPageState extends State<LandingPage> {
   }
 }
 
-/// Dialog for creating a new tournament (visual mockup)
-class CreateTournamentDialog extends StatefulWidget {
-  const CreateTournamentDialog({super.key});
+/// Dialog for entering tournament password
+class TournamentPasswordDialog extends StatefulWidget {
+  final String tournamentId;
+  final VoidCallback onSuccess;
+
+  const TournamentPasswordDialog({
+    super.key,
+    required this.tournamentId,
+    required this.onSuccess,
+  });
 
   @override
-  State<CreateTournamentDialog> createState() => _CreateTournamentDialogState();
+  State<TournamentPasswordDialog> createState() =>
+      _TournamentPasswordDialogState();
 }
 
-class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
-  int _currentStep = 0;
-  final _tournamentNameController = TextEditingController();
-  String _selectedFormat = 'groups_knockout';
-  int _numberOfTeams = 8;
-  int _numberOfTables = 2;
+class _TournamentPasswordDialogState extends State<TournamentPasswordDialog> {
+  final _passwordController = TextEditingController();
+  final _firestoreService = FirestoreService();
   bool _obscurePassword = true;
-
-  // Custom input decoration with red focus color
-  InputDecoration _buildInputDecoration({
-    required String labelText,
-    String? hintText,
-    required IconData prefixIcon,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      labelText: labelText,
-      hintText: hintText,
-      prefixIcon: Icon(prefixIcon),
-      suffixIcon: suffixIcon,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: GroupPhaseColors.cupred, width: 2),
-      ),
-      floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
-    );
-  }
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void dispose() {
-    _tournamentNameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  void _nextStep() {
-    if (_currentStep < 2) {
-      setState(() => _currentStep++);
+  Future<void> _verifyPassword() async {
+    if (_passwordController.text.isEmpty) {
+      setState(() => _error = 'Bitte Passwort eingeben');
+      return;
     }
-  }
 
-  void _previousStep() {
-    if (_currentStep > 0) {
-      setState(() => _currentStep--);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final isValid = await _firestoreService.verifyTournamentPassword(
+      widget.tournamentId,
+      _passwordController.text,
+    );
+
+    if (mounted) {
+      if (isValid) {
+        Navigator.pop(context);
+        widget.onSuccess();
+      } else {
+        setState(() {
+          _isLoading = false;
+          _error = 'Falsches Passwort';
+        });
+      }
     }
   }
 
@@ -590,8 +797,278 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
 
     return Dialog(
       child: Container(
+        width: isWide ? 400 : double.infinity,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: GroupPhaseColors.steelblue.withAlpha(30),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.lock_outline,
+                    color: GroupPhaseColors.steelblue,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Turnier beitreten',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.tournamentId,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            // Password field
+            TextField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              cursorColor: GroupPhaseColors.cupred,
+              onSubmitted: (_) => _verifyPassword(),
+              decoration: InputDecoration(
+                labelText: 'Turnier-Passwort',
+                prefixIcon: const Icon(Icons.key),
+                suffixIcon: IconButton(
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                  ),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                      color: GroupPhaseColors.cupred, width: 2),
+                ),
+                floatingLabelStyle:
+                    const TextStyle(color: GroupPhaseColors.cupred),
+                errorText: _error,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Submit button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _verifyPassword,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: GroupPhaseColors.cupred,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Beitreten',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Dialog for creating a new tournament
+class CreateTournamentDialog extends StatefulWidget {
+  final Function(String tournamentId) onTournamentCreated;
+
+  const CreateTournamentDialog({
+    super.key,
+    required this.onTournamentCreated,
+  });
+
+  @override
+  State<CreateTournamentDialog> createState() => _CreateTournamentDialogState();
+}
+
+class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
+  int _currentStep = 0;
+  final _tournamentNameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _accountPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _firestoreService = FirestoreService();
+  bool _obscurePassword = true;
+  bool _obscureAccountPassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
+  String? _error;
+  bool _isLoginMode = false;
+
+  @override
+  void dispose() {
+    _tournamentNameController.dispose();
+    _passwordController.dispose();
+    _emailController.dispose();
+    _accountPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _nextStep() {
+    // Validate current step
+    if (_currentStep == 0) {
+      if (_tournamentNameController.text.trim().isEmpty) {
+        setState(() => _error = 'Bitte gib einen Turniernamen ein');
+        return;
+      }
+      if (_passwordController.text.isEmpty) {
+        setState(() => _error = 'Bitte gib ein Turnier-Passwort ein');
+        return;
+      }
+    }
+
+    setState(() {
+      _error = null;
+      _currentStep++;
+    });
+  }
+
+  void _previousStep() {
+    if (_currentStep > 0) {
+      setState(() {
+        _error = null;
+        _currentStep--;
+      });
+    }
+  }
+
+  Future<void> _createTournament() async {
+    final authState = Provider.of<AuthState>(context, listen: false);
+
+    // Validate account fields
+    if (_emailController.text.trim().isEmpty) {
+      setState(() => _error = 'Bitte gib eine E-Mail ein');
+      return;
+    }
+    if (_accountPasswordController.text.isEmpty) {
+      setState(() => _error = 'Bitte gib ein Passwort ein');
+      return;
+    }
+
+    if (!_isLoginMode) {
+      if (_accountPasswordController.text != _confirmPasswordController.text) {
+        setState(() => _error = 'Passwörter stimmen nicht überein');
+        return;
+      }
+      if (_accountPasswordController.text.length < 6) {
+        setState(() => _error = 'Passwort muss mindestens 6 Zeichen lang sein');
+        return;
+      }
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    bool authSuccess;
+    if (_isLoginMode) {
+      authSuccess = await authState.signInWithEmail(
+        _emailController.text.trim(),
+        _accountPasswordController.text,
+      );
+    } else {
+      authSuccess = await authState.createAccount(
+        _emailController.text.trim(),
+        _accountPasswordController.text,
+      );
+    }
+
+    if (!authSuccess) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = authState.error ?? 'Authentifizierung fehlgeschlagen';
+        });
+      }
+      return;
+    }
+
+    // Now create the tournament
+    final tournamentId = await _firestoreService.createTournament(
+      tournamentName: _tournamentNameController.text.trim(),
+      creatorId: authState.userId!,
+      creatorEmail: authState.userEmail!,
+      password: _passwordController.text,
+    );
+
+    if (mounted) {
+      if (tournamentId != null) {
+        Navigator.pop(context);
+        widget.onTournamentCreated(tournamentId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Turnier "$tournamentId" wurde erstellt!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        setState(() {
+          _isLoading = false;
+          _error = 'Ein Turnier mit diesem Namen existiert bereits';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width > 500;
+    final authState = Provider.of<AuthState>(context);
+
+    // If user is already logged in, we can skip the account step
+    final isAlreadyLoggedIn = authState.isEmailUser;
+
+    return Dialog(
+      child: Container(
         width: isWide ? 500 : double.infinity,
-        constraints: const BoxConstraints(maxHeight: 600),
+        constraints: const BoxConstraints(maxHeight: 650),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -632,9 +1109,8 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                 children: [
                   _buildStepIndicator(0, 'Details'),
                   _buildStepConnector(0),
-                  _buildStepIndicator(1, 'Einstellungen'),
-                  _buildStepConnector(1),
-                  _buildStepIndicator(2, 'Anmelden'),
+                  _buildStepIndicator(
+                      1, isAlreadyLoggedIn ? 'Bestätigen' : 'Konto'),
                 ],
               ),
             ),
@@ -642,9 +1118,37 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
-                child: _buildStepContent(),
+                child: _currentStep == 0
+                    ? _buildDetailsStep()
+                    : isAlreadyLoggedIn
+                        ? _buildConfirmStep(authState)
+                        : _buildAccountStep(),
               ),
             ),
+            // Error message
+            if (_error != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             // Actions
             Container(
               padding: const EdgeInsets.all(16),
@@ -670,7 +1174,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                     )
                   else
                     const SizedBox(),
-                  if (_currentStep < 2)
+                  if (_currentStep == 0)
                     ElevatedButton.icon(
                       onPressed: _nextStep,
                       icon: const Icon(Icons.arrow_forward),
@@ -682,17 +1186,21 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                     )
                   else
                     ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement actual tournament creation
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Turniererstellung wird später implementiert'),
-                          ),
-                        );
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.check),
+                      onPressed: _isLoading
+                          ? null
+                          : isAlreadyLoggedIn
+                              ? () => _createTournamentAsLoggedInUser(authState)
+                              : _createTournament,
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.check),
                       label: const Text('Turnier erstellen'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
@@ -706,6 +1214,38 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
         ),
       ),
     );
+  }
+
+  Future<void> _createTournamentAsLoggedInUser(AuthState authState) async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final tournamentId = await _firestoreService.createTournament(
+      tournamentName: _tournamentNameController.text.trim(),
+      creatorId: authState.userId!,
+      creatorEmail: authState.userEmail!,
+      password: _passwordController.text,
+    );
+
+    if (mounted) {
+      if (tournamentId != null) {
+        Navigator.pop(context);
+        widget.onTournamentCreated(tournamentId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Turnier "$tournamentId" wurde erstellt!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        setState(() {
+          _isLoading = false;
+          _error = 'Ein Turnier mit diesem Namen existiert bereits';
+        });
+      }
+    }
   }
 
   Widget _buildStepIndicator(int step, String label) {
@@ -762,19 +1302,6 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
     );
   }
 
-  Widget _buildStepContent() {
-    switch (_currentStep) {
-      case 0:
-        return _buildDetailsStep();
-      case 1:
-        return _buildSettingsStep();
-      case 2:
-        return _buildLoginStep();
-      default:
-        return const SizedBox();
-    }
-  }
-
   Widget _buildDetailsStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -790,243 +1317,30 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
         TextField(
           controller: _tournamentNameController,
           cursorColor: GroupPhaseColors.cupred,
-          decoration: _buildInputDecoration(
+          decoration: InputDecoration(
             labelText: 'Turniername',
             hintText: 'z.B. BMT-Cup 2026',
-            prefixIcon: Icons.emoji_events,
-          ),
-        ),
-        const SizedBox(height: 20),
-        const Text(
-          'Turnierformat',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        _buildFormatOption(
-          'groups_knockout',
-          'Gruppenphase + K.O.-Runde',
-          'Teams spielen in Gruppen, die Besten kommen in die K.O.-Runde',
-          Icons.grid_view,
-        ),
-        _buildFormatOption(
-          'knockout_only',
-          'Nur K.O.-Runde',
-          'Einfaches Ausscheidungsturnier',
-          Icons.account_tree,
-        ),
-        _buildFormatOption(
-          'round_robin',
-          'Jeder gegen Jeden',
-          'Jedes Team spielt gegen jedes andere Team',
-          Icons.loop,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFormatOption(
-    String value,
-    String title,
-    String description,
-    IconData icon,
-  ) {
-    final isSelected = _selectedFormat == value;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Material(
-        color: isSelected
-            ? GroupPhaseColors.cupred.withAlpha(20)
-            : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: () => setState(() => _selectedFormat = value),
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
+            prefixIcon: const Icon(Icons.emoji_events),
+            border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color:
-                    isSelected ? GroupPhaseColors.cupred : Colors.grey.shade300,
-                width: isSelected ? 2 : 1,
-              ),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  color: isSelected
-                      ? GroupPhaseColors.cupred
-                      : Colors.grey.shade600,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: isSelected
-                              ? GroupPhaseColors.cupred
-                              : Colors.black87,
-                        ),
-                      ),
-                      Text(
-                        description,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (isSelected)
-                  const Icon(Icons.check_circle,
-                      color: GroupPhaseColors.cupred),
-              ],
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  const BorderSide(color: GroupPhaseColors.cupred, width: 2),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Turnier Einstellungen',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+            floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
           ),
         ),
         const SizedBox(height: 20),
-        const Text(
-          'Anzahl der Teams',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                onPressed: _numberOfTeams > 4
-                    ? () => setState(() => _numberOfTeams--)
-                    : null,
-                icon: const Icon(Icons.remove_circle_outline),
-                color: GroupPhaseColors.cupred,
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  '$_numberOfTeams',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: _numberOfTeams < 32
-                    ? () => setState(() => _numberOfTeams++)
-                    : null,
-                icon: const Icon(Icons.add_circle_outline),
-                color: GroupPhaseColors.cupred,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        const Text(
-          'Anzahl der Tische',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                onPressed: _numberOfTables > 1
-                    ? () => setState(() => _numberOfTables--)
-                    : null,
-                icon: const Icon(Icons.remove_circle_outline),
-                color: GroupPhaseColors.cupred,
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  '$_numberOfTables',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: _numberOfTables < 10
-                    ? () => setState(() => _numberOfTables++)
-                    : null,
-                icon: const Icon(Icons.add_circle_outline),
-                color: GroupPhaseColors.cupred,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLoginStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Anmelden zum Erstellen',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Melde dich an um dein Turnier zu speichern und zu verwalten',
-          style: TextStyle(color: Colors.grey),
-        ),
-        const SizedBox(height: 24),
         TextField(
-          cursorColor: GroupPhaseColors.cupred,
-          decoration: _buildInputDecoration(
-            labelText: 'E-Mail',
-            prefixIcon: Icons.email_outlined,
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
+          controller: _passwordController,
           obscureText: _obscurePassword,
           cursorColor: GroupPhaseColors.cupred,
-          decoration: _buildInputDecoration(
-            labelText: 'Passwort',
-            prefixIcon: Icons.lock_outline,
+          decoration: InputDecoration(
+            labelText: 'Turnier-Passwort',
+            hintText: 'Passwort für andere Spieler',
+            prefixIcon: const Icon(Icons.key),
             suffixIcon: IconButton(
               onPressed: () =>
                   setState(() => _obscurePassword = !_obscurePassword),
@@ -1036,18 +1350,249 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                     : Icons.visibility_outlined,
               ),
             ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  const BorderSide(color: GroupPhaseColors.cupred, width: 2),
+            ),
+            floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
           ),
         ),
-        const SizedBox(height: 24),
-        Center(
-          child: TextButton(
-            onPressed: () {
-              // TODO: Implement create account
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: GroupPhaseColors.steelblue,
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.blue, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Dieses Passwort teilst du mit allen Spielern, damit sie dem Turnier beitreten können.',
+                  style: TextStyle(fontSize: 12, color: Colors.blue),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConfirmStep(AuthState authState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Turnier erstellen',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.green.shade200),
+          ),
+          child: Column(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green, size: 48),
+              const SizedBox(height: 12),
+              const Text(
+                'Bereit zum Erstellen!',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildSummaryItem(
+                  'Turniername', _tournamentNameController.text.trim()),
+              _buildSummaryItem('Ersteller', authState.userEmail ?? ''),
+              _buildSummaryItem('Passwort', '••••••'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.blue, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Nach dem Erstellen wirst du automatisch dem Turnier beitreten.',
+                  style: TextStyle(fontSize: 12, color: Colors.blue),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _isLoginMode ? 'Anmelden' : 'Konto erstellen',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            child: const Text('Noch kein Konto? Registrieren'),
+            TextButton(
+              onPressed: () => setState(() {
+                _isLoginMode = !_isLoginMode;
+                _error = null;
+              }),
+              style: TextButton.styleFrom(
+                foregroundColor: GroupPhaseColors.steelblue,
+              ),
+              child: Text(_isLoginMode
+                  ? 'Neues Konto erstellen'
+                  : 'Ich habe bereits ein Konto'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _isLoginMode
+              ? 'Melde dich mit deinem bestehenden Konto an'
+              : 'Erstelle ein Konto um dein Turnier zu verwalten',
+          style: const TextStyle(color: Colors.grey),
+        ),
+        const SizedBox(height: 24),
+        TextField(
+          controller: _emailController,
+          cursorColor: GroupPhaseColors.cupred,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            labelText: 'E-Mail',
+            prefixIcon: const Icon(Icons.email_outlined),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  const BorderSide(color: GroupPhaseColors.cupred, width: 2),
+            ),
+            floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _accountPasswordController,
+          obscureText: _obscureAccountPassword,
+          cursorColor: GroupPhaseColors.cupred,
+          decoration: InputDecoration(
+            labelText: 'Passwort',
+            prefixIcon: const Icon(Icons.lock_outline),
+            suffixIcon: IconButton(
+              onPressed: () => setState(
+                  () => _obscureAccountPassword = !_obscureAccountPassword),
+              icon: Icon(
+                _obscureAccountPassword
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  const BorderSide(color: GroupPhaseColors.cupred, width: 2),
+            ),
+            floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
+          ),
+        ),
+        if (!_isLoginMode) ...[
+          const SizedBox(height: 16),
+          TextField(
+            controller: _confirmPasswordController,
+            obscureText: _obscureConfirmPassword,
+            cursorColor: GroupPhaseColors.cupred,
+            decoration: InputDecoration(
+              labelText: 'Passwort bestätigen',
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                onPressed: () => setState(
+                    () => _obscureConfirmPassword = !_obscureConfirmPassword),
+                icon: Icon(
+                  _obscureConfirmPassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide:
+                    const BorderSide(color: GroupPhaseColors.cupred, width: 2),
+              ),
+              floatingLabelStyle:
+                  const TextStyle(color: GroupPhaseColors.cupred),
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Zusammenfassung',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              _buildSummaryItem(
+                  'Turniername', _tournamentNameController.text.trim()),
+              _buildSummaryItem('Turnier-Passwort', '••••••'),
+            ],
           ),
         ),
       ],
@@ -1057,38 +1602,154 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
 
 /// Login dialog for returning tournament creators
 class LoginDialog extends StatefulWidget {
-  const LoginDialog({super.key});
+  final VoidCallback? onLoginSuccess;
+
+  const LoginDialog({super.key, this.onLoginSuccess});
 
   @override
   State<LoginDialog> createState() => _LoginDialogState();
 }
 
 class _LoginDialogState extends State<LoginDialog> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isRegisterMode = false;
+  final _confirmPasswordController = TextEditingController();
+  bool _obscureConfirmPassword = true;
 
-  InputDecoration _buildInputDecoration({
-    required String labelText,
-    required IconData prefixIcon,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      labelText: labelText,
-      prefixIcon: Icon(prefixIcon),
-      suffixIcon: suffixIcon,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: GroupPhaseColors.cupred, width: 2),
-      ),
-      floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
-    );
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final authState = Provider.of<AuthState>(context, listen: false);
+
+    if (_emailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bitte gib eine E-Mail ein'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bitte gib ein Passwort ein'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_isRegisterMode) {
+      if (_passwordController.text != _confirmPasswordController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Passwörter stimmen nicht überein'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final success = await authState.createAccount(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      if (mounted) {
+        if (success) {
+          Navigator.pop(context);
+          widget.onLoginSuccess?.call();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Konto erfolgreich erstellt!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authState.error ?? 'Registrierung fehlgeschlagen'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } else {
+      final success = await authState.signInWithEmail(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      if (mounted) {
+        if (success) {
+          Navigator.pop(context);
+          widget.onLoginSuccess?.call();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Erfolgreich angemeldet!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authState.error ?? 'Anmeldung fehlgeschlagen'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    if (_emailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bitte gib deine E-Mail ein'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final authState = Provider.of<AuthState>(context, listen: false);
+    final success =
+        await authState.sendPasswordReset(_emailController.text.trim());
+
+    if (mounted) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Passwort-Reset E-Mail wurde gesendet'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authState.error ?? 'Fehler beim Senden der E-Mail'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width > 500;
+    final authState = Provider.of<AuthState>(context);
 
     return Dialog(
       child: Container(
@@ -1106,28 +1767,32 @@ class _LoginDialogState extends State<LoginDialog> {
                     color: GroupPhaseColors.cupred.withAlpha(30),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.login,
+                  child: Icon(
+                    _isRegisterMode ? Icons.person_add : Icons.login,
                     color: GroupPhaseColors.cupred,
                     size: 28,
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Veranstalter Login',
-                        style: TextStyle(
+                        _isRegisterMode
+                            ? 'Konto erstellen'
+                            : 'Veranstalter Login',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Zugang zu deinen Turnieren',
-                        style: TextStyle(color: Colors.grey),
+                        _isRegisterMode
+                            ? 'Erstelle ein neues Konto'
+                            : 'Zugang zu deinen Turnieren',
+                        style: const TextStyle(color: Colors.grey),
                       ),
                     ],
                   ),
@@ -1141,19 +1806,33 @@ class _LoginDialogState extends State<LoginDialog> {
             const SizedBox(height: 24),
             // Form
             TextField(
+              controller: _emailController,
               cursorColor: GroupPhaseColors.cupred,
-              decoration: _buildInputDecoration(
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
                 labelText: 'E-Mail',
-                prefixIcon: Icons.email_outlined,
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                      color: GroupPhaseColors.cupred, width: 2),
+                ),
+                floatingLabelStyle:
+                    const TextStyle(color: GroupPhaseColors.cupred),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
+              controller: _passwordController,
               obscureText: _obscurePassword,
               cursorColor: GroupPhaseColors.cupred,
-              decoration: _buildInputDecoration(
+              onSubmitted: (_) => _submit(),
+              decoration: InputDecoration(
                 labelText: 'Passwort',
-                prefixIcon: Icons.lock_outline,
+                prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
                   onPressed: () =>
                       setState(() => _obscurePassword = !_obscurePassword),
@@ -1163,34 +1842,68 @@ class _LoginDialogState extends State<LoginDialog> {
                         : Icons.visibility_outlined,
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {
-                  // TODO: Implement forgot password
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: GroupPhaseColors.steelblue,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('Passwort vergessen?'),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                      color: GroupPhaseColors.cupred, width: 2),
+                ),
+                floatingLabelStyle:
+                    const TextStyle(color: GroupPhaseColors.cupred),
               ),
             ),
+            if (_isRegisterMode) ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirmPassword,
+                cursorColor: GroupPhaseColors.cupred,
+                onSubmitted: (_) => _submit(),
+                decoration: InputDecoration(
+                  labelText: 'Passwort bestätigen',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    onPressed: () => setState(() =>
+                        _obscureConfirmPassword = !_obscureConfirmPassword),
+                    icon: Icon(
+                      _obscureConfirmPassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(
+                        color: GroupPhaseColors.cupred, width: 2),
+                  ),
+                  floatingLabelStyle:
+                      const TextStyle(color: GroupPhaseColors.cupred),
+                ),
+              ),
+            ],
+            if (!_isRegisterMode) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _forgotPassword,
+                  style: TextButton.styleFrom(
+                    foregroundColor: GroupPhaseColors.steelblue,
+                  ),
+                  child: const Text('Passwort vergessen?'),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Implement login
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Login wird später implementiert'),
-                    ),
-                  );
-                  Navigator.pop(context);
-                },
+                onPressed: authState.isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: GroupPhaseColors.cupred,
                   foregroundColor: Colors.white,
@@ -1199,21 +1912,35 @@ class _LoginDialogState extends State<LoginDialog> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
-                  'Anmelden',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+                child: authState.isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        _isRegisterMode ? 'Registrieren' : 'Anmelden',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
               ),
             ),
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
-                // TODO: Navigate to sign up
+                setState(() {
+                  _isRegisterMode = !_isRegisterMode;
+                });
               },
               style: TextButton.styleFrom(
                 foregroundColor: GroupPhaseColors.steelblue,
               ),
-              child: const Text('Noch kein Konto? Registrieren'),
+              child: Text(_isRegisterMode
+                  ? 'Bereits ein Konto? Anmelden'
+                  : 'Noch kein Konto? Registrieren'),
             ),
           ],
         ),

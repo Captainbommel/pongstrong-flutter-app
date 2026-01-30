@@ -6,6 +6,7 @@ import 'package:pongstrong/firebase/auth.dart';
 import 'package:pongstrong/mobile_app/mobile_app_state.dart';
 import 'package:pongstrong/desktop_app/desktop_app.dart';
 import 'package:pongstrong/mobile_app/mobile_app.dart';
+import 'package:pongstrong/shared/auth_state.dart';
 import 'package:pongstrong/shared/landing_page.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
 import 'package:pongstrong/shared/tournament_selection_state.dart';
@@ -43,6 +44,7 @@ class MyApp extends StatelessWidget {
     //! App rebulds when screen size changes -> state should be determined before
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthState()),
         ChangeNotifierProvider(create: (_) => TournamentSelectionState()),
         ChangeNotifierProvider(create: (_) => TournamentDataState()),
         ChangeNotifierProvider(create: (_) => DesktopAppState()),

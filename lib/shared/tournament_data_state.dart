@@ -26,10 +26,21 @@ class TournamentDataState extends ChangeNotifier {
 
   bool get hasData => _teams.isNotEmpty;
 
+  /// Check if the tournament is in setup phase (no game data yet)
+  bool get isSetupPhase => _teams.isEmpty && _currentTournamentId.isNotEmpty;
+
   /// Load tournament data from Firestore
+  /// Returns true if tournament exists (even if in setup phase with no game data)
   Future<bool> loadTournamentData(String tournamentId) async {
     try {
       final service = FirestoreService();
+
+      // First check if tournament exists at all
+      final tournamentInfo = await service.getTournamentInfo(tournamentId);
+      if (tournamentInfo == null) {
+        debugPrint('Tournament not found: $tournamentId');
+        return false;
+      }
 
       final teams = await service.loadTeams(tournamentId: tournamentId);
       final matchQueue =
@@ -38,6 +49,7 @@ class TournamentDataState extends ChangeNotifier {
           await service.loadGruppenphase(tournamentId: tournamentId);
       final knockouts = await service.loadKnockouts(tournamentId: tournamentId);
 
+      // Tournament exists but may be in setup phase (no game data yet)
       if (teams != null && matchQueue != null && gruppenphase != null) {
         _teams = teams;
         _matchQueue = matchQueue;
@@ -52,10 +64,19 @@ class TournamentDataState extends ChangeNotifier {
                 knockouts.champions.rounds[0][0].teamId2.isNotEmpty);
         // Start listening to real-time updates
         _setupStreams();
-        notifyListeners();
-        return true;
+      } else {
+        // Tournament exists but is in setup phase - clear any old data
+        _teams = [];
+        _matchQueue = MatchQueue();
+        _tabellen = Tabellen();
+        _knockouts = Knockouts();
+        _currentTournamentId = tournamentId;
+        _isKnockoutMode = false;
+        _cancelStreams();
       }
-      return false;
+
+      notifyListeners();
+      return true;
     } catch (e) {
       debugPrint('Error loading tournament data: $e');
       return false;

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pongstrong/models/models.dart';
 
 /// Firestore service for managing tournament data
@@ -45,6 +46,8 @@ class FirestoreService {
   }
 
   /// Loads flat list of all teams from Firestore
+  /// Returns empty list if document exists but teams array is empty (setup phase)
+  /// Returns null only if document doesn't exist
   Future<List<Team>?> loadTeams({
     String tournamentId = defaultTournamentId,
   }) async {
@@ -52,9 +55,11 @@ class FirestoreService {
     if (!doc.exists) return null;
 
     final data = doc.data() as Map<String, dynamic>;
-    final teamsList = (data['teams'] as List)
-        .map((t) => Team.fromJson(t as Map<String, dynamic>))
-        .toList();
+    final teamsData = data['teams'];
+    if (teamsData == null || teamsData is! List) return [];
+
+    final teamsList =
+        teamsData.map((t) => Team.fromJson(t as Map<String, dynamic>)).toList();
     return teamsList;
   }
 
@@ -156,6 +161,8 @@ class FirestoreService {
   }
 
   /// Loads group phase data from Firestore
+  /// Returns empty Gruppenphase if document exists but has no data (setup phase)
+  /// Returns null only if document doesn't exist
   Future<Gruppenphase?> loadGruppenphase({
     String tournamentId = defaultTournamentId,
   }) async {
@@ -163,8 +170,19 @@ class FirestoreService {
     if (!doc.exists) return null;
 
     final data = doc.data() as Map<String, dynamic>;
-    final groupsMap = data['groups'] as Map<String, dynamic>;
-    final numberOfGroups = data['numberOfGroups'] as int;
+
+    // Check if this is a placeholder document (setup phase)
+    if (data['initialized'] == true &&
+        (data['numberOfGroups'] == null || data['numberOfGroups'] == 0)) {
+      return Gruppenphase(groups: []);
+    }
+
+    final groupsMap = data['groups'] as Map<String, dynamic>?;
+    final numberOfGroups = data['numberOfGroups'] as int? ?? 0;
+
+    if (groupsMap == null || numberOfGroups == 0) {
+      return Gruppenphase(groups: []);
+    }
 
     final groups = <List<Match>>[];
     for (int i = 0; i < numberOfGroups; i++) {
@@ -337,6 +355,8 @@ class FirestoreService {
   }
 
   /// Loads knockout phase data from Firestore
+  /// Returns empty Knockouts if document exists but has no data (setup phase)
+  /// Returns null only if document doesn't exist
   Future<Knockouts?> loadKnockouts({
     String tournamentId = defaultTournamentId,
   }) async {
@@ -345,54 +365,69 @@ class FirestoreService {
 
     final data = doc.data() as Map<String, dynamic>;
 
-    // Reconstruct Champions rounds from map
-    final championsData = data['champions'] as Map<String, dynamic>;
-    final championsRoundsMap = championsData['rounds'] as Map<String, dynamic>;
-    final championsNumberOfRounds = championsData['numberOfRounds'] as int;
-    final championsRounds = <List<Match>>[];
-    for (int i = 0; i < championsNumberOfRounds; i++) {
-      final roundMatches = (championsRoundsMap['round$i'] as List)
-          .map((m) => Match.fromJson(m as Map<String, dynamic>))
-          .toList();
-      championsRounds.add(roundMatches);
+    // Check if this is a placeholder document (setup phase)
+    if (data['initialized'] == true) {
+      final championsData = data['champions'] as Map<String, dynamic>?;
+      if (championsData == null || championsData['numberOfRounds'] == null) {
+        return Knockouts();
+      }
     }
 
-    // Reconstruct Europa rounds from map
-    final europaData = data['europa'] as Map<String, dynamic>;
-    final europaRoundsMap = europaData['rounds'] as Map<String, dynamic>;
-    final europaNumberOfRounds = europaData['numberOfRounds'] as int;
-    final europaRounds = <List<Match>>[];
-    for (int i = 0; i < europaNumberOfRounds; i++) {
-      final roundMatches = (europaRoundsMap['round$i'] as List)
+    try {
+      // Reconstruct Champions rounds from map
+      final championsData = data['champions'] as Map<String, dynamic>;
+      final championsRoundsMap =
+          championsData['rounds'] as Map<String, dynamic>;
+      final championsNumberOfRounds = championsData['numberOfRounds'] as int;
+      final championsRounds = <List<Match>>[];
+      for (int i = 0; i < championsNumberOfRounds; i++) {
+        final roundMatches = (championsRoundsMap['round$i'] as List)
+            .map((m) => Match.fromJson(m as Map<String, dynamic>))
+            .toList();
+        championsRounds.add(roundMatches);
+      }
+
+      // Reconstruct Europa rounds from map
+      final europaData = data['europa'] as Map<String, dynamic>;
+      final europaRoundsMap = europaData['rounds'] as Map<String, dynamic>;
+      final europaNumberOfRounds = europaData['numberOfRounds'] as int;
+      final europaRounds = <List<Match>>[];
+      for (int i = 0; i < europaNumberOfRounds; i++) {
+        final roundMatches = (europaRoundsMap['round$i'] as List)
+            .map((m) => Match.fromJson(m as Map<String, dynamic>))
+            .toList();
+        europaRounds.add(roundMatches);
+      }
+
+      // Reconstruct Conference rounds from map
+      final conferenceData = data['conference'] as Map<String, dynamic>;
+      final conferenceRoundsMap =
+          conferenceData['rounds'] as Map<String, dynamic>;
+      final conferenceNumberOfRounds = conferenceData['numberOfRounds'] as int;
+      final conferenceRounds = <List<Match>>[];
+      for (int i = 0; i < conferenceNumberOfRounds; i++) {
+        final roundMatches = (conferenceRoundsMap['round$i'] as List)
+            .map((m) => Match.fromJson(m as Map<String, dynamic>))
+            .toList();
+        conferenceRounds.add(roundMatches);
+      }
+
+      // Reconstruct Super
+      final superMatches = (data['super'] as List)
           .map((m) => Match.fromJson(m as Map<String, dynamic>))
           .toList();
-      europaRounds.add(roundMatches);
+
+      return Knockouts(
+        champions: Champions(rounds: championsRounds),
+        europa: Europa(rounds: europaRounds),
+        conference: Conference(rounds: conferenceRounds),
+        superCup: Super(matches: superMatches),
+      );
+    } catch (e) {
+      // If parsing fails, return empty knockouts
+      debugPrint('Error parsing knockouts: $e');
+      return Knockouts();
     }
-
-    // Reconstruct Conference rounds from map
-    final conferenceData = data['conference'] as Map<String, dynamic>;
-    final conferenceRoundsMap =
-        conferenceData['rounds'] as Map<String, dynamic>;
-    final conferenceNumberOfRounds = conferenceData['numberOfRounds'] as int;
-    final conferenceRounds = <List<Match>>[];
-    for (int i = 0; i < conferenceNumberOfRounds; i++) {
-      final roundMatches = (conferenceRoundsMap['round$i'] as List)
-          .map((m) => Match.fromJson(m as Map<String, dynamic>))
-          .toList();
-      conferenceRounds.add(roundMatches);
-    }
-
-    // Reconstruct Super
-    final superMatches = (data['super'] as List)
-        .map((m) => Match.fromJson(m as Map<String, dynamic>))
-        .toList();
-
-    return Knockouts(
-      champions: Champions(rounds: championsRounds),
-      europa: Europa(rounds: europaRounds),
-      conference: Conference(rounds: conferenceRounds),
-      superCup: Super(matches: superMatches),
-    );
   }
 
   /// Stream of knockout phase updates
@@ -554,6 +589,8 @@ class FirestoreService {
   }
 
   /// Loads match queue from Firestore
+  /// Returns empty MatchQueue if document exists but has no data (setup phase)
+  /// Returns null only if document doesn't exist
   Future<MatchQueue?> loadMatchQueue({
     String tournamentId = defaultTournamentId,
   }) async {
@@ -561,9 +598,20 @@ class FirestoreService {
     if (!doc.exists) return null;
 
     final data = doc.data() as Map<String, dynamic>;
-    final waitingMap = data['waiting'] as Map<String, dynamic>;
-    final numberOfQueues = data['numberOfQueues'] as int;
-    final playingList = data['playing'] as List;
+
+    // Check if this is a placeholder document (setup phase)
+    if (data['initialized'] == true &&
+        (data['numberOfQueues'] == null || data['numberOfQueues'] == 0)) {
+      return MatchQueue();
+    }
+
+    final waitingMap = data['waiting'] as Map<String, dynamic>?;
+    final numberOfQueues = data['numberOfQueues'] as int? ?? 0;
+    final playingList = data['playing'] as List? ?? [];
+
+    if (waitingMap == null || numberOfQueues == 0) {
+      return MatchQueue();
+    }
 
     final waiting = <List<Match>>[];
     for (int i = 0; i < numberOfQueues; i++) {
@@ -639,12 +687,27 @@ class FirestoreService {
     knockouts.instantiate();
     await saveKnockouts(knockouts, tournamentId: tournamentId);
 
-    // Save tournament metadata
-    await _firestore.collection(_tournamentsCollection).doc(tournamentId).set({
-      'phase': 'groups', // 'groups' or 'knockouts'
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    // Update tournament metadata (use update to preserve creatorId, password etc.)
+    // Fall back to set with merge if document doesn't exist
+    try {
+      await _firestore
+          .collection(_tournamentsCollection)
+          .doc(tournamentId)
+          .update({
+        'phase': 'groups', // 'groups' or 'knockouts'
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      // Document might not exist yet (legacy behavior)
+      await _firestore
+          .collection(_tournamentsCollection)
+          .doc(tournamentId)
+          .set({
+        'phase': 'groups',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
   }
 
   /// Transitions tournament from group phase to knockout phase
@@ -761,6 +824,15 @@ class FirestoreService {
     return snapshot.docs.map((doc) => doc.id).toList();
   }
 
+  /// Gets tournaments created by a specific user
+  Future<List<String>> listUserTournaments(String creatorId) async {
+    final snapshot = await _firestore
+        .collection(_tournamentsCollection)
+        .where('creatorId', isEqualTo: creatorId)
+        .get();
+    return snapshot.docs.map((doc) => doc.id).toList();
+  }
+
   /// Checks if a tournament exists
   Future<bool> tournamentExists({
     String tournamentId = defaultTournamentId,
@@ -770,5 +842,169 @@ class FirestoreService {
         .doc(tournamentId)
         .get();
     return doc.exists;
+  }
+
+  /// Creates a new empty tournament with just the name and creator info
+  /// Returns the tournament ID if successful, null otherwise
+  /// Also creates empty placeholder documents for all collections so they're ready for data
+  Future<String?> createTournament({
+    required String tournamentName,
+    required String creatorId,
+    required String creatorEmail,
+    required String password,
+  }) async {
+    try {
+      // Use the tournament name as the ID (sanitized)
+      final tournamentId =
+          tournamentName.trim().replaceAll(RegExp(r'\s+'), '-');
+
+      // Check if tournament already exists
+      if (await tournamentExists(tournamentId: tournamentId)) {
+        return null; // Tournament with this name already exists
+      }
+
+      // Create tournament document with metadata
+      await _firestore
+          .collection(_tournamentsCollection)
+          .doc(tournamentId)
+          .set({
+        'name': tournamentName,
+        'creatorId': creatorId,
+        'creatorEmail': creatorEmail,
+        'password': password, // In production, this should be hashed
+        'phase': 'setup', // 'setup', 'groups' or 'knockouts'
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Create empty placeholder documents for all collections
+      // This ensures the collections exist and are ready for data
+      final batch = _firestore.batch();
+
+      // Teams placeholder
+      batch.set(_getDoc(tournamentId, 'teams'), {
+        'teams': [],
+        'initialized': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Groups placeholder
+      batch.set(_getDoc(tournamentId, 'gruppen'), {
+        'groups': [],
+        'initialized': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Match queue placeholder
+      batch.set(_getDoc(tournamentId, 'matchQueue'), {
+        'queue': [],
+        'currentIndex': 0,
+        'initialized': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Gruppenphase placeholder
+      batch.set(_getDoc(tournamentId, 'gruppenphase'), {
+        'gruppen': [],
+        'initialized': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Tabellen placeholder
+      batch.set(_getDoc(tournamentId, 'tabellen'), {
+        'tabellen': [],
+        'initialized': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Knockouts placeholder
+      batch.set(_getDoc(tournamentId, 'knockouts'), {
+        'champions': {'rounds': []},
+        'losers': {'rounds': []},
+        'initialized': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+
+      return tournamentId;
+    } catch (e) {
+      debugPrint('Error creating tournament: $e');
+      return null;
+    }
+  }
+
+  /// Verifies if the password is correct for a tournament
+  Future<bool> verifyTournamentPassword(
+      String tournamentId, String password) async {
+    try {
+      final doc = await _firestore
+          .collection(_tournamentsCollection)
+          .doc(tournamentId)
+          .get();
+      if (!doc.exists) return false;
+
+      final data = doc.data() as Map<String, dynamic>;
+      return data['password'] == password;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Checks if a user is the creator of a tournament
+  Future<bool> isCreator(String tournamentId, String userId) async {
+    try {
+      final doc = await _firestore
+          .collection(_tournamentsCollection)
+          .doc(tournamentId)
+          .get();
+      if (!doc.exists) return false;
+
+      final data = doc.data() as Map<String, dynamic>;
+      return data['creatorId'] == userId;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Gets tournament info (name, creatorEmail, etc.)
+  Future<Map<String, dynamic>?> getTournamentInfo(String tournamentId) async {
+    try {
+      final doc = await _firestore
+          .collection(_tournamentsCollection)
+          .doc(tournamentId)
+          .get();
+      if (!doc.exists) return null;
+
+      final data = doc.data() as Map<String, dynamic>;
+      // Don't return the password - return available fields
+      return {
+        'name': data['name'] ?? tournamentId,
+        'creatorId': data['creatorId'],
+        'creatorEmail': data['creatorEmail'],
+        'phase': data['phase'] ?? 'groups',
+        'createdAt': data['createdAt'],
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Checks if a tournament has a password set
+  Future<bool> tournamentHasPassword(String tournamentId) async {
+    try {
+      final doc = await _firestore
+          .collection(_tournamentsCollection)
+          .doc(tournamentId)
+          .get();
+      if (!doc.exists) return false;
+
+      final data = doc.data() as Map<String, dynamic>;
+      return data.containsKey('password') &&
+          data['password'] != null &&
+          data['password'].toString().isNotEmpty;
+    } catch (e) {
+      return false;
+    }
   }
 }

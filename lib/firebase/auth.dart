@@ -9,6 +9,21 @@ class AuthService {
     return _auth.currentUser;
   }
 
+  /// Get the current user's UID
+  String? get userId {
+    return _auth.currentUser?.uid;
+  }
+
+  /// Get the current user's email
+  String? get userEmail {
+    return _auth.currentUser?.email;
+  }
+
+  /// Check if user is logged in with email (not anonymous)
+  bool get isEmailUser {
+    return _auth.currentUser?.email != null;
+  }
+
   /// stream for listening to user changes
   Stream<User?> get userState {
     return _auth.authStateChanges();
@@ -25,10 +40,55 @@ class AuthService {
     }
   }
 
+  /// Signs in with email and password
+  Future<User?> signInWithEmail(String email, String password) async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
+      rethrow;
+    } catch (error) {
+      debugPrint(error.toString());
+      return Future.error(error);
+    }
+  }
+
+  /// Creates a new user with email and password
+  Future<User?> createUserWithEmail(String email, String password) async {
+    try {
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
+      rethrow;
+    } catch (error) {
+      debugPrint(error.toString());
+      return Future.error(error);
+    }
+  }
+
   /// Signs the current user out. Might complete with error.
   Future signOut() async {
     try {
       await _auth.signOut();
+    } catch (error) {
+      debugPrint(error.toString());
+      return Future.error(error);
+    }
+  }
+
+  /// Sends a password reset email
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
     } catch (error) {
       debugPrint(error.toString());
       return Future.error(error);

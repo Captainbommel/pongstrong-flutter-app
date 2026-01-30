@@ -5,12 +5,19 @@ import 'package:pongstrong/models/evaluation.dart';
 import 'package:pongstrong/services/firestore_service.dart';
 import 'package:pongstrong/services/import_service.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
+import 'package:pongstrong/shared/tournament_selection_state.dart';
 import 'package:provider/provider.dart';
 
 /// Utilities for uploading tournament data from JSON to Firestore
 class TestDataHelpers {
   /// Upload teams from JSON file
+  /// Uses the currently selected tournament ID from TournamentSelectionState
   static Future<void> uploadTeamsFromJson(BuildContext context) async {
+    // Get the current tournament ID from selection state
+    final selectionState =
+        Provider.of<TournamentSelectionState>(context, listen: false);
+    final tournamentId = selectionState.selectedTournamentId ??
+        FirestoreService.defaultTournamentId;
     try {
       // Pick JSON file
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -64,24 +71,25 @@ class TestDataHelpers {
       debugPrint(
           'Loaded ${allTeams.length} teams from JSON in ${groups.groups.length} groups');
 
-      // Initialize tournament
+      // Initialize tournament with the current tournament ID
       final service = FirestoreService();
       await service.initializeTournament(
         allTeams,
         groups,
-        tournamentId: FirestoreService.defaultTournamentId,
+        tournamentId: tournamentId,
       );
-      debugPrint('   ✓ Complete tournament initialized from JSON');
+      debugPrint(
+          '   ✓ Complete tournament initialized from JSON for $tournamentId');
 
       // Load all data from Firestore to update the UI
       final loadedTeams = await service.loadTeams(
-        tournamentId: FirestoreService.defaultTournamentId,
+        tournamentId: tournamentId,
       );
       final matchQueue = await service.loadMatchQueue(
-        tournamentId: FirestoreService.defaultTournamentId,
+        tournamentId: tournamentId,
       );
       final gruppenphase = await service.loadGruppenphase(
-        tournamentId: FirestoreService.defaultTournamentId,
+        tournamentId: tournamentId,
       );
 
       // Update the TournamentDataState
