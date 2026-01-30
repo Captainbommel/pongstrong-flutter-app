@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pongstrong/services/firestore_service.dart';
+import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/shared/auth_state.dart';
 import 'package:pongstrong/shared/colors.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';

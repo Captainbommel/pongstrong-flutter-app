@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:pongstrong/models/evaluation.dart';
-import 'package:pongstrong/services/firestore_service.dart';
+import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/services/import_service.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
 import 'package:pongstrong/shared/tournament_selection_state.dart';
@@ -17,7 +17,7 @@ class TestDataHelpers {
     final selectionState =
         Provider.of<TournamentSelectionState>(context, listen: false);
     final tournamentId = selectionState.selectedTournamentId ??
-        FirestoreService.defaultTournamentId;
+        FirestoreBase.defaultTournamentId;
     try {
       // Pick JSON file
       FilePickerResult? result = await FilePicker.platform.pickFiles(

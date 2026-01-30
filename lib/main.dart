@@ -7,7 +7,7 @@ import 'package:pongstrong/mobile_app/mobile_app_state.dart';
 import 'package:pongstrong/desktop_app/desktop_app.dart';
 import 'package:pongstrong/mobile_app/mobile_app.dart';
 import 'package:pongstrong/shared/auth_state.dart';
-import 'package:pongstrong/shared/landing_page.dart';
+import 'package:pongstrong/shared/landing_page/landing_page.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
 import 'package:pongstrong/shared/tournament_selection_state.dart';
 import 'package:provider/provider.dart';

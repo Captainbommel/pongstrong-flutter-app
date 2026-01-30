@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart' hide TableRow;
 import 'package:pongstrong/models/models.dart';
-import 'package:pongstrong/services/firestore_service.dart';
+import 'package:pongstrong/services/firestore_service/firestore_service.dart';
+import 'package:pongstrong/services/firestore_service/firestore_base.dart';
 
 /// Holds the current tournament data loaded from Firestore
 class TournamentDataState extends ChangeNotifier {
@@ -9,7 +10,7 @@ class TournamentDataState extends ChangeNotifier {
   MatchQueue _matchQueue = MatchQueue();
   Tabellen _tabellen = Tabellen();
   Knockouts _knockouts = Knockouts();
-  String _currentTournamentId = FirestoreService.defaultTournamentId;
+  String _currentTournamentId = FirestoreBase.defaultTournamentId;
   bool _isKnockoutMode = false;
 
   // Stream subscriptions for real-time updates
