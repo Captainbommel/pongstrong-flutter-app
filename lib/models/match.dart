@@ -1,3 +1,5 @@
+import 'evaluation.dart';
+
 class Match {
   String teamId1;
   String teamId2;
@@ -18,63 +20,23 @@ class Match {
   });
 
   // winner gibt das gewinnerteam zurück
+  // Uses modular logic from evaluation.dart
   String? getWinnerId() {
-    // deathcup
-    if (score1 < 0) {
+    final winner = determineWinner(score1, score2);
+
+    if (winner == 1) {
       return teamId1;
-    } else if (score2 < 0) {
+    } else if (winner == 2) {
       return teamId2;
     }
-    // normal
-    if (score1 > score2) {
-      return teamId1;
-    } else if (score2 > score1) {
-      return teamId2;
-    }
-    return null; // invalid or tie
+
+    return null;
   }
 
   // points gibt die Punkte der beiden beteiligten Teams zurück
+  // Uses modular logic from evaluation.dart
   (int, int)? getPoints() {
-    if (score1 == 0 && score2 == 0) {
-      return null;
-    }
-
-    const winner = [3, 2, 4, 3];
-    const looser = [0, 1, 0, 1];
-
-    // deathcup
-    if (score1 == -1) {
-      return (winner[2], looser[2]);
-    } else if (score2 == -1) {
-      return (looser[2], winner[2]);
-    }
-    // deathcup overtime
-    if (score1 == -2) {
-      return (winner[3], looser[3]);
-    } else if (score2 == -2) {
-      return (looser[3], winner[3]);
-    }
-    // normal
-    if (score1 == 10 && score2 < 10) {
-      return (winner[0], looser[0]);
-    } else if (score2 == 10 && score1 < 10) {
-      return (looser[0], winner[0]);
-    }
-    // overtime
-    if ((score1 == 16 || score1 == 19) && score1 > score2) {
-      return (winner[1], looser[1]);
-    } else if ((score2 == 16 || score2 == 19) && score2 > score1) {
-      return (looser[1], winner[1]);
-    }
-    // 1 on 1
-    if (score2 >= 19 && score1 > score2) {
-      //TODO: there should only be a 1 cup difference after first 4?
-      return (winner[1], looser[1]);
-    } else if (score1 >= 19 && score2 > score1) {
-      return (looser[1], winner[1]);
-    }
-    return null; // invalid scores
+    return calculatePoints(score1, score2);
   }
 
   Map<String, dynamic> toJson() => {

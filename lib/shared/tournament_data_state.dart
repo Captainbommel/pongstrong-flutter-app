@@ -389,32 +389,22 @@ class TournamentDataState extends ChangeNotifier {
     try {
       final service = FirestoreService();
 
-      debugPrint("Here 0");
-
       // Load current gruppenphase to calculate standings
       final gruppenphase =
           await service.loadGruppenphase(tournamentId: _currentTournamentId);
-
-      debugPrint("Here 1");
 
       if (gruppenphase == null) {
         debugPrint('Could not load gruppenphase for knockout transition');
         return false;
       }
 
-      debugPrint("Here 2");
-
       // Calculate final standings
       final tabellen = evalGruppen(gruppenphase);
-
-      debugPrint("Here 3");
 
       // Evaluate and create knockouts based on number of groups
       final knockouts = numberOfGroups == 8
           ? evaluateGroups8(tabellen)
           : evaluateGroups6(tabellen);
-
-      debugPrint("Here 4");
 
       // Clear match queue and fill with knockout matches
       _matchQueue = MatchQueue(
@@ -439,8 +429,6 @@ class TournamentDataState extends ChangeNotifier {
       _knockouts = knockouts;
       _isKnockoutMode = true;
       notifyListeners();
-
-      debugPrint("Here 5");
 
       return true;
     } catch (e) {

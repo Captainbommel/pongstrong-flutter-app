@@ -3,30 +3,92 @@ import 'tabellen.dart';
 import 'gruppenphase.dart';
 import 'knockouts.dart';
 
-// cups helps with negative values
-int cups(int n) {
-  switch (n) {
-    case -1:
-      return 10;
-    case -2:
-      return 16;
-    default:
-      return n;
+// calculatePoints calculates the points for both teams based on match scores
+// Returns (team1Points, team2Points) or null if the match is not finished
+(int, int)? calculatePoints(int score1, int score2) {
+  if (!isValid(score1, score2)) {
+    return null;
   }
+
+  const winner = [3, 2, 4, 3];
+  const looser = [0, 1, 0, 1];
+
+  // deathcup
+  if (score1 == -1) {
+    return (winner[2], looser[2]);
+  } else if (score2 == -1) {
+    return (looser[2], winner[2]);
+  }
+  // deathcup overtime
+  if (score1 == -2) {
+    return (winner[3], looser[3]);
+  } else if (score2 == -2) {
+    return (looser[3], winner[3]);
+  }
+  // normal
+  if (score1 == 10 && score2 < 10) {
+    return (winner[0], looser[0]);
+  } else if (score2 == 10 && score1 < 10) {
+    return (looser[0], winner[0]);
+  }
+  // overtime
+  if ((score1 == 16 || score1 == 19) && score1 > score2) {
+    return (winner[1], looser[1]);
+  } else if ((score2 == 16 || score2 == 19) && score2 > score1) {
+    return (looser[1], winner[1]);
+  }
+  // 1 on 1
+  if (score2 >= 19 && score1 > score2) {
+    return (winner[1], looser[1]);
+  } else if (score1 >= 19 && score2 > score1) {
+    return (looser[1], winner[1]);
+  }
+
+  return null;
+}
+
+// determineWinner determines which team won based on the scores
+// Returns 1 for team1, 2 for team2, or null for tie/invalid
+int? determineWinner(int score1, int score2) {
+  //TODO: would it be better to use a match as input and teamid as output?
+
+  if (!isValid(score1, score2)) {
+    return null;
+  }
+
+  // deathcup
+  if (score1 < 0) {
+    return 1;
+  } else if (score2 < 0) {
+    return 2;
+  }
+  // normal
+  if (score1 > score2) {
+    return 1;
+  } else if (score2 > score1) {
+    return 2;
+  }
+
+  return null;
 }
 
 // isValid checks if a score is valid
 bool isValid(int b1, int b2) {
   if (b1 == -1 && b2 >= 0 && b2 <= 10) return true;
   if (b2 == -1 && b1 >= 0 && b1 <= 10) return true;
-  if (b1 == -2 && b2 >= 10) return true;
-  if (b2 == -2 && b1 >= 10) return true;
-  if (b1 == 10 && b2 < 10) return true;
-  if (b2 == 10 && b1 < 10) return true;
+
+  if (b1 == -2 && b2 >= 0 && b2 >= 10) return true;
+  if (b2 == -2 && b1 >= 0 && b1 >= 10) return true;
+
+  if (b1 == 10 && b2 >= 0 && b2 < 10) return true;
+  if (b2 == 10 && b1 >= 0 && b1 < 10) return true;
+
   if (b1 == 16 && b2 >= 10 && b2 < 16) return true;
   if (b2 == 16 && b1 >= 10 && b1 < 16) return true;
+
   if (b1 == 19 && b2 >= 16 && b2 < 19) return true;
   if (b2 == 19 && b1 >= 16 && b1 < 19) return true;
+
   if (b1 >= 19 && b2 >= 19 && (b1 > b2 || b2 > b1)) return true;
   return false;
 }
@@ -63,6 +125,18 @@ List<TableRow> evaluate(List<Match> matches) {
         table[t2].punkte += points.$2;
       }
 
+      int cups(int n) {
+        switch (n) {
+          case -1:
+            return 10;
+          case -2:
+            return 16;
+          default:
+            return n;
+        }
+      }
+
+      //TODO: should cups be added even if the points were invalid?
       table[t1].differenz += cups(match.score1) - cups(match.score2);
       table[t2].differenz += cups(match.score2) - cups(match.score1);
 

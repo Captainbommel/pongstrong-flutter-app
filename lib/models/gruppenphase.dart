@@ -6,7 +6,7 @@ class Gruppenphase {
 
   Gruppenphase({List<List<Match>>? groups}) : groups = groups ?? [];
 
-  // createGruppen erstellt aus dem Teams eine Gruppen
+  // create expects 6 Groups of 4 teams each at the moment
   static Gruppenphase create(Groups teamGroups) {
     final length = teamGroups.groups.length;
     final groups = List<List<Match>>.generate(length, (_) => []);
