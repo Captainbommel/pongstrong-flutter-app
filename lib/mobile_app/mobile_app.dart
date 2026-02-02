@@ -13,16 +13,87 @@ import 'package:provider/provider.dart';
 
 const String turnamentName = 'BMT-Cup';
 
-class MobileApp extends StatelessWidget {
+class MobileApp extends StatefulWidget {
   const MobileApp({super.key});
+
+  @override
+  State<MobileApp> createState() => _MobileAppState();
+}
+
+class _MobileAppState extends State<MobileApp> {
+  late PageController _pageController;
+  bool _showHint = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+
+    // Hide hint after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _showHint = false;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  int _getPageIndex(MobileAppView view) {
+    switch (view) {
+      case MobileAppView.runningMatches:
+        return 0;
+      case MobileAppView.upcomingMatches:
+        return 1;
+      case MobileAppView.teams:
+        return 2;
+      case MobileAppView.tournamentTree:
+        return 3;
+      case MobileAppView.rules:
+        return 4;
+      default:
+        return 0;
+    }
+  }
+
+  MobileAppView _getViewFromIndex(int index) {
+    switch (index) {
+      case 0:
+        return MobileAppView.runningMatches;
+      case 1:
+        return MobileAppView.upcomingMatches;
+      case 2:
+        return MobileAppView.teams;
+      case 3:
+        return MobileAppView.tournamentTree;
+      case 4:
+        return MobileAppView.rules;
+      default:
+        return MobileAppView.runningMatches;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final selectedTournament =
         Provider.of<TournamentSelectionState>(context).selectedTournamentId;
+    final mobileAppState = Provider.of<MobileAppState>(context);
+
+    // Sync PageView with state changes from drawer
+    final currentPage = _getPageIndex(mobileAppState.state);
+    if (_pageController.hasClients &&
+        _pageController.page?.round() != currentPage) {
+      _pageController.jumpToPage(currentPage);
+    }
 
     return Scaffold(
-      key: Provider.of<MobileAppState>(context).scaffoldKey,
+      key: mobileAppState.scaffoldKey,
       drawer: const MobileDrawer(),
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -32,24 +103,65 @@ class MobileApp extends StatelessWidget {
         centerTitle: true,
         backgroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        child: () {
-          switch (Provider.of<MobileAppState>(context).state) {
-            case MobileAppView.runningMatches:
-              return runningGames(context);
-            case MobileAppView.upcomingMatches:
-              return nextGames(context);
-            case MobileAppView.tables:
-              return currentTable();
-            case MobileAppView.teams:
-              return const TeamsView();
-            case MobileAppView.rules:
-              return const RulesView();
-            default:
-              return const Placeholder();
-          }
-        }(),
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          mobileAppState.setAppStateDirectly(_getViewFromIndex(index));
+        },
+        children: [
+          _buildPageWithHint(runningGames(context), showHint: true),
+          _buildPageWithHint(nextGames(context), showHint: false),
+          SingleChildScrollView(child: const TeamsView()),
+          const SingleChildScrollView(
+              child: Placeholder()), // Tournament Tree placeholder
+          const SingleChildScrollView(child: RulesView()),
+        ],
       ),
+    );
+  }
+
+  Widget _buildPageWithHint(Widget content, {bool showHint = false}) {
+    if (!showHint || !_showHint) {
+      return SingleChildScrollView(child: content);
+    }
+
+    return Stack(
+      children: [
+        SingleChildScrollView(child: content),
+        Positioned(
+          bottom: 16,
+          left: 0,
+          right: 0,
+          child: AnimatedOpacity(
+            opacity: _showHint ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 500),
+            child: Center(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.swipe, color: Colors.white, size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'Wischen zum Navigieren',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

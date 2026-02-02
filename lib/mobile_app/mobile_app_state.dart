@@ -19,6 +19,11 @@ class MobileAppState extends ChangeNotifier {
   /// controls the drawer
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  void setAppStateDirectly(MobileAppView state) {
+    _state = state;
+    notifyListeners();
+  }
+
   void Function()? setAppState(MobileAppView state) {
     switch (state) {
       case MobileAppView.runningMatches:

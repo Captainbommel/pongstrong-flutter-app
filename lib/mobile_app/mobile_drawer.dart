@@ -64,12 +64,6 @@ class MobileDrawer extends StatelessWidget {
             color: FieldColors.springgreen,
           ),
           ListTile(
-            title: const Text('Tabelle'),
-            onTap: Provider.of<MobileAppState>(context, listen: false)
-                .setAppState(MobileAppView.tables),
-            trailing: const Icon(Icons.leaderboard_rounded),
-          ),
-          ListTile(
             title: const Text('Gruppenphase'),
             onTap: Provider.of<MobileAppState>(context, listen: false)
                 .setAppState(MobileAppView.teams),
@@ -91,7 +85,7 @@ class MobileDrawer extends StatelessWidget {
             height: 20,
             thickness: 5,
             indent: 0,
-            color: FieldColors.tomato,
+            color: FieldColors.springgreen,
           ),
           ListTile(
             title: const Text('Turnier wechseln'),
