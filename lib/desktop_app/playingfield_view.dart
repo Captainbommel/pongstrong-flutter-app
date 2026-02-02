@@ -63,8 +63,11 @@ class PlayingField extends StatelessWidget {
                     FieldColors.skyblue,
                     FieldColors.skyblue.withAlpha(128),
                     false,
-                    Wrap(
-                      children: _buildTables(tournamentData),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0, bottom: 4.0),
+                      child: Wrap(
+                        children: _buildTables(tournamentData),
+                      ),
                     ),
                   ),
                 )
@@ -204,6 +207,8 @@ class PlayingField extends StatelessWidget {
   TableRow _pongTableRow(String col1, String col2, String col3, String col4,
       {bool isHeader = false}) {
     return TableRow(
+      decoration:
+          isHeader ? const BoxDecoration(color: FieldColors.darkSkyblue) : null,
       children: [
         TableCell(
           child: Padding(

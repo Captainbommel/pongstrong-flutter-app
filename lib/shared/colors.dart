@@ -5,6 +5,7 @@ class FieldColors {
   static const tomato = Color.fromARGB(255, 255, 99, 71);
   static const springgreen = Color.fromARGB(255, 0, 255, 127);
   static const skyblue = Color.fromARGB(255, 135, 206, 235);
+  static const darkSkyblue = Color.fromARGB(255, 109, 160, 180);
   static const backgroundblue = Color.fromARGB(240, 169, 216, 255);
   static const fieldbackground = Color.fromARGB(50, 128, 128, 128);
 }
