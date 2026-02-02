@@ -66,7 +66,7 @@ class AppSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLargeScreen = MediaQuery.of(context).size.width > 600;
+    final isLargeScreen = MediaQuery.of(context).size.width > 940;
 
     // Check if a tournament is selected
     final hasSelectedTournament =

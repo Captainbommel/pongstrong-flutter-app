@@ -151,10 +151,13 @@ class _LoginDialogState extends State<LoginDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 500;
+    final isWide = MediaQuery.of(context).size.width > 400;
     final authState = Provider.of<AuthState>(context);
 
     return Dialog(
+      insetPadding: isWide
+          ? const EdgeInsets.symmetric(horizontal: 40, vertical: 24)
+          : const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
         width: isWide ? 400 : double.infinity,
         padding: const EdgeInsets.all(24),

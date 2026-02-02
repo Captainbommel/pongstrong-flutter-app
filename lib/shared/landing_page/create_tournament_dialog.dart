@@ -183,13 +183,18 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 500;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth > 400;
+    final isVerySmall = screenWidth < 390;
     final authState = Provider.of<AuthState>(context);
 
     // If user is already logged in, we can skip the account step
     final isAlreadyLoggedIn = authState.isEmailUser;
 
     return Dialog(
+      insetPadding: isWide
+          ? const EdgeInsets.symmetric(horizontal: 40, vertical: 24)
+          : const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
         width: isWide ? 500 : double.infinity,
         constraints: const BoxConstraints(maxHeight: 650),
@@ -285,52 +290,102 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   if (_currentStep > 0)
-                    OutlinedButton.icon(
-                      onPressed: _previousStep,
-                      icon: const Icon(Icons.arrow_back),
-                      label: const Text('Zurück'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: GroupPhaseColors.cupred,
-                        side: const BorderSide(color: GroupPhaseColors.cupred),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                      ),
-                    )
+                    isVerySmall
+                        ? OutlinedButton(
+                            onPressed: _previousStep,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: GroupPhaseColors.cupred,
+                              side: const BorderSide(
+                                  color: GroupPhaseColors.cupred),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12),
+                            ),
+                            child: const Text('Zurück'),
+                          )
+                        : OutlinedButton.icon(
+                            onPressed: _previousStep,
+                            icon: const Icon(Icons.arrow_back),
+                            label: const Text('Zurück'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: GroupPhaseColors.cupred,
+                              side: const BorderSide(
+                                  color: GroupPhaseColors.cupred),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                            ),
+                          )
                   else
                     const SizedBox(),
                   if (_currentStep == 0)
-                    ElevatedButton.icon(
-                      onPressed: _nextStep,
-                      icon: const Icon(Icons.arrow_forward),
-                      label: const Text('Weiter'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: GroupPhaseColors.cupred,
-                        foregroundColor: Colors.white,
-                      ),
-                    )
+                    isVerySmall
+                        ? ElevatedButton(
+                            onPressed: _nextStep,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: GroupPhaseColors.cupred,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                            ),
+                            child: const Text('Weiter'),
+                          )
+                        : ElevatedButton.icon(
+                            onPressed: _nextStep,
+                            icon: const Icon(Icons.arrow_forward),
+                            label: const Text('Weiter'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: GroupPhaseColors.cupred,
+                              foregroundColor: Colors.white,
+                            ),
+                          )
                   else
-                    ElevatedButton.icon(
-                      onPressed: _isLoading
-                          ? null
-                          : isAlreadyLoggedIn
-                              ? () => _createTournamentAsLoggedInUser(authState)
-                              : _createTournament,
-                      icon: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.check),
-                      label: const Text('Turnier erstellen'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
+                    isVerySmall
+                        ? ElevatedButton(
+                            onPressed: _isLoading
+                                ? null
+                                : isAlreadyLoggedIn
+                                    ? () => _createTournamentAsLoggedInUser(
+                                        authState)
+                                    : _createTournament,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('Erstellen'),
+                          )
+                        : ElevatedButton.icon(
+                            onPressed: _isLoading
+                                ? null
+                                : isAlreadyLoggedIn
+                                    ? () => _createTournamentAsLoggedInUser(
+                                        authState)
+                                    : _createTournament,
+                            icon: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.check),
+                            label: const Text('Turnier erstellen'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
                 ],
               ),
             ),
@@ -567,17 +622,25 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                 ),
               ),
             ),
-            TextButton(
-              onPressed: () => setState(() {
-                _isLoginMode = !_isLoginMode;
-                _error = null;
-              }),
-              style: TextButton.styleFrom(
-                foregroundColor: GroupPhaseColors.steelblue,
+            Flexible(
+              child: TextButton(
+                onPressed: () => setState(() {
+                  _isLoginMode = !_isLoginMode;
+                  _error = null;
+                }),
+                style: TextButton.styleFrom(
+                  foregroundColor: GroupPhaseColors.steelblue,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: Text(
+                  _isLoginMode
+                      ? 'Neues Konto erstellen'
+                      : 'Ich habe bereits ein Konto',
+                  textAlign: TextAlign.end,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
               ),
-              child: Text(_isLoginMode
-                  ? 'Neues Konto erstellen'
-                  : 'Ich habe bereits ein Konto'),
             ),
           ],
         ),
