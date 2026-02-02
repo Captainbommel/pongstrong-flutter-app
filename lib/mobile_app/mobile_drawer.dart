@@ -96,7 +96,6 @@ class MobileDrawer extends StatelessWidget {
           ListTile(
             title: const Text('Turnier wechseln'),
             onTap: () async {
-              Navigator.pop(context); // Close drawer first
               final confirmed = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -107,12 +106,17 @@ class MobileDrawer extends StatelessWidget {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Abbrechen'),
+                      child: const Text(
+                        'Abbrechen',
+                        style: TextStyle(
+                          color: GroupPhaseColors.cupred,
+                        ),
+                      ),
                     ),
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: FieldColors.tomato,
+                        backgroundColor: GroupPhaseColors.cupred,
                         foregroundColor: Colors.white,
                       ),
                       child: const Text('Zurück'),
