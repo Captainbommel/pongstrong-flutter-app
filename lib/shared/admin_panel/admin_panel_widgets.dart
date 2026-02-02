@@ -582,7 +582,6 @@ class TournamentControlCard extends StatelessWidget {
   final TournamentPhase currentPhase;
   final VoidCallback? onStartTournament;
   final VoidCallback? onAdvancePhase;
-  final VoidCallback? onShuffleMatches;
   final VoidCallback? onResetTournament;
   final bool isCompact;
 
@@ -591,7 +590,6 @@ class TournamentControlCard extends StatelessWidget {
     required this.currentPhase,
     this.onStartTournament,
     this.onAdvancePhase,
-    this.onShuffleMatches,
     this.onResetTournament,
     this.isCompact = false,
   });
@@ -599,6 +597,8 @@ class TournamentControlCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isNotStarted = currentPhase == TournamentPhase.notStarted;
+    final isGroupPhase = currentPhase == TournamentPhase.groupPhase;
+    final isKnockoutPhase = currentPhase == TournamentPhase.knockoutPhase;
     final isFinished = currentPhase == TournamentPhase.finished;
 
     return Card(
@@ -645,18 +645,19 @@ class TournamentControlCard extends StatelessWidget {
                   ),
                 ),
               ),
-            ] else if (!isFinished) ...[
+            ] else if (isGroupPhase) ...[
+              // Show "Zur K.O.-Phase" button only during group phase
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: onAdvancePhase,
                   icon: const Icon(Icons.skip_next, size: 28),
                   label: const Text(
-                    'Nächste Phase',
+                    'Zur K.O.-Phase',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: TreeColors.rebeccapurple,
+                    backgroundColor: GroupPhaseColors.cupred,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -665,7 +666,34 @@ class TournamentControlCard extends StatelessWidget {
                   ),
                 ),
               ),
-            ] else ...[
+            ] else if (isKnockoutPhase) ...[
+              // K.O. phase in progress
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: TreeColors.rebeccapurple.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: TreeColors.rebeccapurple),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.sports_esports,
+                        color: TreeColors.rebeccapurple, size: 32),
+                    SizedBox(width: 12),
+                    Text(
+                      'K.O.-Phase läuft',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: TreeColors.rebeccapurple,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else if (isFinished) ...[
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -692,25 +720,9 @@ class TournamentControlCard extends StatelessWidget {
                 ),
               ),
             ],
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: isNotStarted ? null : onShuffleMatches,
-                icon: const Icon(Icons.casino),
-                label: const Text('Spiele würfeln'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.grey[700],
-                  side: BorderSide(color: Colors.grey[400]!),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
             // Reset button - only show when tournament has started
             if (!isNotStarted) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(

@@ -102,12 +102,12 @@ class TreeViewPageState extends State<TreeViewPage>
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Knockout phase not yet generated',
+                          'K.O.-Phase noch nicht gestartet',
                           style: TextStyle(fontSize: 18, color: Colors.grey),
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Click the button below to transition to knockouts',
+                          'Wechsle zur K.O.-Phase in der Turnierverwaltung',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                       ],
@@ -116,31 +116,6 @@ class TreeViewPageState extends State<TreeViewPage>
           ),
         ],
       ),
-      floatingActionButton: !hasKnockouts
-          ? FloatingActionButton.extended(
-              onPressed: () async {
-                final success = await tournamentData.transitionToKnockouts(
-                  numberOfGroups: tournamentData.tabellen.tables.length,
-                );
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        success
-                            ? 'Successfully transitioned to knockout phase!'
-                            : 'Failed to transition to knockouts',
-                      ),
-                      backgroundColor: success ? Colors.green : Colors.red,
-                    ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.account_tree),
-              label: const Text('Generate Knockouts'),
-              backgroundColor: TreeColors.rebeccapurple,
-              foregroundColor: Colors.white,
-            )
-          : null,
     );
   }
 

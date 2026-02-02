@@ -5,6 +5,7 @@ import 'package:pongstrong/shared/admin_panel/admin_panel_state.dart';
 import 'package:pongstrong/shared/admin_panel/admin_panel_widgets.dart';
 import 'package:pongstrong/shared/admin_panel/teams_management_page.dart';
 import 'package:pongstrong/shared/colors.dart';
+import 'package:pongstrong/shared/tournament_data_state.dart';
 
 /// Desktop version of the Admin Panel with wider layout
 class DesktopAdminPanel extends StatefulWidget {
@@ -16,15 +17,29 @@ class DesktopAdminPanel extends StatefulWidget {
 
 class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
   late AdminPanelState _adminState;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
     _adminState = AdminPanelState();
-    _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      // Get tournament ID from TournamentDataState
+      final tournamentData =
+          Provider.of<TournamentDataState>(context, listen: false);
+      _adminState.setTournamentId(tournamentData.currentTournamentId);
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {
+    await _adminState.loadTournamentMetadata();
     await _adminState.loadTeams();
     await _adminState.loadGroups();
   }
@@ -249,7 +264,6 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
                 onStartTournament: () => _showStartConfirmation(context, state),
                 onAdvancePhase: () =>
                     _showPhaseAdvanceConfirmation(context, state),
-                onShuffleMatches: () => _showShuffleConfirmation(context),
                 onResetTournament: () => _showResetConfirmation(context, state),
               ),
             ],
@@ -350,7 +364,6 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
                 onStartTournament: () => _showStartConfirmation(context, state),
                 onAdvancePhase: () =>
                     _showPhaseAdvanceConfirmation(context, state),
-                onShuffleMatches: () => _showShuffleConfirmation(context),
                 onResetTournament: () => _showResetConfirmation(context, state),
               ),
             ],
@@ -446,26 +459,41 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
     );
 
     if (confirmed == true) {
-      state.setPhase(TournamentPhase.groupPhase);
+      final success = await state.startTournament();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Turnier gestartet!'),
-            backgroundColor: FieldColors.springgreen,
+          SnackBar(
+            content: Text(success
+                ? 'Turnier gestartet! Gruppenphase-Spiele wurden generiert.'
+                : state.errorMessage ?? 'Fehler beim Starten des Turniers'),
+            backgroundColor:
+                success ? FieldColors.springgreen : GroupPhaseColors.cupred,
           ),
         );
+        // Reload TournamentDataState to refresh main app data
+        if (success) {
+          final tournamentData =
+              Provider.of<TournamentDataState>(context, listen: false);
+          await tournamentData.loadTournamentData(state.currentTournamentId);
+        }
       }
     }
   }
 
   Future<void> _showPhaseAdvanceConfirmation(
       BuildContext context, AdminPanelState state) async {
-    String nextPhase;
-    if (state.currentPhase == TournamentPhase.groupPhase) {
-      nextPhase = 'K.O.-Phase';
-    } else {
-      nextPhase = 'Turnierfinale';
+    // Only allow phase change from group phase to knockout phase
+    if (state.currentPhase != TournamentPhase.groupPhase) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Phasenwechsel ist nur von der Gruppenphase möglich.'),
+          backgroundColor: GroupPhaseColors.cupred,
+        ),
+      );
+      return;
     }
+
+    final bool hasRemainingMatches = state.remainingMatches > 0;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -483,28 +511,53 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Du wechselst von der aktuellen Phase zur $nextPhase.'),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Stelle sicher, dass alle Spiele der aktuellen Phase eingetragen sind.',
-                        style: TextStyle(fontSize: 13),
+              const Text(
+                  'Du wechselst von der aktuellen Phase zur K.O.-Phase.'),
+              if (hasRemainingMatches) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Achtung: ${state.remainingMatches} Spiel(e) wurden noch nicht eingetragen!',
+                          style: const TextStyle(fontSize: 13),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ] else ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Alle Spiele der aktuellen Phase wurden eingetragen.',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -519,7 +572,7 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).pop(true),
             icon: const Icon(Icons.skip_next),
-            label: Text('Zur $nextPhase'),
+            label: const Text('Zur K.O.-Phase'),
             style: ElevatedButton.styleFrom(
               backgroundColor: TreeColors.rebeccapurple,
               foregroundColor: Colors.white,
@@ -530,67 +583,24 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
     );
 
     if (confirmed == true && mounted) {
-      if (state.currentPhase == TournamentPhase.groupPhase) {
-        state.setPhase(TournamentPhase.knockoutPhase);
-      } else {
-        state.setPhase(TournamentPhase.finished);
+      final success = await state.advancePhase();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? 'Phase erfolgreich gewechselt!'
+                : state.errorMessage ?? 'Fehler beim Phasenwechsel'),
+            backgroundColor:
+                success ? FieldColors.springgreen : GroupPhaseColors.cupred,
+          ),
+        );
+        // Reload TournamentDataState to refresh main app data
+        if (success) {
+          final tournamentData =
+              Provider.of<TournamentDataState>(context, listen: false);
+          await tournamentData.loadTournamentData(state.currentTournamentId);
+        }
       }
-    }
-  }
-
-  Future<void> _showShuffleConfirmation(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.shuffle, color: GroupPhaseColors.steelblue),
-            SizedBox(width: 8),
-            Text('Spielreihenfolge würfeln?'),
-          ],
-        ),
-        content: const SizedBox(
-          width: 400,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Die Spielreihenfolge wird zufällig neu gemischt.',
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Bereits eingetragene Ergebnisse bleiben erhalten.',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(
-              'Abbrechen',
-              style: TextStyle(color: GroupPhaseColors.steelblue),
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).pop(true),
-            icon: const Icon(Icons.shuffle),
-            label: const Text('Würfeln'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: GroupPhaseColors.steelblue,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Spielreihenfolge neu gewürfelt!')),
-      );
     }
   }
 
@@ -664,16 +674,26 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
       ),
     );
 
-    if (confirmed == true) {
-      state.setPhase(TournamentPhase.notStarted);
-      state.updateMatchStats(completed: 0);
+    if (confirmed == true && mounted) {
+      final success = await state.resetTournament();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Turnier wurde zurückgesetzt'),
-            backgroundColor: GroupPhaseColors.cupred,
+          SnackBar(
+            content: Text(success
+                ? 'Turnier wurde zurückgesetzt'
+                : state.errorMessage ?? 'Fehler beim Zurücksetzen'),
+            backgroundColor:
+                success ? FieldColors.springgreen : GroupPhaseColors.cupred,
           ),
         );
+        // Reload data after reset
+        if (success) {
+          _loadData();
+          // Also reload TournamentDataState to refresh main app data
+          final tournamentData =
+              Provider.of<TournamentDataState>(context, listen: false);
+          await tournamentData.loadTournamentData(state.currentTournamentId);
+        }
       }
     }
   }

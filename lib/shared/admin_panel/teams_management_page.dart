@@ -57,31 +57,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     _hasUnsavedChanges = false;
   }
 
-  void _setTeamCount(int count) {
-    setState(() {
-      _targetTeamCount = count;
-
-      // Add new empty slots if needed
-      while (_teamControllers.length < count) {
-        _teamControllers.add(TeamEditController(
-          id: null,
-          name: '',
-          member1: '',
-          member2: '',
-          groupIndex: null,
-          isNew: true,
-        ));
-      }
-
-      // Mark for removal if we have too many (but keep them visible until save)
-      for (int i = 0; i < _teamControllers.length; i++) {
-        _teamControllers[i].markedForRemoval = i >= count;
-      }
-
-      _hasUnsavedChanges = true;
-    });
-  }
-
   void _onFieldChanged() {
     if (!_hasUnsavedChanges) {
       setState(() {

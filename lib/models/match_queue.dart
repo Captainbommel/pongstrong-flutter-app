@@ -103,6 +103,14 @@ class MatchQueue {
     return playing.isEmpty;
   }
 
+  // clearQueue removes all matches from waiting and playing
+  void clearQueue() {
+    for (var line in waiting) {
+      line.clear();
+    }
+    playing.clear();
+  }
+
   // updateKnockQueue adds new ready Matches to the matchQueue
   void updateKnockQueue(Knockouts knock) {
     if (knock.champions.rounds[0][0].teamId1.isEmpty &&

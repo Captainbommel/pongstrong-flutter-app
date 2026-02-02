@@ -138,6 +138,42 @@ class AdminPanelState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Load tournament metadata (phase, etc.) from Firebase
+  Future<void> loadTournamentMetadata() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final metadata = await _firestoreService.getTournamentMetadata(
+          tournamentId: _currentTournamentId);
+      if (metadata != null) {
+        final phase = metadata['phase'] as String?;
+        if (phase != null) {
+          switch (phase) {
+            case 'groups':
+              _currentPhase = TournamentPhase.groupPhase;
+              break;
+            case 'knockouts':
+              _currentPhase = TournamentPhase.knockoutPhase;
+              break;
+            case 'finished':
+              _currentPhase = TournamentPhase.finished;
+              break;
+            default:
+              _currentPhase = TournamentPhase.notStarted;
+          }
+        }
+        debugPrint('Loaded tournament phase: $_currentPhase');
+      }
+      notifyListeners();
+    } catch (e) {
+      _setError('Fehler beim Laden der Turnierdaten: $e');
+      debugPrint('Error loading tournament metadata: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// Load teams from Firebase
   Future<void> loadTeams() async {
     _setLoading(true);
@@ -551,15 +587,109 @@ class AdminPanelState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Placeholder methods for future functionality
-  void startTournament() {
-    // TODO: Implement tournament start logic
-    debugPrint('Starting tournament...');
+  /// Start the tournament - creates Gruppenphase, MatchQueue and saves to Firebase
+  Future<bool> startTournament() async {
+    if (!canStartTournament) {
+      _setError(
+          startValidationMessage ?? 'Turnier kann nicht gestartet werden.');
+      return false;
+    }
+
+    _setLoading(true);
+    _clearError();
+
+    try {
+      // Use initializeTournament which creates all necessary structures
+      await _firestoreService.initializeTournament(
+        _teams,
+        _groups,
+        tournamentId: _currentTournamentId,
+      );
+
+      // Calculate total matches for group phase (6 matches per group × 6 groups = 36)
+      _totalMatches = _numberOfGroups *
+          6; // Each group has 6 matches (round robin of 4 teams)
+      _completedMatches = 0;
+      _remainingMatches = _totalMatches;
+
+      // Set phase to group phase
+      _currentPhase = TournamentPhase.groupPhase;
+
+      debugPrint(
+          'Tournament started successfully with ${_teams.length} teams in $_numberOfGroups groups');
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('Fehler beim Starten des Turniers: $e');
+      debugPrint('Error starting tournament: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
   }
 
-  void advancePhase() {
-    // TODO: Implement phase advancement logic
-    debugPrint('Advancing to next phase...');
+  /// Advance to the next tournament phase (only group → knockout)
+  Future<bool> advancePhase() async {
+    if (_currentPhase == TournamentPhase.notStarted) {
+      _setError('Turnier muss zuerst gestartet werden.');
+      return false;
+    }
+
+    if (_currentPhase != TournamentPhase.groupPhase) {
+      _setError(
+          'Phasenwechsel ist nur von der Gruppenphase zur K.O.-Phase möglich.');
+      return false;
+    }
+
+    _setLoading(true);
+    _clearError();
+
+    try {
+      // Transition from group phase to knockout phase
+      await _firestoreService.transitionToKnockouts(
+        tournamentId: _currentTournamentId,
+        numberOfGroups: _numberOfGroups,
+      );
+
+      _currentPhase = TournamentPhase.knockoutPhase;
+      debugPrint('Advanced to knockout phase');
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('Fehler beim Phasenwechsel: $e');
+      debugPrint('Error advancing phase: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Reset the tournament (dangerous - deletes all progress but keeps teams and groups)
+  Future<bool> resetTournament() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      // Reset tournament data in Firebase (keeps teams and groups, resets matches)
+      await _firestoreService.resetTournament(
+          tournamentId: _currentTournamentId);
+
+      // Reset local state
+      _currentPhase = TournamentPhase.notStarted;
+      _totalMatches = 0;
+      _completedMatches = 0;
+      _remainingMatches = 0;
+
+      debugPrint('Tournament reset successfully');
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('Fehler beim Zurücksetzen: $e');
+      debugPrint('Error resetting tournament: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
   }
 
   void shuffleMatches() {

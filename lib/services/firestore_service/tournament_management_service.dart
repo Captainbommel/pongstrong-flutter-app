@@ -101,9 +101,10 @@ mixin TournamentManagementService
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    // Update match queue for knockouts
+    // Update match queue for knockouts - clear old group matches first
     final queue = await loadMatchQueue(tournamentId: tournamentId);
     if (queue != null) {
+      queue.clearQueue(); // Clear remaining group phase matches
       queue.updateKnockQueue(knockouts);
       await saveMatchQueue(queue, tournamentId: tournamentId);
     }
@@ -169,16 +170,30 @@ mixin TournamentManagementService
     await batch.commit();
   }
 
-  /// Resets tournament to initial state (keeps teams and groups, resets everything else)
+  /// Resets tournament to notStarted state (keeps teams and groups, deletes everything else)
   Future<void> resetTournament({
     String tournamentId = FirestoreBase.defaultTournamentId,
   }) async {
-    final teams = await loadTeams(tournamentId: tournamentId);
-    final groups = await loadGroups(tournamentId: tournamentId);
-    if (teams == null || groups == null) return;
+    // Delete gruppenphase
+    await getDoc(tournamentId, 'gruppenphase').delete();
 
-    await deleteTournament(tournamentId: tournamentId);
-    await initializeTournament(teams, groups, tournamentId: tournamentId);
+    // Delete match queue
+    await getDoc(tournamentId, 'matchQueue').delete();
+
+    // Delete knockouts
+    await getDoc(tournamentId, 'knockouts').delete();
+
+    // Delete tabellen
+    await getDoc(tournamentId, 'tabellen').delete();
+
+    // Reset tournament phase to notStarted
+    await firestore
+        .collection(FirestoreBase.tournamentsCollection)
+        .doc(tournamentId)
+        .update({
+      'phase': 'notStarted',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   // ==================== UTILITY METHODS ====================
