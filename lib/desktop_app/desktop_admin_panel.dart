@@ -80,31 +80,6 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
                                 const SizedBox(height: 16),
                               ],
 
-                              // Title row
-                              const Row(
-                                children: [
-                                  Icon(Icons.admin_panel_settings,
-                                      size: 32, color: GroupPhaseColors.cupred),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    'Turnierverwaltung',
-                                    style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Verwalte dein Turnier: Teams, Spielplan, Ergebnisse und mehr',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-
                               // Main grid layout
                               LayoutBuilder(
                                 builder: (context, constraints) {
@@ -164,7 +139,10 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
       ),
       child: Row(
         children: [
-          // Title
+          // Title with icon
+          const Icon(Icons.admin_panel_settings,
+              size: 24, color: GroupPhaseColors.cupred),
+          const SizedBox(width: 8),
           const Text(
             'Turnierverwaltung',
             style: TextStyle(
@@ -247,18 +225,10 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Left column
+        // Left column - Turniersteuerung, Turnierstatus
         Expanded(
           child: Column(
             children: [
-              TournamentStatusCard(
-                currentPhase: state.currentPhase,
-                totalTeams: state.totalTeams,
-                totalMatches: state.totalMatches,
-                completedMatches: state.completedMatches,
-                remainingMatches: state.remainingMatches,
-              ),
-              const SizedBox(height: 16),
               TournamentControlCard(
                 currentPhase: state.currentPhase,
                 onStartTournament: () => _showStartConfirmation(context, state),
@@ -266,12 +236,38 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
                     _showPhaseAdvanceConfirmation(context, state),
                 onResetTournament: () => _showResetConfirmation(context, state),
               ),
+              const SizedBox(height: 16),
+              TournamentStatusCard(
+                currentPhase: state.currentPhase,
+                totalTeams: state.totalTeams,
+                totalMatches: state.totalMatches,
+                completedMatches: state.completedMatches,
+                remainingMatches: state.remainingMatches,
+              ),
             ],
           ),
         ),
         const SizedBox(width: 16),
 
-        // Middle column
+        // Middle column - Teams & Gruppen
+        Expanded(
+          child: Column(
+            children: [
+              TeamsAndGroupsNavigationCard(
+                totalTeams: state.totalTeams,
+                teamsInGroups: state.teamsInGroupsCount,
+                numberOfGroups: state.numberOfGroups,
+                groupsAssigned: state.groupsAssigned,
+                tournamentStyle: state.tournamentStyle,
+                isLocked: state.isTournamentStarted,
+                onNavigateToTeams: () => _navigateToTeamsPage(context),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+
+        // Right column - Turniermodus, Import/Export
         Expanded(
           child: Column(
             children: [
@@ -286,24 +282,6 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
               ImportExportCard(
                 onImportJson: () => _handleImportTeams(context),
                 onExportJson: () => _showExportDialog(context),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 16),
-
-        // Right column - Teams & Groups
-        Expanded(
-          child: Column(
-            children: [
-              TeamsAndGroupsNavigationCard(
-                totalTeams: state.totalTeams,
-                teamsInGroups: state.teamsInGroupsCount,
-                numberOfGroups: state.numberOfGroups,
-                groupsAssigned: state.groupsAssigned,
-                tournamentStyle: state.tournamentStyle,
-                isLocked: state.isTournamentStarted,
-                onNavigateToTeams: () => _navigateToTeamsPage(context),
               ),
             ],
           ),
@@ -316,10 +294,18 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Left column
+        // Left column - Turniersteuerung, Turnierstatus
         Expanded(
           child: Column(
             children: [
+              TournamentControlCard(
+                currentPhase: state.currentPhase,
+                onStartTournament: () => _showStartConfirmation(context, state),
+                onAdvancePhase: () =>
+                    _showPhaseAdvanceConfirmation(context, state),
+                onResetTournament: () => _showResetConfirmation(context, state),
+              ),
+              const SizedBox(height: 16),
               TournamentStatusCard(
                 currentPhase: state.currentPhase,
                 totalTeams: state.totalTeams,
@@ -327,15 +313,15 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
                 completedMatches: state.completedMatches,
                 remainingMatches: state.remainingMatches,
               ),
-              const SizedBox(height: 16),
-              TournamentStyleCard(
-                selectedStyle: state.tournamentStyle,
-                isTournamentStarted: state.isTournamentStarted,
-                onStyleChanged: (style) {
-                  state.setTournamentStyle(style);
-                },
-              ),
-              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+
+        // Right column - Teams & Gruppen, Turniermodus, Import/Export
+        Expanded(
+          child: Column(
+            children: [
               TeamsAndGroupsNavigationCard(
                 totalTeams: state.totalTeams,
                 teamsInGroups: state.teamsInGroupsCount,
@@ -346,25 +332,17 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
                 onNavigateToTeams: () => _navigateToTeamsPage(context),
               ),
               const SizedBox(height: 16),
+              TournamentStyleCard(
+                selectedStyle: state.tournamentStyle,
+                isTournamentStarted: state.isTournamentStarted,
+                onStyleChanged: (style) {
+                  state.setTournamentStyle(style);
+                },
+              ),
+              const SizedBox(height: 16),
               ImportExportCard(
                 onImportJson: () => _handleImportTeams(context),
                 onExportJson: () => _showExportDialog(context),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 16),
-
-        // Right column
-        Expanded(
-          child: Column(
-            children: [
-              TournamentControlCard(
-                currentPhase: state.currentPhase,
-                onStartTournament: () => _showStartConfirmation(context, state),
-                onAdvancePhase: () =>
-                    _showPhaseAdvanceConfirmation(context, state),
-                onResetTournament: () => _showResetConfirmation(context, state),
               ),
             ],
           ),

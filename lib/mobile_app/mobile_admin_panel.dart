@@ -58,7 +58,14 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
         builder: (context, state, _) {
           return Scaffold(
             appBar: AppBar(
-              title: const Text('Turnierverwaltung'),
+              title: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.admin_panel_settings, size: 24),
+                  SizedBox(width: 8),
+                  Text('Turnierverwaltung'),
+                ],
+              ),
               backgroundColor: GroupPhaseColors.cupred,
               foregroundColor: Colors.white,
               elevation: 2,
@@ -87,6 +94,19 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
                           const SizedBox(height: 16),
                         ],
 
+                        // Tournament Control Card
+                        TournamentControlCard(
+                          currentPhase: state.currentPhase,
+                          onStartTournament: () =>
+                              _showStartConfirmation(context, state),
+                          onAdvancePhase: () =>
+                              _showPhaseAdvanceConfirmation(context, state),
+                          onResetTournament: () =>
+                              _showResetConfirmation(context, state),
+                          isCompact: true,
+                        ),
+                        const SizedBox(height: 16),
+
                         // Tournament Status Card
                         TournamentStatusCard(
                           currentPhase: state.currentPhase,
@@ -98,18 +118,7 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Tournament Style Selection
-                        TournamentStyleCard(
-                          selectedStyle: state.tournamentStyle,
-                          isTournamentStarted: state.isTournamentStarted,
-                          onStyleChanged: (style) {
-                            state.setTournamentStyle(style);
-                          },
-                          isCompact: true,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Teams & Groups Navigation Card (replaces both Group and Team cards)
+                        // Teams & Groups Navigation Card
                         TeamsAndGroupsNavigationCard(
                           totalTeams: state.totalTeams,
                           teamsInGroups: state.teamsInGroupsCount,
@@ -123,15 +132,13 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Tournament Control Card
-                        TournamentControlCard(
-                          currentPhase: state.currentPhase,
-                          onStartTournament: () =>
-                              _showStartConfirmation(context, state),
-                          onAdvancePhase: () =>
-                              _showPhaseAdvanceConfirmation(context, state),
-                          onResetTournament: () =>
-                              _showResetConfirmation(context, state),
+                        // Tournament Style Selection
+                        TournamentStyleCard(
+                          selectedStyle: state.tournamentStyle,
+                          isTournamentStarted: state.isTournamentStarted,
+                          onStyleChanged: (style) {
+                            state.setTournamentStyle(style);
+                          },
                           isCompact: true,
                         ),
                         const SizedBox(height: 16),
