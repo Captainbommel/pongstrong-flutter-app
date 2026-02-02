@@ -111,7 +111,7 @@ class _MobileAppState extends State<MobileApp> {
         children: [
           _buildPageWithHint(runningGames(context), showHint: true),
           _buildPageWithHint(nextGames(context), showHint: false),
-          SingleChildScrollView(child: const TeamsView()),
+          const SingleChildScrollView(child: TeamsView()),
           const SingleChildScrollView(
               child: Placeholder()), // Tournament Tree placeholder
           const SingleChildScrollView(child: RulesView()),
@@ -140,7 +140,7 @@ class _MobileAppState extends State<MobileApp> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withAlpha(153),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Row(

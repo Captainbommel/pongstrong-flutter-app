@@ -15,8 +15,6 @@ import 'tournament_password_dialog.dart';
 import 'create_tournament_dialog.dart';
 import 'login_dialog.dart';
 
-//TODO: resposiveness needs to be improved
-
 /// Landing page content that adapts to mobile and desktop layouts
 class LandingPage extends StatefulWidget {
   final bool isDesktop;
