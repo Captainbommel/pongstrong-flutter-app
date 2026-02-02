@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:pongstrong/desktop_app/test_helpers.dart';
 import 'package:pongstrong/shared/admin_panel/admin_panel_state.dart';
 import 'package:pongstrong/shared/admin_panel/admin_panel_widgets.dart';
+import 'package:pongstrong/shared/admin_panel/teams_management_page.dart';
 import 'package:pongstrong/shared/colors.dart';
 
 /// Mobile version of the Admin Panel
@@ -13,281 +15,171 @@ class MobileAdminPanel extends StatefulWidget {
 }
 
 class _MobileAdminPanelState extends State<MobileAdminPanel> {
-  // Mock state for UI preview - will be connected to real state later
-  TournamentPhase _currentPhase = TournamentPhase.notStarted;
-  TournamentStyle _selectedStyle = TournamentStyle.groupsAndKnockouts;
-  int _teamCount = 16;
-  final int _totalMatches = 24;
-  int _completedMatches = 8;
+  late AdminPanelState _adminState;
 
-  // Mock teams data
-  final List<MockTeam> _teams = [
-    const MockTeam(
-        name: 'Die Ballkünstler',
-        member1: 'Max',
-        member2: 'Felix',
-        groupIndex: 0),
-    const MockTeam(
-        name: 'Ping Pong Kings',
-        member1: 'Anna',
-        member2: 'Lisa',
-        groupIndex: 0),
-    const MockTeam(
-        name: 'Tischtennis Tigers',
-        member1: 'Tom',
-        member2: 'Jan',
-        groupIndex: 1),
-    const MockTeam(
-        name: 'Smash Bros', member1: 'Paul', member2: 'David', groupIndex: 1),
-    const MockTeam(
-        name: 'Netzkönige', member1: 'Laura', member2: 'Sarah', groupIndex: 2),
-    const MockTeam(
-        name: 'Spin Masters',
-        member1: 'Lukas',
-        member2: 'Niklas',
-        groupIndex: 2),
-    const MockTeam(
-        name: 'Die Schläger', member1: 'Julia', member2: 'Emma', groupIndex: 3),
-    const MockTeam(
-        name: 'Ball Wizards', member1: 'Tim', member2: 'Ben', groupIndex: 3),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _adminState = AdminPanelState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await _adminState.loadTeams();
+    await _adminState.loadGroups();
+  }
+
+  @override
+  void dispose() {
+    _adminState.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Turnierverwaltung'),
-        backgroundColor: GroupPhaseColors.cupred,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              // TODO: Refresh data
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Daten aktualisieren...')),
-              );
-            },
-            tooltip: 'Aktualisieren',
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Tournament Status Card
-            TournamentStatusCard(
-              currentPhase: _currentPhase,
-              totalTeams: _teamCount,
-              totalMatches: _totalMatches,
-              completedMatches: _completedMatches,
-              remainingMatches: _totalMatches - _completedMatches,
-              isCompact: true,
-            ),
-            const SizedBox(height: 16),
-
-            // Tournament Style Selection
-            TournamentStyleCard(
-              selectedStyle: _selectedStyle,
-              isTournamentStarted: _currentPhase != TournamentPhase.notStarted,
-              onStyleChanged: (style) {
-                setState(() {
-                  _selectedStyle = style;
-                });
-              },
-              isCompact: true,
-            ),
-            const SizedBox(height: 16),
-
-            // Team Management Card
-            TeamManagementCard(
-              teamCount: _teamCount,
-              onAddTeam: () => _showAddTeamDialog(context),
-              onViewTeams: () => _showTeamsListDialog(context),
-              onImportTeams: () => _handleImportTeams(context),
-              isCompact: true,
-            ),
-            const SizedBox(height: 16),
-
-            // Tournament Control Card
-            TournamentControlCard(
-              currentPhase: _currentPhase,
-              onStartTournament: () => _showStartConfirmation(context),
-              onAdvancePhase: () => _showPhaseAdvanceConfirmation(context),
-              onShuffleMatches: () => _showShuffleConfirmation(context),
-              onResetTournament: () => _showResetConfirmation(context),
-              isCompact: true,
-            ),
-            const SizedBox(height: 16),
-
-            // Import/Export Card
-            ImportExportCard(
-              onImportJson: () => _handleImportTeams(context),
-              onExportJson: () => _showExportDialog(context),
-              isCompact: true,
-            ),
-            const SizedBox(height: 32),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showAddTeamDialog(BuildContext context) async {
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => const AddTeamDialog(),
-    );
-
-    if (result != null && context.mounted) {
-      setState(() {
-        _teamCount++;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Team "${result['name']}" hinzugefügt')),
-      );
-    }
-  }
-
-  Future<void> _showTeamsListDialog(BuildContext context) async {
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.groups, color: TreeColors.rebeccapurple),
-            const SizedBox(width: 8),
-            Text('Teams (${_teams.length})'),
-            const Spacer(),
-            IconButton(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.close),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: _teams.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.group_off, size: 48, color: Colors.grey),
-                      SizedBox(height: 12),
-                      Text(
-                        'Noch keine Teams vorhanden',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: _teams.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final team = _teams[index];
-                    return ListTile(
-                      dense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                      leading: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color:
-                              TreeColors.rebeccapurple.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Center(
-                          child: Text(
-                            String.fromCharCode(65 + team.groupIndex),
-                            style: const TextStyle(
-                              color: TreeColors.rebeccapurple,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        team.name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                      subtitle: Text(
-                        '${team.member1} & ${team.member2}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(
-                                        'Team "${team.name}" bearbeiten...')),
-                              );
-                            },
-                            icon: const Icon(Icons.edit, size: 18),
-                            color: GroupPhaseColors.steelblue,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content:
-                                        Text('Team "${team.name}" löschen...')),
-                              );
-                            },
-                            icon: const Icon(Icons.delete, size: 18),
-                            color: GroupPhaseColors.cupred,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-        ),
-        actions: [
-          OutlinedButton.icon(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _showAddTeamDialog(context);
-            },
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Hinzufügen'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: TreeColors.rebeccapurple,
-              side: const BorderSide(color: TreeColors.rebeccapurple),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: TreeColors.rebeccapurple,
+    return ChangeNotifierProvider.value(
+      value: _adminState,
+      child: Consumer<AdminPanelState>(
+        builder: (context, state, _) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Turnierverwaltung'),
+              backgroundColor: GroupPhaseColors.cupred,
               foregroundColor: Colors.white,
+              elevation: 2,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _loadData,
+                  tooltip: 'Aktualisieren',
+                ),
+              ],
             ),
-            child: const Text('Schließen'),
+            body: state.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Error message if any
+                        if (state.errorMessage != null) ...[
+                          _buildErrorBanner(state),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Tournament Status Card
+                        TournamentStatusCard(
+                          currentPhase: state.currentPhase,
+                          totalTeams: state.totalTeams,
+                          totalMatches: state.totalMatches,
+                          completedMatches: state.completedMatches,
+                          remainingMatches: state.remainingMatches,
+                          isCompact: true,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Tournament Style Selection
+                        TournamentStyleCard(
+                          selectedStyle: state.tournamentStyle,
+                          isTournamentStarted: state.isTournamentStarted,
+                          onStyleChanged: (style) {
+                            state.setTournamentStyle(style);
+                          },
+                          isCompact: true,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Teams & Groups Navigation Card (replaces both Group and Team cards)
+                        TeamsAndGroupsNavigationCard(
+                          totalTeams: state.totalTeams,
+                          teamsInGroups: state.teamsInGroupsCount,
+                          numberOfGroups: state.numberOfGroups,
+                          groupsAssigned: state.groupsAssigned,
+                          tournamentStyle: state.tournamentStyle,
+                          isLocked: state.isTournamentStarted,
+                          onNavigateToTeams: () =>
+                              _navigateToTeamsPage(context),
+                          isCompact: true,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Tournament Control Card
+                        TournamentControlCard(
+                          currentPhase: state.currentPhase,
+                          onStartTournament: () =>
+                              _showStartConfirmation(context, state),
+                          onAdvancePhase: () =>
+                              _showPhaseAdvanceConfirmation(context, state),
+                          onShuffleMatches: () =>
+                              _showShuffleConfirmation(context),
+                          onResetTournament: () =>
+                              _showResetConfirmation(context, state),
+                          isCompact: true,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Import/Export Card
+                        ImportExportCard(
+                          onImportJson: () => _handleImportTeams(context),
+                          onExportJson: () => _showExportDialog(context),
+                          isCompact: true,
+                        ),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Navigation to Teams Management Page
+  void _navigateToTeamsPage(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => TeamsManagementPage(adminState: _adminState),
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner(AdminPanelState state) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: GroupPhaseColors.cupred),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: GroupPhaseColors.cupred),
+          const SizedBox(width: 12),
+          Expanded(child: Text(state.errorMessage!)),
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => state.clearError(),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _showStartConfirmation(BuildContext context) async {
+  Future<void> _showStartConfirmation(
+      BuildContext context, AdminPanelState state) async {
+    // Check validation
+    final validationMessage = state.startValidationMessage;
+    if (validationMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(validationMessage),
+          backgroundColor: GroupPhaseColors.cupred,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -301,7 +193,7 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('registriert: $_teamCount Teams'),
+            Text('Registriert: ${state.totalTeams} Teams'),
             const SizedBox(height: 8),
             const Text(
               'Nach dem Start können keine neuen Teams mehr hinzugefügt werden und der Turniermodus kann nicht mehr geändert werden.',
@@ -330,9 +222,7 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
     );
 
     if (confirmed == true && context.mounted) {
-      setState(() {
-        _currentPhase = TournamentPhase.groupPhase;
-      });
+      state.setPhase(TournamentPhase.groupPhase);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Turnier gestartet!'),
@@ -342,9 +232,10 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
     }
   }
 
-  Future<void> _showPhaseAdvanceConfirmation(BuildContext context) async {
+  Future<void> _showPhaseAdvanceConfirmation(
+      BuildContext context, AdminPanelState state) async {
     String nextPhase;
-    if (_currentPhase == TournamentPhase.groupPhase) {
+    if (state.currentPhase == TournamentPhase.groupPhase) {
       nextPhase = 'K.O.-Phase';
     } else {
       nextPhase = 'Turnierfinale';
@@ -383,13 +274,11 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
     );
 
     if (confirmed == true && mounted) {
-      setState(() {
-        if (_currentPhase == TournamentPhase.groupPhase) {
-          _currentPhase = TournamentPhase.knockoutPhase;
-        } else {
-          _currentPhase = TournamentPhase.finished;
-        }
-      });
+      if (state.currentPhase == TournamentPhase.groupPhase) {
+        state.setPhase(TournamentPhase.knockoutPhase);
+      } else {
+        state.setPhase(TournamentPhase.finished);
+      }
     }
   }
 
@@ -439,7 +328,8 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
     await TestDataHelpers.uploadTeamsFromJson(context);
   }
 
-  Future<void> _showResetConfirmation(BuildContext context) async {
+  Future<void> _showResetConfirmation(
+      BuildContext context, AdminPanelState state) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -484,10 +374,8 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
     );
 
     if (confirmed == true) {
-      setState(() {
-        _currentPhase = TournamentPhase.notStarted;
-        _completedMatches = 0;
-      });
+      state.setPhase(TournamentPhase.notStarted);
+      state.updateMatchStats(completed: 0);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -559,7 +447,6 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
           ),
           ElevatedButton.icon(
             onPressed: () {
-              // TODO: Implement export
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
