@@ -589,7 +589,11 @@ class _LandingPageState extends State<LandingPage> {
               padding: EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  CircularProgressIndicator(),
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      GroupPhaseColors.cupred,
+                    ),
+                  ),
                   SizedBox(height: 16),
                   Text('Turnier wird geladen...'),
                 ],
