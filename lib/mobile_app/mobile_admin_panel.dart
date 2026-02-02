@@ -360,6 +360,8 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
 
   Future<void> _handleImportTeams(BuildContext context) async {
     await TestDataHelpers.uploadTeamsFromJson(context);
+    // Reload admin panel state after import
+    await _loadData();
   }
 
   Future<void> _showResetConfirmation(

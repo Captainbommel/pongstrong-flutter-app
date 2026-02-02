@@ -74,6 +74,41 @@ mixin TournamentManagementService
     }
   }
 
+  /// Imports teams and groups only WITHOUT starting the tournament
+  /// Use this for JSON import where tournament should remain in 'notStarted' state
+  Future<void> importTeamsAndGroups(
+    List<Team> teams,
+    Groups groups, {
+    String tournamentId = FirestoreBase.defaultTournamentId,
+  }) async {
+    // Save flat list of teams
+    await saveTeams(teams, tournamentId: tournamentId);
+
+    // Save groups (team ID groupings)
+    await saveGroups(groups, tournamentId: tournamentId);
+
+    // Update tournament metadata - keep phase as 'notStarted'
+    try {
+      await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .update({
+        'phase': 'notStarted',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      // Document might not exist yet
+      await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .set({
+        'phase': 'notStarted',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+  }
+
   /// Transitions tournament from group phase to knockout phase
   Future<void> transitionToKnockouts({
     String tournamentId = FirestoreBase.defaultTournamentId,

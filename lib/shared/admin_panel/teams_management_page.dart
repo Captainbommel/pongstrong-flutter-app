@@ -49,9 +49,15 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       ));
     }
 
-    // Update target count to match existing teams
+    // Update target count to match existing teams OR default to 24
     if (_teamControllers.isNotEmpty) {
       _targetTeamCount = _teamControllers.length;
+    } else {
+      // No teams exist - create empty slots for 24 teams (6 groups × 4 teams)
+      _targetTeamCount = 24;
+      for (int i = 0; i < _targetTeamCount; i++) {
+        _teamControllers.add(TeamEditController(isNew: true));
+      }
     }
 
     _hasUnsavedChanges = false;
@@ -996,12 +1002,12 @@ class TeamEditController {
   bool markedForRemoval;
 
   TeamEditController({
-    required this.id,
-    required String name,
-    required String member1,
-    required String member2,
-    required this.groupIndex,
-    required this.isNew,
+    this.id,
+    String name = '',
+    String member1 = '',
+    String member2 = '',
+    this.groupIndex,
+    this.isNew = true,
     this.markedForRemoval = false,
   })  : nameController = TextEditingController(text: name),
         member1Controller = TextEditingController(text: member1),

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:pongstrong/models/evaluation.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/services/import_service.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
@@ -71,37 +70,25 @@ class TestDataHelpers {
       debugPrint(
           'Loaded ${allTeams.length} teams from JSON in ${groups.groups.length} groups');
 
-      // Initialize tournament with the current tournament ID
+      // Import teams and groups only (without starting the tournament)
       final service = FirestoreService();
-      await service.initializeTournament(
+      await service.importTeamsAndGroups(
         allTeams,
         groups,
         tournamentId: tournamentId,
       );
-      debugPrint(
-          '   ✓ Complete tournament initialized from JSON for $tournamentId');
+      debugPrint('   ✓ Teams and groups imported from JSON for $tournamentId');
 
-      // Load all data from Firestore to update the UI
+      // Load teams from Firestore to update the UI
       final loadedTeams = await service.loadTeams(
         tournamentId: tournamentId,
       );
-      final matchQueue = await service.loadMatchQueue(
-        tournamentId: tournamentId,
-      );
-      final gruppenphase = await service.loadGruppenphase(
-        tournamentId: tournamentId,
-      );
 
-      // Update the TournamentDataState
-      if (context.mounted &&
-          loadedTeams != null &&
-          matchQueue != null &&
-          gruppenphase != null) {
-        Provider.of<TournamentDataState>(context, listen: false).loadData(
-          teams: loadedTeams,
-          matchQueue: matchQueue,
-          tabellen: evalGruppen(gruppenphase),
-        );
+      // Update the TournamentDataState with just teams (no matches yet)
+      if (context.mounted && loadedTeams != null) {
+        final tournamentData =
+            Provider.of<TournamentDataState>(context, listen: false);
+        await tournamentData.loadTournamentData(tournamentId);
         debugPrint('✓ Data loaded into app state');
       }
 
@@ -113,7 +100,7 @@ class TestDataHelpers {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Loaded ${allTeams.length} teams from JSON and initialized tournament!'),
+                '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
           ),
