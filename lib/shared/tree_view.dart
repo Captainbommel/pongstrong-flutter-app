@@ -54,7 +54,7 @@ class TreeViewPageState extends State<TreeViewPage>
       body: Column(
         children: [
           Container(
-            color: TreeColors.cornsilk,
+            color: Colors.grey[100],
             child: TabBar(
               controller: _tabController,
               labelColor: Colors.black,
@@ -92,25 +92,9 @@ class TreeViewPageState extends State<TreeViewPage>
                     ],
                   )
                 : const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.account_tree,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'K.O.-Phase noch nicht gestartet',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Wechsle zur K.O.-Phase in der Turnierverwaltung',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                      ],
+                    child: Text(
+                      'Keine Daten verfügbar',
+                      style: TextStyle(fontSize: 18),
                     ),
                   ),
           ),
