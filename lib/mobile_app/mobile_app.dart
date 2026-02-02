@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pongstrong/mobile_app/mobile_admin_panel.dart';
 import 'package:pongstrong/mobile_app/mobile_app_state.dart';
 import 'package:pongstrong/shared/colors.dart';
 import 'package:pongstrong/shared/field_view.dart';
@@ -57,6 +58,8 @@ class _MobileAppState extends State<MobileApp> {
         return 3;
       case MobileAppView.rules:
         return 4;
+      case MobileAppView.adminPanel:
+        return 5;
       default:
         return 0;
     }
@@ -74,6 +77,8 @@ class _MobileAppState extends State<MobileApp> {
         return MobileAppView.tournamentTree;
       case 4:
         return MobileAppView.rules;
+      case 5:
+        return MobileAppView.adminPanel;
       default:
         return MobileAppView.runningMatches;
     }
@@ -115,6 +120,7 @@ class _MobileAppState extends State<MobileApp> {
           const SingleChildScrollView(
               child: Placeholder()), // Tournament Tree placeholder
           const SingleChildScrollView(child: RulesView()),
+          const MobileAdminPanel(), // Admin Panel
         ],
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/mobile_app/mobile_app_state.dart';
+import 'package:pongstrong/shared/auth_state.dart';
 import 'package:pongstrong/shared/colors.dart';
 import 'package:pongstrong/shared/tournament_selection_state.dart';
 import 'package:provider/provider.dart';
@@ -86,6 +87,29 @@ class MobileDrawer extends StatelessWidget {
             thickness: 5,
             indent: 0,
             color: FieldColors.springgreen,
+          ),
+          // Turnierverwaltung - only show for logged-in email users
+          Consumer<AuthState>(
+            builder: (context, authState, child) {
+              if (!authState.isEmailUser) {
+                return const SizedBox.shrink();
+              }
+              return ListTile(
+                title: const Text(
+                  'Turnierverwaltung',
+                  style: TextStyle(
+                    color: GroupPhaseColors.cupred,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onTap: Provider.of<MobileAppState>(context, listen: false)
+                    .setAppState(MobileAppView.adminPanel),
+                trailing: const Icon(
+                  Icons.settings,
+                  color: GroupPhaseColors.cupred,
+                ),
+              );
+            },
           ),
           ListTile(
             title: const Text('Turnier wechseln'),

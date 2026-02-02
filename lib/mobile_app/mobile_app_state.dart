@@ -9,6 +9,7 @@ enum MobileAppView {
   tournamentTree,
   rules,
   teams,
+  adminPanel,
 }
 
 class MobileAppState extends ChangeNotifier {
@@ -65,6 +66,12 @@ class MobileAppState extends ChangeNotifier {
       case MobileAppView.teams:
         return () {
           _state = MobileAppView.teams;
+          scaffoldKey.currentState!.closeDrawer();
+          notifyListeners();
+        };
+      case MobileAppView.adminPanel:
+        return () {
+          _state = MobileAppView.adminPanel;
           scaffoldKey.currentState!.closeDrawer();
           notifyListeners();
         };

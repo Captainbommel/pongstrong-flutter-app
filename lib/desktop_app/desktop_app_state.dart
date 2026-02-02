@@ -6,6 +6,7 @@ enum DesktopAppView {
   tournamentTree,
   rules,
   teams,
+  adminPanel,
 }
 
 class DesktopAppState extends ChangeNotifier {
@@ -41,6 +42,11 @@ class DesktopAppState extends ChangeNotifier {
       case DesktopAppView.teams:
         return () {
           _state = DesktopAppView.teams;
+          notifyListeners();
+        };
+      case DesktopAppView.adminPanel:
+        return () {
+          _state = DesktopAppView.adminPanel;
           notifyListeners();
         };
     }

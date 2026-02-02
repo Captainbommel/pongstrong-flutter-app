@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:pongstrong/desktop_app/desktop_admin_panel.dart';
 import 'package:pongstrong/desktop_app/desktop_app_state.dart';
-import 'package:pongstrong/desktop_app/test_helpers.dart';
+import 'package:pongstrong/shared/auth_state.dart';
 import 'package:pongstrong/shared/colors.dart';
 import 'package:pongstrong/shared/tournament_selection_state.dart';
 import 'package:pongstrong/shared/tree_view.dart';
@@ -109,9 +110,38 @@ class DesktopApp extends StatelessWidget {
                 child: const Text('Regeln', style: navbarStyle),
               ),
               const SizedBox(width: 8),
-              TextButton(
-                onPressed: () => TestDataHelpers.uploadTeamsFromJson(context),
-                child: const Text('Load Teams', style: navbarStyle),
+              // Turnierverwaltung button - only show for logged-in email users
+              Consumer<AuthState>(
+                builder: (context, authState, child) {
+                  if (!authState.isEmailUser) {
+                    return const SizedBox.shrink();
+                  }
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(width: 16),
+                      TextButton.icon(
+                        onPressed: () {
+                          Provider.of<DesktopAppState>(context, listen: false)
+                              .setAppState(DesktopAppView.adminPanel)!();
+                        },
+                        icon: const Icon(
+                          Icons.settings,
+                          color: GroupPhaseColors.cupred,
+                          size: 20,
+                        ),
+                        label: const Text(
+                          'Turnierverwaltung',
+                          style: TextStyle(
+                            color: GroupPhaseColors.cupred,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -128,6 +158,8 @@ class DesktopApp extends StatelessWidget {
             return const TeamsView();
           case DesktopAppView.tournamentTree:
             return const TreeViewPage();
+          case DesktopAppView.adminPanel:
+            return const DesktopAdminPanel();
           default:
             return const Placeholder();
         }
