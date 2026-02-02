@@ -62,147 +62,141 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onNavigateToTeams,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: EdgeInsets.all(isCompact ? 12 : 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.groups, color: TreeColors.rebeccapurple),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Teams & Gruppen',
-                    style: TextStyle(
-                      fontSize: isCompact ? 16 : 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+      child: Padding(
+        padding: EdgeInsets.all(isCompact ? 12 : 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.groups, color: TreeColors.rebeccapurple),
+                const SizedBox(width: 8),
+                Text(
+                  'Teams & Gruppen',
+                  style: TextStyle(
+                    fontSize: isCompact ? 16 : 18,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const Spacer(),
-                  if (isLocked)
-                    const Tooltip(
-                      message: 'Turnier gestartet',
-                      child: Icon(Icons.lock, color: Colors.grey, size: 20),
-                    )
-                  else
-                    const Icon(Icons.chevron_right, color: Colors.grey),
-                ],
-              ),
-              const Divider(),
+                ),
+                const Spacer(),
+                if (isLocked)
+                  const Tooltip(
+                    message: 'Turnier gestartet',
+                    child: Icon(Icons.lock, color: Colors.grey, size: 20),
+                  ),
+              ],
+            ),
+            const Divider(),
 
-              // Teams count
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: TreeColors.rebeccapurple.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.people,
-                        color: TreeColors.rebeccapurple),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$totalTeams Teams',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          totalTeams == 0
-                              ? 'Tippe um Teams hinzuzufügen'
-                              : 'registriert',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              // Group status (only if group phase)
-              if (_isGroupPhase) ...[
-                const SizedBox(height: 12),
+            // Teams count
+            Row(
+              children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _statusColor.withValues(alpha: 0.1),
+                    color: TreeColors.rebeccapurple.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border:
-                        Border.all(color: _statusColor.withValues(alpha: 0.3)),
                   ),
-                  child: Row(
+                  child:
+                      const Icon(Icons.people, color: TreeColors.rebeccapurple),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(_statusIcon, color: _statusColor, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _groupStatus,
-                          style: TextStyle(
-                            color: _statusColor,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 13,
-                          ),
+                      Text(
+                        '$totalTeams Teams',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (groupsAssigned && numberOfGroups > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: GroupPhaseColors.steelblue
-                                .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '$numberOfGroups Gruppen',
-                            style: const TextStyle(
-                              color: GroupPhaseColors.steelblue,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                      Text(
+                        totalTeams == 0
+                            ? 'Tippe um Teams hinzuzufügen'
+                            : 'registriert',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
                         ),
+                      ),
                     ],
                   ),
                 ),
               ],
+            ),
 
+            // Group status (only if group phase)
+            if (_isGroupPhase) ...[
               const SizedBox(height: 12),
-              // Navigate button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: onNavigateToTeams,
-                  icon: const Icon(Icons.edit_note),
-                  label: Text(isLocked ? 'Teams anzeigen' : 'Teams verwalten'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: TreeColors.rebeccapurple,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border:
+                      Border.all(color: _statusColor.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(_statusIcon, color: _statusColor, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _groupStatus,
+                        style: TextStyle(
+                          color: _statusColor,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
-                  ),
+                    if (groupsAssigned && numberOfGroups > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              TreeColors.rebeccapurple.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '$numberOfGroups Gruppen',
+                          style: const TextStyle(
+                            color: TreeColors.rebeccapurple,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
-          ),
+
+            const SizedBox(height: 12),
+            // Navigate button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onNavigateToTeams,
+                icon: const Icon(Icons.edit_note),
+                label: Text(isLocked ? 'Teams anzeigen' : 'Teams verwalten'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: TreeColors.rebeccapurple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

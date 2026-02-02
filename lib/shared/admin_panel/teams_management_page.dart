@@ -19,7 +19,7 @@ class TeamsManagementPage extends StatefulWidget {
 
 class _TeamsManagementPageState extends State<TeamsManagementPage> {
   final List<TeamEditController> _teamControllers = [];
-  int _targetTeamCount = 8;
+  int _targetTeamCount = 24; // 6 groups × 4 teams per group
   bool _hasUnsavedChanges = false;
   bool _isSaving = false;
 
@@ -225,7 +225,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Abbrechen'),
+            child: const Text('Abbrechen',
+                style: TextStyle(color: GroupPhaseColors.cupred)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -424,15 +425,19 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                             border: OutlineInputBorder(),
                           ),
                           items: List.generate(32, (i) => i + 2).map((count) {
+                            final isEnabled = count == 24; // 6 groups × 4 teams
                             return DropdownMenuItem(
                               value: count,
+                              enabled: isEnabled,
                               child: Text('$count',
-                                  style: const TextStyle(fontSize: 14)),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isEnabled ? null : Colors.grey,
+                                  )),
                             );
                           }).toList(),
-                          onChanged: (value) {
-                            if (value != null) _setTeamCount(value);
-                          },
+                          onChanged:
+                              null, // Disabled - fixed at 24 teams (6 groups × 4)
                         ),
                       ),
                       const Spacer(),
@@ -480,14 +485,20 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                         border: OutlineInputBorder(),
                       ),
                       items: List.generate(32, (i) => i + 2).map((count) {
+                        final isEnabled = count == 24; // 6 groups × 4 teams
                         return DropdownMenuItem(
                           value: count,
-                          child: Text('$count'),
+                          enabled: isEnabled,
+                          child: Text(
+                            '$count',
+                            style: TextStyle(
+                              color: isEnabled ? null : Colors.grey,
+                            ),
+                          ),
                         );
                       }).toList(),
-                      onChanged: (value) {
-                        if (value != null) _setTeamCount(value);
-                      },
+                      onChanged:
+                          null, // Disabled - fixed at 24 teams (6 groups × 4)
                     ),
                   ),
                   const Spacer(),
@@ -964,30 +975,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         child: Row(
           children: [
             // Stats
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${_teamControllers.where((c) => !c.markedForRemoval && c.nameController.text.isNotEmpty).length} Teams',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  if (widget.adminState.tournamentStyle ==
-                      TournamentStyle.groupsAndKnockouts)
-                    Text(
-                      '${_teamControllers.where((c) => !c.markedForRemoval && c.groupIndex != null).length} mit Gruppe',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            const Spacer(),
 
             // Save button
             if (!isLocked)

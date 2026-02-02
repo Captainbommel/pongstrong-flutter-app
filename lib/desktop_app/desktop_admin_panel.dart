@@ -51,7 +51,9 @@ class _DesktopAdminPanelState extends State<DesktopAdminPanel> {
                 // Main content
                 Expanded(
                   child: state.isLoading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                              color: TreeColors.rebeccapurple))
                       : SingleChildScrollView(
                           padding: const EdgeInsets.all(24),
                           child: Column(

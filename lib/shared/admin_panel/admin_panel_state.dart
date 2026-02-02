@@ -171,8 +171,8 @@ class AdminPanelState extends ChangeNotifier {
       if (loadedGroups != null) {
         _groups = loadedGroups;
         _groupsAssigned = _groups.groups.isNotEmpty;
-        // Ensure numberOfGroups is 6 (only implemented option) or from loaded data
-        _numberOfGroups = _groups.groups.isEmpty ? 6 : _groups.groups.length;
+        // Always use 6 groups (only implemented option)
+        _numberOfGroups = 6;
       } else {
         _groups = Groups();
         _groupsAssigned = false;

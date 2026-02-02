@@ -56,7 +56,11 @@ class _MobileAdminPanelState extends State<MobileAdminPanel> {
               ],
             ),
             body: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: TreeColors.rebeccapurple,
+                    ),
+                  )
                 : SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
                     child: Column(
