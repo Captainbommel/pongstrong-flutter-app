@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:pongstrong/shared/colors.dart';
 import 'package:pongstrong/models/match.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
+import 'package:pongstrong/utils/app_logger.dart';
 import 'package:provider/provider.dart';
 
 Future<dynamic> finnishMatchDialog(
@@ -207,7 +208,9 @@ Future<dynamic> startMatchDialog(
         final tournamentData =
             Provider.of<TournamentDataState>(context, listen: false);
         final matchId = match.id;
-        debugPrint('Starting match with ID $matchId at table ${match.tischNr}');
+        Logger.debug(
+            'Starting match with ID $matchId at table ${match.tischNr}',
+            tag: 'MatchDialog');
 
         final success = await tournamentData.startMatch(matchId);
 

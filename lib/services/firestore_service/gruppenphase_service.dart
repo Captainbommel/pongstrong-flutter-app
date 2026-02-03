@@ -65,8 +65,19 @@ mixin GruppenphaseService on FirestoreBase {
     return getDoc(tournamentId, 'gruppenphase').snapshots().map((doc) {
       if (!doc.exists) return null;
       final data = doc.data() as Map<String, dynamic>;
-      final groupsMap = data['groups'] as Map<String, dynamic>;
-      final numberOfGroups = data['numberOfGroups'] as int;
+
+      // Check if this is a placeholder document (setup phase)
+      if (data['initialized'] == true &&
+          (data['numberOfGroups'] == null || data['numberOfGroups'] == 0)) {
+        return Gruppenphase(groups: []);
+      }
+
+      final groupsMap = data['groups'] as Map<String, dynamic>?;
+      final numberOfGroups = data['numberOfGroups'] as int? ?? 0;
+
+      if (groupsMap == null || numberOfGroups == 0) {
+        return Gruppenphase(groups: []);
+      }
 
       final groups = <List<Match>>[];
       for (int i = 0; i < numberOfGroups; i++) {

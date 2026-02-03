@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:pongstrong/models/models.dart';
+import 'package:pongstrong/utils/app_logger.dart';
 import 'firestore_base.dart';
 import 'teams_service.dart';
 import 'groups_service.dart';
@@ -345,7 +345,8 @@ mixin TournamentManagementService
 
       return tournamentId;
     } catch (e) {
-      debugPrint('Error creating tournament: $e');
+      Logger.error('Error creating tournament',
+          tag: 'TournamentService', error: e);
       return null;
     }
   }

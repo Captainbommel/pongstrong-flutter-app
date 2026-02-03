@@ -10,11 +10,16 @@ import 'package:pongstrong/shared/auth_state.dart';
 import 'package:pongstrong/shared/landing_page/landing_page.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
 import 'package:pongstrong/shared/tournament_selection_state.dart';
+import 'package:pongstrong/utils/app_logger.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
-  // initialize Firebase
+  // Initialize Flutter bindings
   WidgetsFlutterBinding.ensureInitialized();
+
+  Logger.info('App starting...', tag: 'Main');
+
+  // Initialize Firebase
   await Firebase.initializeApp(
     options: const FirebaseOptions(
         apiKey: 'AIzaSyBL6N6HwgspjRLukoVpsK6axdwU0GITKqc',
@@ -22,15 +27,18 @@ Future<void> main() async {
         messagingSenderId: '21303267607',
         projectId: 'pong-strong'),
   );
+  Logger.info('Firebase initialized', tag: 'Main');
 
-  // get a anonymous user
+  // Get or create anonymous user
   final auth = AuthService();
   if (auth.user == null) {
-    debugPrint('no user logged in -> signing in anonymously');
+    Logger.info('No user logged in, signing in anonymously...', tag: 'Main');
     await auth.signInAnon();
-    debugPrint('user now logged in -> new uid: ${auth.user!.uid}');
+    final userId = auth.user?.uid ?? 'unknown';
+    Logger.info('Anonymous sign-in complete, uid: $userId', tag: 'Main');
   } else {
-    debugPrint('user logged in -> uid: ${auth.user!.uid}');
+    Logger.info('User already logged in, uid: ${auth.user?.uid ?? 'unknown'}',
+        tag: 'Main');
   }
 
   runApp(const MyApp());

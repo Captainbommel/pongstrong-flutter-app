@@ -71,9 +71,20 @@ mixin MatchQueueService on FirestoreBase {
     return getDoc(tournamentId, 'matchQueue').snapshots().map((doc) {
       if (!doc.exists) return null;
       final data = doc.data() as Map<String, dynamic>;
-      final waitingMap = data['waiting'] as Map<String, dynamic>;
-      final numberOfQueues = data['numberOfQueues'] as int;
-      final playingList = data['playing'] as List;
+
+      // Check if this is a placeholder document (setup phase)
+      if (data['initialized'] == true &&
+          (data['numberOfQueues'] == null || data['numberOfQueues'] == 0)) {
+        return MatchQueue();
+      }
+
+      final waitingMap = data['waiting'] as Map<String, dynamic>?;
+      final numberOfQueues = data['numberOfQueues'] as int? ?? 0;
+      final playingList = data['playing'] as List? ?? [];
+
+      if (waitingMap == null || numberOfQueues == 0) {
+        return MatchQueue();
+      }
 
       final waiting = <List<Match>>[];
       for (int i = 0; i < numberOfQueues; i++) {

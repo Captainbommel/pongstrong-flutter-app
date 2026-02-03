@@ -1,8 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'package:pongstrong/utils/app_logger.dart';
 
 /// AuthService handles Firebase authentication.
+/// Uses singleton pattern to ensure single instance across the app.
 class AuthService {
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal() {
+    Logger.info('AuthService singleton initialized', tag: 'AuthService');
+  }
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   User? get user {
@@ -32,10 +39,14 @@ class AuthService {
   /// Creates an anonymous User and signs them in.
   Future<User?> signInAnon() async {
     try {
+      Logger.debug('Signing in anonymously...', tag: 'AuthService');
       UserCredential userCredential = await _auth.signInAnonymously();
+      Logger.info('Anonymous sign-in successful: ${userCredential.user?.uid}',
+          tag: 'AuthService');
       return userCredential.user;
     } catch (error) {
-      debugPrint(error.toString());
+      Logger.error('Anonymous sign-in failed',
+          tag: 'AuthService', error: error);
       return Future.error(error);
     }
   }
@@ -43,16 +54,20 @@ class AuthService {
   /// Signs in with email and password
   Future<User?> signInWithEmail(String email, String password) async {
     try {
+      Logger.debug('Signing in with email: $email', tag: 'AuthService');
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      Logger.info('Email sign-in successful: ${userCredential.user?.uid}',
+          tag: 'AuthService');
       return userCredential.user;
     } on FirebaseAuthException catch (e) {
-      debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
+      Logger.warning('Firebase Auth Error: ${e.code}',
+          tag: 'AuthService', error: e);
       rethrow;
     } catch (error) {
-      debugPrint(error.toString());
+      Logger.error('Sign-in failed', tag: 'AuthService', error: error);
       return Future.error(error);
     }
   }
@@ -60,17 +75,21 @@ class AuthService {
   /// Creates a new user with email and password
   Future<User?> createUserWithEmail(String email, String password) async {
     try {
+      Logger.debug('Creating user with email: $email', tag: 'AuthService');
       UserCredential userCredential =
           await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+      Logger.info('User created successfully: ${userCredential.user?.uid}',
+          tag: 'AuthService');
       return userCredential.user;
     } on FirebaseAuthException catch (e) {
-      debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
+      Logger.warning('Firebase Auth Error: ${e.code}',
+          tag: 'AuthService', error: e);
       rethrow;
     } catch (error) {
-      debugPrint(error.toString());
+      Logger.error('User creation failed', tag: 'AuthService', error: error);
       return Future.error(error);
     }
   }
@@ -78,9 +97,11 @@ class AuthService {
   /// Signs the current user out. Might complete with error.
   Future signOut() async {
     try {
+      Logger.debug('Signing out user', tag: 'AuthService');
       await _auth.signOut();
+      Logger.info('Sign-out successful', tag: 'AuthService');
     } catch (error) {
-      debugPrint(error.toString());
+      Logger.error('Sign-out failed', tag: 'AuthService', error: error);
       return Future.error(error);
     }
   }
@@ -88,9 +109,13 @@ class AuthService {
   /// Sends a password reset email
   Future<void> sendPasswordResetEmail(String email) async {
     try {
+      Logger.debug('Sending password reset email to: $email',
+          tag: 'AuthService');
       await _auth.sendPasswordResetEmail(email: email);
+      Logger.info('Password reset email sent', tag: 'AuthService');
     } catch (error) {
-      debugPrint(error.toString());
+      Logger.error('Password reset email failed',
+          tag: 'AuthService', error: error);
       return Future.error(error);
     }
   }
@@ -102,9 +127,9 @@ class AuthService {
   void setTeam(String team) async {
     if (_auth.currentUser != null) {
       await _auth.currentUser!.updateDisplayName(team);
-      debugPrint('updated user team to $team');
+      Logger.info('Updated user team to: $team', tag: 'AuthService');
     } else {
-      debugPrint('no user logged in');
+      Logger.warning('Cannot set team: no user logged in', tag: 'AuthService');
     }
   }
 }

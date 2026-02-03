@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
+import 'package:pongstrong/utils/app_logger.dart';
 
 /// Tournament phase enum
 enum TournamentPhase {
@@ -163,12 +164,14 @@ class AdminPanelState extends ChangeNotifier {
               _currentPhase = TournamentPhase.notStarted;
           }
         }
-        debugPrint('Loaded tournament phase: $_currentPhase');
+        Logger.info('Loaded tournament phase: $_currentPhase',
+            tag: 'AdminPanel');
       }
       notifyListeners();
     } catch (e) {
       _setError('Fehler beim Laden der Turnierdaten: $e');
-      debugPrint('Error loading tournament metadata: $e');
+      Logger.error('Error loading tournament metadata',
+          tag: 'AdminPanel', error: e);
     } finally {
       _setLoading(false);
     }
@@ -184,13 +187,14 @@ class AdminPanelState extends ChangeNotifier {
           await _firestoreService.loadTeams(tournamentId: _currentTournamentId);
       if (loadedTeams != null) {
         _teams = loadedTeams;
+        Logger.debug('Loaded ${_teams.length} teams', tag: 'AdminPanel');
       } else {
         _teams = [];
       }
       notifyListeners();
     } catch (e) {
       _setError('Fehler beim Laden der Teams: $e');
-      debugPrint('Error loading teams: $e');
+      Logger.error('Error loading teams', tag: 'AdminPanel', error: e);
     } finally {
       _setLoading(false);
     }
@@ -209,6 +213,8 @@ class AdminPanelState extends ChangeNotifier {
         _groupsAssigned = _groups.groups.isNotEmpty;
         // Always use 6 groups (only implemented option)
         _numberOfGroups = 6;
+        Logger.debug('Loaded ${_groups.groups.length} groups',
+            tag: 'AdminPanel');
       } else {
         _groups = Groups();
         _groupsAssigned = false;
@@ -216,7 +222,7 @@ class AdminPanelState extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _setError('Fehler beim Laden der Gruppen: $e');
-      debugPrint('Error loading groups: $e');
+      Logger.error('Error loading groups', tag: 'AdminPanel', error: e);
     } finally {
       _setLoading(false);
     }
@@ -253,13 +259,15 @@ class AdminPanelState extends ChangeNotifier {
       // Save to Firebase
       await _firestoreService.saveTeams(_teams,
           tournamentId: _currentTournamentId);
-      debugPrint('Team "${newTeam.name}" saved to Firebase');
+      Logger.info('Team "${newTeam.name}" saved to Firebase',
+          tag: 'AdminPanel');
       return true;
     } catch (e) {
       // Rollback: remove the team from local list
       _teams.removeWhere((t) => t.id == newTeam.id);
       _setError('Fehler beim Speichern: $e');
-      debugPrint('Error saving team, rolling back: $e');
+      Logger.error('Error saving team, rolling back',
+          tag: 'AdminPanel', error: e);
       notifyListeners();
       return false;
     } finally {
@@ -305,13 +313,14 @@ class AdminPanelState extends ChangeNotifier {
       // Save to Firebase
       await _firestoreService.saveTeams(_teams,
           tournamentId: _currentTournamentId);
-      debugPrint('Team "$name" updated in Firebase');
+      Logger.info('Team "$name" updated in Firebase', tag: 'AdminPanel');
       return true;
     } catch (e) {
       // Rollback
       _teams[index] = previousTeam;
       _setError('Fehler beim Aktualisieren: $e');
-      debugPrint('Error updating team, rolling back: $e');
+      Logger.error('Error updating team, rolling back',
+          tag: 'AdminPanel', error: e);
       notifyListeners();
       return false;
     } finally {
@@ -359,14 +368,16 @@ class AdminPanelState extends ChangeNotifier {
         await _firestoreService.saveGroups(_groups,
             tournamentId: _currentTournamentId);
       }
-      debugPrint('Team "${deletedTeam.name}" deleted from Firebase');
+      Logger.info('Team "${deletedTeam.name}" deleted from Firebase',
+          tag: 'AdminPanel');
       return true;
     } catch (e) {
       // Rollback
       _teams.insert(index, deletedTeam);
       _groups = previousGroups;
       _setError('Fehler beim Löschen: $e');
-      debugPrint('Error deleting team, rolling back: $e');
+      Logger.error('Error deleting team, rolling back',
+          tag: 'AdminPanel', error: e);
       notifyListeners();
       return false;
     } finally {
@@ -411,14 +422,16 @@ class AdminPanelState extends ChangeNotifier {
       // Save to Firebase
       await _firestoreService.saveGroups(_groups,
           tournamentId: _currentTournamentId);
-      debugPrint('Groups assigned randomly and saved to Firebase');
+      Logger.info('Groups assigned randomly and saved to Firebase',
+          tag: 'AdminPanel');
       return true;
     } catch (e) {
       // Rollback
       _groups = previousGroups;
       _groupsAssigned = previousAssigned;
       _setError('Fehler beim Speichern der Gruppen: $e');
-      debugPrint('Error saving groups, rolling back: $e');
+      Logger.error('Error saving groups, rolling back',
+          tag: 'AdminPanel', error: e);
       notifyListeners();
       return false;
     } finally {
@@ -461,12 +474,13 @@ class AdminPanelState extends ChangeNotifier {
     try {
       await _firestoreService.saveGroups(_groups,
           tournamentId: _currentTournamentId);
-      debugPrint('Team assigned to group $groupIndex');
+      Logger.debug('Team assigned to group $groupIndex', tag: 'AdminPanel');
       return true;
     } catch (e) {
       _groups = previousGroups;
       _setError('Fehler beim Zuweisen: $e');
-      debugPrint('Error assigning team to group, rolling back: $e');
+      Logger.error('Error assigning team to group, rolling back',
+          tag: 'AdminPanel', error: e);
       notifyListeners();
       return false;
     } finally {
@@ -507,12 +521,13 @@ class AdminPanelState extends ChangeNotifier {
     try {
       await _firestoreService.saveGroups(_groups,
           tournamentId: _currentTournamentId);
-      debugPrint('Group assignments cleared');
+      Logger.info('Group assignments cleared', tag: 'AdminPanel');
       return true;
     } catch (e) {
       _groups = previousGroups;
       _groupsAssigned = previousAssigned;
       _setError('Fehler beim Löschen der Gruppen: $e');
+      Logger.error('Error clearing groups', tag: 'AdminPanel', error: e);
       notifyListeners();
       return false;
     } finally {
@@ -615,13 +630,14 @@ class AdminPanelState extends ChangeNotifier {
       // Set phase to group phase
       _currentPhase = TournamentPhase.groupPhase;
 
-      debugPrint(
-          'Tournament started successfully with ${_teams.length} teams in $_numberOfGroups groups');
+      Logger.info(
+          'Tournament started successfully with ${_teams.length} teams in $_numberOfGroups groups',
+          tag: 'AdminPanel');
       notifyListeners();
       return true;
     } catch (e) {
       _setError('Fehler beim Starten des Turniers: $e');
-      debugPrint('Error starting tournament: $e');
+      Logger.error('Error starting tournament', tag: 'AdminPanel', error: e);
       return false;
     } finally {
       _setLoading(false);
@@ -652,12 +668,12 @@ class AdminPanelState extends ChangeNotifier {
       );
 
       _currentPhase = TournamentPhase.knockoutPhase;
-      debugPrint('Advanced to knockout phase');
+      Logger.info('Advanced to knockout phase', tag: 'AdminPanel');
       notifyListeners();
       return true;
     } catch (e) {
       _setError('Fehler beim Phasenwechsel: $e');
-      debugPrint('Error advancing phase: $e');
+      Logger.error('Error advancing phase', tag: 'AdminPanel', error: e);
       return false;
     } finally {
       _setLoading(false);
@@ -680,12 +696,12 @@ class AdminPanelState extends ChangeNotifier {
       _completedMatches = 0;
       _remainingMatches = 0;
 
-      debugPrint('Tournament reset successfully');
+      Logger.info('Tournament reset successfully', tag: 'AdminPanel');
       notifyListeners();
       return true;
     } catch (e) {
       _setError('Fehler beim Zurücksetzen: $e');
-      debugPrint('Error resetting tournament: $e');
+      Logger.error('Error resetting tournament', tag: 'AdminPanel', error: e);
       return false;
     } finally {
       _setLoading(false);
@@ -694,16 +710,16 @@ class AdminPanelState extends ChangeNotifier {
 
   void shuffleMatches() {
     // TODO: Implement match shuffling logic
-    debugPrint('Shuffling matches...');
+    Logger.debug('Shuffling matches...', tag: 'AdminPanel');
   }
 
   void importFromJson() {
     // TODO: Implement JSON import logic
-    debugPrint('Importing from JSON...');
+    Logger.debug('Importing from JSON...', tag: 'AdminPanel');
   }
 
   void exportToJson() {
     // TODO: Implement JSON export logic
-    debugPrint('Exporting to JSON...');
+    Logger.debug('Exporting to JSON...', tag: 'AdminPanel');
   }
 }

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:pongstrong/models/models.dart';
+import 'package:pongstrong/utils/app_logger.dart';
 import 'firestore_base.dart';
 
 /// Service for managing knockout phase data in Firestore
@@ -121,7 +121,8 @@ mixin KnockoutsService on FirestoreBase {
       );
     } catch (e) {
       // If parsing fails, return empty knockouts
-      debugPrint('Error parsing knockouts: $e');
+      Logger.error('Error parsing knockouts',
+          tag: 'KnockoutsService', error: e);
       return Knockouts();
     }
   }
@@ -134,11 +135,25 @@ mixin KnockoutsService on FirestoreBase {
       if (!doc.exists) return null;
       final data = doc.data() as Map<String, dynamic>;
 
-      // Reconstruct Champions rounds from map
-      final championsData = data['champions'] as Map<String, dynamic>;
+      // Check if this is a placeholder document (setup phase)
+      if (data['initialized'] == true && data['champions'] is! Map) {
+        return Knockouts();
+      }
+
+      // Safely check if champions data exists and is valid
+      final championsData = data['champions'];
+      if (championsData == null || championsData is! Map<String, dynamic>) {
+        return Knockouts();
+      }
+
       final championsRoundsMap =
-          championsData['rounds'] as Map<String, dynamic>;
-      final championsNumberOfRounds = championsData['numberOfRounds'] as int;
+          championsData['rounds'] as Map<String, dynamic>?;
+      final championsNumberOfRounds =
+          championsData['numberOfRounds'] as int? ?? 0;
+      if (championsRoundsMap == null || championsNumberOfRounds == 0) {
+        return Knockouts();
+      }
+
       final championsRounds = <List<Match>>[];
       for (int i = 0; i < championsNumberOfRounds; i++) {
         final roundMatches = (championsRoundsMap['round$i'] as List)
@@ -148,34 +163,40 @@ mixin KnockoutsService on FirestoreBase {
       }
 
       // Reconstruct Europa rounds from map
-      final europaData = data['europa'] as Map<String, dynamic>;
-      final europaRoundsMap = europaData['rounds'] as Map<String, dynamic>;
-      final europaNumberOfRounds = europaData['numberOfRounds'] as int;
+      final europaRaw = data['europa'];
+      final europaData = europaRaw is Map<String, dynamic> ? europaRaw : null;
+      final europaRoundsMap = europaData?['rounds'] as Map<String, dynamic>?;
+      final europaNumberOfRounds = europaData?['numberOfRounds'] as int? ?? 0;
       final europaRounds = <List<Match>>[];
       for (int i = 0; i < europaNumberOfRounds; i++) {
-        final roundMatches = (europaRoundsMap['round$i'] as List)
+        final roundMatches = (europaRoundsMap!['round$i'] as List)
             .map((m) => Match.fromJson(m as Map<String, dynamic>))
             .toList();
         europaRounds.add(roundMatches);
       }
 
       // Reconstruct Conference rounds from map
-      final conferenceData = data['conference'] as Map<String, dynamic>;
+      final conferenceRaw = data['conference'];
+      final conferenceData =
+          conferenceRaw is Map<String, dynamic> ? conferenceRaw : null;
       final conferenceRoundsMap =
-          conferenceData['rounds'] as Map<String, dynamic>;
-      final conferenceNumberOfRounds = conferenceData['numberOfRounds'] as int;
+          conferenceData?['rounds'] as Map<String, dynamic>?;
+      final conferenceNumberOfRounds =
+          conferenceData?['numberOfRounds'] as int? ?? 0;
       final conferenceRounds = <List<Match>>[];
       for (int i = 0; i < conferenceNumberOfRounds; i++) {
-        final roundMatches = (conferenceRoundsMap['round$i'] as List)
+        final roundMatches = (conferenceRoundsMap!['round$i'] as List)
             .map((m) => Match.fromJson(m as Map<String, dynamic>))
             .toList();
         conferenceRounds.add(roundMatches);
       }
 
       // Reconstruct Super
-      final superMatches = (data['super'] as List)
-          .map((m) => Match.fromJson(m as Map<String, dynamic>))
-          .toList();
+      final superList = data['super'] as List?;
+      final superMatches = superList
+              ?.map((m) => Match.fromJson(m as Map<String, dynamic>))
+              .toList() ??
+          [];
 
       return Knockouts(
         champions: Champions(rounds: championsRounds),

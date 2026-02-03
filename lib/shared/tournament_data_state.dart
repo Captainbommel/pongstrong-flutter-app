@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart' hide TableRow;
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
+import 'package:pongstrong/utils/app_logger.dart';
 
 /// Holds the current tournament data loaded from Firestore
 class TournamentDataState extends ChangeNotifier {
@@ -13,7 +14,7 @@ class TournamentDataState extends ChangeNotifier {
   bool _isKnockoutMode = false;
 
   // Stream subscriptions for real-time updates
-  StreamSubscription? _gruppenphaseSubscription;
+  StreamSubscription? _groupPhaseSubscription;
   StreamSubscription? _matchQueueSubscription;
   StreamSubscription? _knockoutsSubscription;
 
@@ -32,28 +33,31 @@ class TournamentDataState extends ChangeNotifier {
   /// Load tournament data from Firestore
   /// Returns true if tournament exists (even if in setup phase with no game data)
   Future<bool> loadTournamentData(String tournamentId) async {
+    Logger.info('Loading tournament data: $tournamentId',
+        tag: 'TournamentData');
     try {
       final service = FirestoreService();
 
       // First check if tournament exists at all
       final tournamentInfo = await service.getTournamentInfo(tournamentId);
       if (tournamentInfo == null) {
-        debugPrint('Tournament not found: $tournamentId');
+        Logger.warning('Tournament not found: $tournamentId',
+            tag: 'TournamentData');
         return false;
       }
 
       final teams = await service.loadTeams(tournamentId: tournamentId);
       final matchQueue =
           await service.loadMatchQueue(tournamentId: tournamentId);
-      final gruppenphase =
+      final groupPhase =
           await service.loadGruppenphase(tournamentId: tournamentId);
       final knockouts = await service.loadKnockouts(tournamentId: tournamentId);
 
       // Tournament exists but may be in setup phase (no game data yet)
-      if (teams != null && matchQueue != null && gruppenphase != null) {
+      if (teams != null && matchQueue != null && groupPhase != null) {
         _teams = teams;
         _matchQueue = matchQueue;
-        _tabellen = evalGruppen(gruppenphase);
+        _tabellen = evalGruppen(groupPhase);
         _knockouts = knockouts ?? Knockouts();
         _currentTournamentId = tournamentId;
         // Check if knockouts have been initialized to determine mode
@@ -64,6 +68,9 @@ class TournamentDataState extends ChangeNotifier {
                 knockouts.champions.rounds[0][0].teamId2.isNotEmpty);
         // Start listening to real-time updates
         _setupStreams();
+        Logger.info(
+            'Tournament loaded successfully: ${teams.length} teams, knockout mode: $_isKnockoutMode',
+            tag: 'TournamentData');
       } else {
         // Tournament exists but is in setup phase - clear any old data
         _teams = [];
@@ -73,12 +80,15 @@ class TournamentDataState extends ChangeNotifier {
         _currentTournamentId = tournamentId;
         _isKnockoutMode = false;
         _cancelStreams();
+        Logger.info('Tournament in setup phase: $tournamentId',
+            tag: 'TournamentData');
       }
 
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('Error loading tournament data: $e');
+      Logger.error('Error loading tournament data',
+          tag: 'TournamentData', error: e);
       return false;
     }
   }
@@ -99,6 +109,7 @@ class TournamentDataState extends ChangeNotifier {
 
   /// Clear all data
   void clearData() {
+    Logger.debug('Clearing tournament data', tag: 'TournamentData');
     _teams = [];
     _matchQueue = MatchQueue();
     _tabellen = Tabellen();
@@ -111,20 +122,25 @@ class TournamentDataState extends ChangeNotifier {
   /// Setup real-time streams from Firestore
   void _setupStreams() {
     _cancelStreams(); // Cancel any existing subscriptions
+    Logger.debug(
+        'Setting up Firestore streams for tournament: $_currentTournamentId',
+        tag: 'TournamentData');
 
     final service = FirestoreService();
 
-    // Listen to gruppenphase changes
-    _gruppenphaseSubscription = service
+    // Listen to group phase changes
+    _groupPhaseSubscription = service
         .gruppenphaseStream(tournamentId: _currentTournamentId)
-        .listen((gruppenphase) {
-      if (gruppenphase != null) {
-        debugPrint('Gruppenphase updated from Firestore');
-        _tabellen = evalGruppen(gruppenphase);
+        .listen((groupPhase) {
+      if (groupPhase != null) {
+        Logger.debug('Group phase updated from Firestore',
+            tag: 'TournamentData');
+        _tabellen = evalGruppen(groupPhase);
         notifyListeners();
       }
     }, onError: (e) {
-      debugPrint('Error in gruppenphase stream: $e');
+      Logger.error('Error in group phase stream',
+          tag: 'TournamentData', error: e);
     });
 
     // Listen to match queue changes
@@ -132,12 +148,14 @@ class TournamentDataState extends ChangeNotifier {
         .matchQueueStream(tournamentId: _currentTournamentId)
         .listen((queue) {
       if (queue != null) {
-        debugPrint('Match queue updated from Firestore');
+        Logger.debug('Match queue updated from Firestore',
+            tag: 'TournamentData');
         _matchQueue = queue;
         notifyListeners();
       }
     }, onError: (e) {
-      debugPrint('Error in match queue stream: $e');
+      Logger.error('Error in match queue stream',
+          tag: 'TournamentData', error: e);
     });
 
     // Listen to knockouts changes
@@ -145,24 +163,27 @@ class TournamentDataState extends ChangeNotifier {
         .knockoutsStream(tournamentId: _currentTournamentId)
         .listen((knockouts) {
       if (knockouts != null) {
-        debugPrint('Knockouts updated from Firestore');
+        Logger.debug('Knockouts updated from Firestore', tag: 'TournamentData');
         _knockouts = knockouts;
         notifyListeners();
       }
     }, onError: (e) {
-      debugPrint('Error in knockouts stream: $e');
+      Logger.error('Error in knockouts stream',
+          tag: 'TournamentData', error: e);
     });
   }
 
   /// Cancel all stream subscriptions
   void _cancelStreams() {
-    _gruppenphaseSubscription?.cancel();
+    Logger.debug('Cancelling Firestore streams', tag: 'TournamentData');
+    _groupPhaseSubscription?.cancel();
     _matchQueueSubscription?.cancel();
     _knockoutsSubscription?.cancel();
   }
 
   @override
   void dispose() {
+    Logger.debug('Disposing TournamentDataState', tag: 'TournamentData');
     _cancelStreams();
     super.dispose();
   }
@@ -193,42 +214,56 @@ class TournamentDataState extends ChangeNotifier {
 
   /// Move a match from waiting to playing queue
   Future<bool> startMatch(String matchId) async {
+    Logger.info('Starting match: $matchId', tag: 'TournamentData');
     // Store previous state for rollback
     final previousMatchQueue = _matchQueue.clone();
 
     final success = _matchQueue.switchPlaying(matchId);
-    if (!success) return false;
+    if (!success) {
+      Logger.warning('Failed to switch match to playing: $matchId',
+          tag: 'TournamentData');
+      return false;
+    }
 
     // Save updated match queue to Firestore
     try {
       final service = FirestoreService();
       await service.saveMatchQueue(_matchQueue,
           tournamentId: _currentTournamentId);
-      debugPrint('Saved match queue after starting match $matchId');
+      Logger.info('Match started successfully: $matchId',
+          tag: 'TournamentData');
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('Error saving match queue: $e');
+      Logger.error('Error saving match queue', tag: 'TournamentData', error: e);
       // Revert local changes on Firestore save failure
       _matchQueue = previousMatchQueue;
-      debugPrint('Reverted local match queue changes for match $matchId');
+      Logger.warning('Reverted local match queue changes for match: $matchId',
+          tag: 'TournamentData');
       return false;
     }
   }
 
   /// Remove a match from playing queue and update standings
   Future<bool> finishMatch(String matchId) async {
+    Logger.info('Finishing match: $matchId', tag: 'TournamentData');
     // find the match in playing
     final match = _matchQueue.playing.firstWhere(
       (m) => m.id == matchId,
       orElse: () => Match(),
     );
-    if (match.id.isEmpty) return false; // match not found
+    if (match.id.isEmpty) {
+      Logger.warning('Match not found in playing queue: $matchId',
+          tag: 'TournamentData');
+      return false; // match not found
+    }
 
     // validate score from queue
     final points = match.getPoints();
     if (points == null) {
-      debugPrint('Invalid score for match $matchId - not updating standings');
+      Logger.warning(
+          'Invalid score for match $matchId - not updating standings',
+          tag: 'TournamentData');
       return false; // invalid score
     }
 
@@ -242,42 +277,46 @@ class TournamentDataState extends ChangeNotifier {
 
   /// Finish a group phase match
   Future<bool> _finishGroupMatch(String matchId, Match match) async {
-    // load gruppenphase
+    Logger.debug('Finishing group match: $matchId', tag: 'TournamentData');
+    // load group phase
     final service = FirestoreService();
-    final gruppenphase =
+    final groupPhase =
         await service.loadGruppenphase(tournamentId: _currentTournamentId);
 
-    if (gruppenphase == null) {
-      debugPrint('Could not load gruppenphase for match $matchId');
+    if (groupPhase == null) {
+      Logger.error('Could not load group phase for match: $matchId',
+          tag: 'TournamentData');
       return false;
     }
 
     // Find which group contains this match and update it
     int groupIndex = -1;
-    Match? gruppenphasMatch;
-    for (int i = 0; i < gruppenphase.groups.length; i++) {
-      for (var m in gruppenphase.groups[i]) {
+    Match? groupPhaseMatch;
+    for (int i = 0; i < groupPhase.groups.length; i++) {
+      for (var m in groupPhase.groups[i]) {
         if (m.id == matchId) {
           groupIndex = i;
-          gruppenphasMatch = m;
+          groupPhaseMatch = m;
           break;
         }
       }
-      if (gruppenphasMatch != null) break;
+      if (groupPhaseMatch != null) break;
     }
 
-    if (gruppenphasMatch == null) {
-      debugPrint('Match $matchId not found in gruppenphase');
+    if (groupPhaseMatch == null) {
+      Logger.warning('Match $matchId not found in group phase',
+          tag: 'TournamentData');
       return false;
     }
 
     // update the match with final scores
-    gruppenphasMatch.score1 = match.score1;
-    gruppenphasMatch.score2 = match.score2;
-    gruppenphasMatch.done = true;
+    groupPhaseMatch.score1 = match.score1;
+    groupPhaseMatch.score2 = match.score2;
+    groupPhaseMatch.done = true;
 
-    debugPrint(
-      'Updated match $matchId in gruppenphase: ${match.score1}-${match.score2}',
+    Logger.info(
+      'Updated match $matchId in group phase: ${match.score1}-${match.score2}',
+      tag: 'TournamentData',
     );
 
     // Store previous state for rollback
@@ -288,13 +327,13 @@ class TournamentDataState extends ChangeNotifier {
     _matchQueue.removeFromPlaying(matchId);
 
     // recalculate tables
-    final updatedTables = evalGruppen(gruppenphase);
+    final updatedTables = evalGruppen(groupPhase);
     _tabellen = updatedTables;
 
     // update Firestore
     try {
       await service.saveGruppenphase(
-        gruppenphase,
+        groupPhase,
         tournamentId: _currentTournamentId,
       );
       await service.saveTabellen(
@@ -306,24 +345,28 @@ class TournamentDataState extends ChangeNotifier {
         tournamentId: _currentTournamentId,
       );
 
-      debugPrint(
-        'Saved updated gruppenphase, tables, and match queue for group $groupIndex',
+      Logger.info(
+        'Saved updated group phase, tables, and match queue for group $groupIndex',
+        tag: 'TournamentData',
       );
 
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('Error saving to Firestore: $e');
+      Logger.error('Error saving to Firestore',
+          tag: 'TournamentData', error: e);
       // Revert local changes on Firestore save failure
       _matchQueue = previousMatchQueue;
       _tabellen = previousTabellen;
-      debugPrint('Reverted local changes for match $matchId');
+      Logger.warning('Reverted local changes for match: $matchId',
+          tag: 'TournamentData');
       return false;
     }
   }
 
   /// Finish a knockout match
   Future<bool> _finishKnockoutMatch(String matchId, Match match) async {
+    Logger.debug('Finishing knockout match: $matchId', tag: 'TournamentData');
     final service = FirestoreService();
 
     // Helper function to find and update match in knockout structure
@@ -360,12 +403,14 @@ class TournamentDataState extends ChangeNotifier {
     }
 
     if (!found) {
-      debugPrint('Match $matchId not found in knockouts');
+      Logger.warning('Match $matchId not found in knockouts',
+          tag: 'TournamentData');
       return false;
     }
 
-    debugPrint(
+    Logger.info(
       'Updated match $matchId in knockouts: ${match.score1}-${match.score2}',
+      tag: 'TournamentData',
     );
 
     // Store previous state for rollback
@@ -391,15 +436,18 @@ class TournamentDataState extends ChangeNotifier {
         tournamentId: _currentTournamentId,
       );
 
-      debugPrint('Saved updated knockouts and match queue');
+      Logger.info('Saved updated knockouts and match queue',
+          tag: 'TournamentData');
 
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('Error saving to Firestore: $e');
+      Logger.error('Error saving knockouts to Firestore',
+          tag: 'TournamentData', error: e);
       // Revert local changes on Firestore save failure
       _matchQueue = previousMatchQueue;
-      debugPrint('Reverted local changes for match $matchId');
+      Logger.warning('Reverted local changes for match: $matchId',
+          tag: 'TournamentData');
       return false;
     }
   }
@@ -407,20 +455,23 @@ class TournamentDataState extends ChangeNotifier {
   /// Transition from group phase to knockout phase
   /// This will evaluate the group standings and populate the knockout structure
   Future<bool> transitionToKnockouts({int numberOfGroups = 8}) async {
+    Logger.info('Transitioning to knockouts with $numberOfGroups groups',
+        tag: 'TournamentData');
     try {
       final service = FirestoreService();
 
-      // Load current gruppenphase to calculate standings
-      final gruppenphase =
+      // Load current group phase to calculate standings
+      final groupPhase =
           await service.loadGruppenphase(tournamentId: _currentTournamentId);
 
-      if (gruppenphase == null) {
-        debugPrint('Could not load gruppenphase for knockout transition');
+      if (groupPhase == null) {
+        Logger.error('Could not load group phase for knockout transition',
+            tag: 'TournamentData');
         return false;
       }
 
       // Calculate final standings
-      final tabellen = evalGruppen(gruppenphase);
+      final tabellen = evalGruppen(groupPhase);
 
       // Evaluate and create knockouts based on number of groups
       final knockouts = numberOfGroups == 8
@@ -434,7 +485,8 @@ class TournamentDataState extends ChangeNotifier {
       );
       _matchQueue.updateKnockQueue(knockouts);
 
-      debugPrint("Match queue updated with knockout matches");
+      Logger.debug('Match queue updated with knockout matches',
+          tag: 'TournamentData');
 
       // Save knockouts and match queue to Firestore
       await service.saveKnockouts(knockouts,
@@ -442,8 +494,9 @@ class TournamentDataState extends ChangeNotifier {
       await service.saveMatchQueue(_matchQueue,
           tournamentId: _currentTournamentId);
 
-      debugPrint(
+      Logger.info(
         'Successfully transitioned to knockouts with $numberOfGroups groups',
+        tag: 'TournamentData',
       );
 
       // Update local state
@@ -453,7 +506,8 @@ class TournamentDataState extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      debugPrint('Error transitioning to knockouts: $e');
+      Logger.error('Error transitioning to knockouts',
+          tag: 'TournamentData', error: e);
       return false;
     }
   }

@@ -2,21 +2,26 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pongstrong/firebase/auth.dart';
+import 'package:pongstrong/utils/app_logger.dart';
 
 /// Manages the authentication state across the app
 class AuthState extends ChangeNotifier {
   final AuthService _authService = AuthService();
+  StreamSubscription<User?>? _authSubscription;
   User? _user;
   bool _isLoading = false;
   String? _error;
 
   AuthState() {
     // Listen to auth state changes
-    _authService.userState.listen((user) {
+    _authSubscription = _authService.userState.listen((user) {
       _user = user;
+      Logger.debug('Auth state changed: ${user?.uid ?? 'null'}',
+          tag: 'AuthState');
       notifyListeners();
     });
     _user = _authService.user;
+    Logger.info('AuthState initialized', tag: 'AuthState');
   }
 
   User? get user => _user;
@@ -120,6 +125,13 @@ class AuthState extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    Logger.debug('Disposing AuthState', tag: 'AuthState');
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   /// Get localized error message

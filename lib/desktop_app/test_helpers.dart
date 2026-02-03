@@ -5,6 +5,7 @@ import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/services/import_service.dart';
 import 'package:pongstrong/shared/tournament_data_state.dart';
 import 'package:pongstrong/shared/tournament_selection_state.dart';
+import 'package:pongstrong/utils/app_logger.dart';
 import 'package:provider/provider.dart';
 
 /// Utilities for uploading tournament data from JSON to Firestore
@@ -67,8 +68,9 @@ class TestDataHelpers {
       final allTeams = result2.$1;
       final groups = result2.$2;
 
-      debugPrint(
-          'Loaded ${allTeams.length} teams from JSON in ${groups.groups.length} groups');
+      Logger.info(
+          'Loaded ${allTeams.length} teams from JSON in ${groups.groups.length} groups',
+          tag: 'TestHelpers');
 
       // Import teams and groups only (without starting the tournament)
       final service = FirestoreService();
@@ -77,7 +79,8 @@ class TestDataHelpers {
         groups,
         tournamentId: tournamentId,
       );
-      debugPrint('   ✓ Teams and groups imported from JSON for $tournamentId');
+      Logger.info('Teams and groups imported from JSON for $tournamentId',
+          tag: 'TestHelpers');
 
       // Load teams from Firestore to update the UI
       final loadedTeams = await service.loadTeams(
@@ -89,7 +92,7 @@ class TestDataHelpers {
         final tournamentData =
             Provider.of<TournamentDataState>(context, listen: false);
         await tournamentData.loadTournamentData(tournamentId);
-        debugPrint('✓ Data loaded into app state');
+        Logger.info('Data loaded into app state', tag: 'TestHelpers');
       }
 
       // Close loading dialog
@@ -106,9 +109,9 @@ class TestDataHelpers {
           ),
         );
       }
-    } catch (e, stackTrace) {
-      debugPrint('Error loading teams from JSON: $e');
-      debugPrint('Stack trace: $stackTrace');
+    } catch (e) {
+      Logger.error('Error loading teams from JSON',
+          tag: 'TestHelpers', error: e);
 
       // Close loading dialog if open
       if (context.mounted) Navigator.pop(context);
