@@ -1,5 +1,9 @@
 import 'evaluation.dart';
 
+// TODO: Add getter and setter methods with validation
+// - Validate teamId1/teamId2 are not empty when match is active
+// - (...)
+
 class Match {
   String teamId1;
   String teamId2;

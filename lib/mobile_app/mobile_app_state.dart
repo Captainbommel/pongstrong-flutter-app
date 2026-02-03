@@ -25,6 +25,9 @@ class MobileAppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // TODO: Remove force unwraps (scaffoldKey.currentState!) throughout this method
+  // These could crash if scaffold isn't mounted. Use null-aware operator:
+  // scaffoldKey.currentState?.closeDrawer();
   void Function()? setAppState(MobileAppView state) {
     switch (state) {
       case MobileAppView.runningMatches:

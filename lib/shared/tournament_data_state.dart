@@ -4,6 +4,12 @@ import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/utils/app_logger.dart';
 
+// TODO: Consider adding explicit caching layer for frequently accessed data
+// While Firestore streams provide local caching, adding app-level caching for:
+// - Team lookups by ID
+// - Match lookups by ID
+// - Table rankings
+
 /// Holds the current tournament data loaded from Firestore
 class TournamentDataState extends ChangeNotifier {
   List<Team> _teams = [];
@@ -213,6 +219,9 @@ class TournamentDataState extends ChangeNotifier {
   }
 
   /// Move a match from waiting to playing queue
+  // TODO: Potential race condition - if two matches start/finish simultaneously,
+  // both read the same initial state and may overwrite each other's changes.
+  // Consider using Firestore transactions for atomic updates.
   Future<bool> startMatch(String matchId) async {
     Logger.info('Starting match: $matchId', tag: 'TournamentData');
     // Store previous state for rollback

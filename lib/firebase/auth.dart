@@ -119,17 +119,4 @@ class AuthService {
       return Future.error(error);
     }
   }
-
-  //! use this to save the chosen Team of a user
-  //! team will be null wihle not chosen
-  //! upon login the user will be prompted to choose a team
-  /// Sets the displayname of the current user, representing the chosen team.
-  void setTeam(String team) async {
-    if (_auth.currentUser != null) {
-      await _auth.currentUser!.updateDisplayName(team);
-      Logger.info('Updated user team to: $team', tag: 'AuthService');
-    } else {
-      Logger.warning('Cannot set team: no user logged in', tag: 'AuthService');
-    }
-  }
 }

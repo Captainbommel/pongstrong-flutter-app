@@ -20,6 +20,7 @@ Future<void> main() async {
   Logger.info('App starting...', tag: 'Main');
 
   // Initialize Firebase
+  // TODO: Move Firebase config to environment variables or firebase_options.dart
   await Firebase.initializeApp(
     options: const FirebaseOptions(
         apiKey: 'AIzaSyBL6N6HwgspjRLukoVpsK6axdwU0GITKqc',
@@ -49,7 +50,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //! App rebulds when screen size changes -> state should be determined before
+    // TODO: App rebuilds when screen size changes, causing unnecessary provider recreations.
+    // Consider determining layout mode once and caching it, or using LayoutBuilder deeper in tree.
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthState()),
