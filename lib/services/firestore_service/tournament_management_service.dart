@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/utils/app_logger.dart';
+import 'package:pongstrong/utils/password_hash.dart';
 import 'firestore_base.dart';
 import 'teams_service.dart';
 import 'groups_service.dart';
@@ -287,7 +288,7 @@ mixin TournamentManagementService
         'name': tournamentName,
         'creatorId': creatorId,
         'creatorEmail': creatorEmail,
-        'password': password, // In production, this should be hashed
+        'password': PasswordHash.hash(password), // Hashed for security
         'participants': [creatorId], // Creator is automatically a participant
         'phase': 'setup', // 'setup', 'groups' or 'knockouts'
         'createdAt': FieldValue.serverTimestamp(),
@@ -363,7 +364,10 @@ mixin TournamentManagementService
       if (!doc.exists) return false;
 
       final data = doc.data() as Map<String, dynamic>;
-      return data['password'] == password;
+      final storedHash = data['password'] as String?;
+      if (storedHash == null) return false;
+
+      return PasswordHash.verify(password, storedHash);
     } catch (e) {
       return false;
     }
