@@ -1,0 +1,248 @@
+import 'package:flutter/material.dart';
+import 'package:pongstrong/state/app_state.dart';
+import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/state/auth_state.dart';
+import 'package:pongstrong/state/tournament_selection_state.dart';
+import 'package:pongstrong/views/admin/admin_panel_page.dart';
+import 'package:pongstrong/views/playing_field_view.dart';
+import 'package:pongstrong/views/rules_view.dart';
+import 'package:pongstrong/views/teams_view.dart';
+import 'package:pongstrong/views/tree_view.dart';
+import 'package:pongstrong/views/mobile_drawer.dart';
+import 'package:pongstrong/widgets/confirmation_dialog.dart';
+import 'package:provider/provider.dart';
+
+/// Unified responsive app shell that replaces the separate DesktopApp and
+/// MobileApp widgets.
+///
+/// On large screens: AppBar with text-button navigation + body.
+/// On small screens: Drawer-based navigation + PageView with swipe support.
+class AppShell extends StatefulWidget {
+  const AppShell({super.key});
+
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  late PageController _pageController;
+  bool _showSwipeHint = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+
+    // Hide swipe hint after 3 seconds (mobile only)
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() => _showSwipeHint = false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _showBackConfirmationDialog(BuildContext context) async {
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: 'Turnier verlassen?',
+      content: const Text('Möchtest du wirklich zurück zur Turnierübersicht?'),
+      confirmText: 'Zurück',
+    );
+
+    if (confirmed == true && context.mounted) {
+      Provider.of<TournamentSelectionState>(context, listen: false)
+          .clearSelectedTournament();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLargeScreen = MediaQuery.of(context).size.width > 940;
+
+    return isLargeScreen
+        ? _buildDesktopShell(context)
+        : _buildMobileShell(context);
+  }
+
+  // ---------- Desktop Layout ----------
+
+  Widget _buildDesktopShell(BuildContext context) {
+    final appState = Provider.of<AppState>(context);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        shadowColor: Colors.black,
+        elevation: 10,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Zurück zur Übersicht',
+          onPressed: () => _showBackConfirmationDialog(context),
+        ),
+        title: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _navButton(context, 'Spielfeld', AppView.playingField),
+              const SizedBox(width: 8),
+              _navButton(context, 'Gruppenphase', AppView.groupPhase),
+              const SizedBox(width: 8),
+              _navButton(context, 'Turnierbaum', AppView.tournamentTree),
+              const SizedBox(width: 8),
+              _navButton(context, 'Regeln', AppView.rules),
+              const SizedBox(width: 8),
+              // Admin button - only for email users
+              Consumer<AuthState>(
+                builder: (context, authState, child) {
+                  if (!authState.isEmailUser) return const SizedBox.shrink();
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(width: 16),
+                      TextButton.icon(
+                        onPressed: () => appState.setView(AppView.adminPanel),
+                        icon: const Icon(Icons.settings,
+                            color: GroupPhaseColors.cupred, size: 20),
+                        label: const Text(
+                          'Turnierverwaltung',
+                          style: TextStyle(
+                            color: GroupPhaseColors.cupred,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: Colors.white,
+      ),
+      body: _buildBodyForView(appState.currentView),
+    );
+  }
+
+  Widget _navButton(BuildContext context, String label, AppView view) {
+    return TextButton(
+      onPressed: () =>
+          Provider.of<AppState>(context, listen: false).setView(view),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.black,
+          fontSize: 16,
+          decoration: TextDecoration.underline,
+        ),
+      ),
+    );
+  }
+
+  // ---------- Mobile Layout ----------
+
+  Widget _buildMobileShell(BuildContext context) {
+    final appState = Provider.of<AppState>(context);
+    final selectedTournament =
+        Provider.of<TournamentSelectionState>(context).selectedTournamentId;
+
+    // Sync PageView with state changes from drawer
+    final currentPage = AppState.pageIndexFromView(appState.currentView);
+    if (_pageController.hasClients &&
+        _pageController.page?.round() != currentPage) {
+      _pageController.jumpToPage(currentPage);
+    }
+
+    return Scaffold(
+      key: appState.scaffoldKey,
+      drawer: const MobileDrawer(),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        shadowColor: Colors.black,
+        elevation: 10,
+        title: Text(selectedTournament ?? 'BMT-Cup'),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+      ),
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) => appState.setViewFromPageIndex(index),
+        children: [
+          _buildPageWithHint(const PlayingFieldView(), showHint: true),
+          const SingleChildScrollView(child: TeamsView()),
+          const SingleChildScrollView(
+              child: Placeholder()), // Tournament tree placeholder
+          const SingleChildScrollView(child: RulesView()),
+          const AdminPanelPage(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPageWithHint(Widget content, {bool showHint = false}) {
+    if (!showHint || !_showSwipeHint) {
+      return content;
+    }
+
+    return Stack(
+      children: [
+        content,
+        Positioned(
+          bottom: 16,
+          left: 0,
+          right: 0,
+          child: AnimatedOpacity(
+            opacity: _showSwipeHint ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 500),
+            child: Center(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(153),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.swipe, color: Colors.white, size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'Wischen zum Navigieren',
+                      style: TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---------- Shared ----------
+
+  Widget _buildBodyForView(AppView view) {
+    switch (view) {
+      case AppView.playingField:
+        return const PlayingFieldView();
+      case AppView.groupPhase:
+        return const TeamsView();
+      case AppView.tournamentTree:
+        return const TreeViewPage();
+      case AppView.rules:
+        return const RulesView();
+      case AppView.adminPanel:
+        return const AdminPanelPage();
+    }
+  }
+}

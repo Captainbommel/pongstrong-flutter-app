@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pongstrong/desktop_app/desktop_app_state.dart';
-import 'package:pongstrong/firebase/auth.dart';
-import 'package:pongstrong/mobile_app/mobile_app_state.dart';
-import 'package:pongstrong/desktop_app/desktop_app.dart';
-import 'package:pongstrong/mobile_app/mobile_app.dart';
-import 'package:pongstrong/shared/auth_state.dart';
-import 'package:pongstrong/shared/landing_page/landing_page.dart';
-import 'package:pongstrong/shared/tournament_data_state.dart';
-import 'package:pongstrong/shared/tournament_selection_state.dart';
+import 'package:pongstrong/app.dart';
+import 'package:pongstrong/state/app_state.dart';
+import 'package:pongstrong/services/auth_service.dart';
+import 'package:pongstrong/state/auth_state.dart';
+import 'package:pongstrong/state/tournament_data_state.dart';
+import 'package:pongstrong/state/tournament_selection_state.dart';
+import 'package:pongstrong/views/landing/landing_page.dart';
 import 'package:pongstrong/utils/app_logger.dart';
 import 'package:provider/provider.dart';
 
@@ -57,8 +55,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthState()),
         ChangeNotifierProvider(create: (_) => TournamentSelectionState()),
         ChangeNotifierProvider(create: (_) => TournamentDataState()),
-        ChangeNotifierProvider(create: (_) => DesktopAppState()),
-        ChangeNotifierProvider(create: (_) => MobileAppState()),
+        ChangeNotifierProvider(create: (_) => AppState()),
       ],
       child: MaterialApp(
         home: const AppSelector(),
@@ -76,18 +73,16 @@ class AppSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLargeScreen = MediaQuery.of(context).size.width > 940;
-
     // Check if a tournament is selected
     final hasSelectedTournament =
         Provider.of<TournamentSelectionState>(context).hasSelectedTournament;
 
     if (!hasSelectedTournament) {
       // Show landing page if no tournament is selected
-      return LandingPage(isDesktop: isLargeScreen);
+      return const LandingPage();
     }
 
-    // Show the appropriate app based on screen size
-    return isLargeScreen ? const DesktopApp() : const MobileApp();
+    // Show the unified responsive app shell
+    return const AppShell();
   }
 }
