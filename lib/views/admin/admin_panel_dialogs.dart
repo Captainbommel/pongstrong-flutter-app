@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/services/import_service.dart';
+import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
 import 'package:pongstrong/widgets/confirmation_dialog.dart';
@@ -11,11 +12,28 @@ import 'package:provider/provider.dart';
 /// Extracted from the old DesktopAdminPanel and MobileAdminPanel to
 /// eliminate duplication. Both panels had nearly identical dialog logic.
 class AdminPanelDialogs {
+  /// Verifies the user is an admin before performing an action.
+  /// Returns false and shows a snackbar if not authorized.
+  static bool _verifyAdmin(BuildContext context) {
+    final authState = Provider.of<AuthState>(context, listen: false);
+    if (!authState.isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Keine Berechtigung für diese Aktion.'),
+          backgroundColor: GroupPhaseColors.cupred,
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
+
   /// Show tournament start confirmation
   static Future<void> showStartConfirmation(
     BuildContext context,
     AdminPanelState state,
   ) async {
+    if (!_verifyAdmin(context)) return;
     final validationMessage = state.startValidationMessage;
     if (validationMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -76,6 +94,8 @@ class AdminPanelDialogs {
     BuildContext context,
     AdminPanelState state,
   ) async {
+    if (!_verifyAdmin(context)) return;
+
     if (state.currentPhase != TournamentPhase.groupPhase) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -145,6 +165,8 @@ class AdminPanelDialogs {
     AdminPanelState state, {
     VoidCallback? onResetComplete,
   }) async {
+    if (!_verifyAdmin(context)) return;
+
     final confirmed = await showConfirmationDialog(
       context,
       title: 'Turnier zurücksetzen?',
@@ -255,6 +277,7 @@ class AdminPanelDialogs {
 
   /// Handle JSON team import
   static Future<void> handleImportTeams(BuildContext context) async {
+    if (!_verifyAdmin(context)) return;
     await ImportService.uploadTeamsFromJson(context);
   }
 

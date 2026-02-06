@@ -56,6 +56,7 @@ class _AppShellState extends State<AppShell> {
     );
 
     if (confirmed == true && context.mounted) {
+      Provider.of<AuthState>(context, listen: false).clearTournamentRole();
       Provider.of<TournamentSelectionState>(context, listen: false)
           .clearSelectedTournament();
     }
@@ -74,6 +75,14 @@ class _AppShellState extends State<AppShell> {
 
   Widget _buildDesktopShell(BuildContext context) {
     final appState = Provider.of<AppState>(context);
+    final authState = Provider.of<AuthState>(context);
+
+    // If user is not admin but on admin view, redirect to playing field
+    if (!authState.isAdmin && appState.currentView == AppView.adminPanel) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        appState.setView(AppView.playingField);
+      });
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -98,10 +107,10 @@ class _AppShellState extends State<AppShell> {
               const SizedBox(width: 8),
               _navButton(context, 'Regeln', AppView.rules),
               const SizedBox(width: 8),
-              // Admin button - only for email users
+              // Admin button - only for tournament creator
               Consumer<AuthState>(
                 builder: (context, authState, child) {
-                  if (!authState.isEmailUser) return const SizedBox.shrink();
+                  if (!authState.isAdmin) return const SizedBox.shrink();
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -151,14 +160,24 @@ class _AppShellState extends State<AppShell> {
 
   Widget _buildMobileShell(BuildContext context) {
     final appState = Provider.of<AppState>(context);
+    final authState = Provider.of<AuthState>(context);
     final selectedTournament =
         Provider.of<TournamentSelectionState>(context).selectedTournamentId;
 
+    final isAdmin = authState.isAdmin;
+    final pageCount = isAdmin ? 5 : 4;
+
     // Sync PageView with state changes from drawer
-    final currentPage = AppState.pageIndexFromView(appState.currentView);
+    final targetView = appState.currentView;
+    // If non-admin is somehow on the admin view, redirect to playing field
+    final effectiveView = (!isAdmin && targetView == AppView.adminPanel)
+        ? AppView.playingField
+        : targetView;
+    final currentPage = AppState.pageIndexFromView(effectiveView);
+
     if (_pageController.hasClients &&
         _pageController.page?.round() != currentPage) {
-      _pageController.jumpToPage(currentPage);
+      _pageController.jumpToPage(currentPage.clamp(0, pageCount - 1));
     }
 
     return Scaffold(
@@ -181,7 +200,7 @@ class _AppShellState extends State<AppShell> {
           const SingleChildScrollView(
               child: Placeholder()), // Tournament tree placeholder
           const SingleChildScrollView(child: RulesView()),
-          const AdminPanelPage(),
+          if (isAdmin) const AdminPanelPage(),
         ],
       ),
     );

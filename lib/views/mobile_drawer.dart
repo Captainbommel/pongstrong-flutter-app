@@ -82,10 +82,10 @@ class MobileDrawer extends StatelessWidget {
             indent: 0,
             color: FieldColors.springgreen,
           ),
-          // Admin - only for email users
+          // Admin - only for tournament creator
           Consumer<AuthState>(
             builder: (context, authState, child) {
-              if (!authState.isEmailUser) return const SizedBox.shrink();
+              if (!authState.isAdmin) return const SizedBox.shrink();
               return ListTile(
                 title: const Text(
                   'Turnierverwaltung',
@@ -115,6 +115,8 @@ class MobileDrawer extends StatelessWidget {
               );
 
               if (confirmed == true && context.mounted) {
+                Provider.of<AuthState>(context, listen: false)
+                    .clearTournamentRole();
                 Provider.of<TournamentSelectionState>(context, listen: false)
                     .clearSelectedTournament();
               }

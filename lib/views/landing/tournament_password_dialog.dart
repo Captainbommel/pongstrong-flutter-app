@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
+import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:provider/provider.dart';
 
 /// Dialog for entering tournament password
 class TournamentPasswordDialog extends StatefulWidget {
@@ -49,6 +51,15 @@ class _TournamentPasswordDialogState extends State<TournamentPasswordDialog> {
 
     if (mounted) {
       if (isValid) {
+        // Bind user to tournament as participant
+        final authState = Provider.of<AuthState>(context, listen: false);
+        final userId = authState.userId;
+        if (userId != null) {
+          await _firestoreService.joinTournament(widget.tournamentId, userId);
+          authState.markAsParticipant();
+        }
+
+        if (!mounted) return;
         Navigator.pop(context);
         widget.onSuccess();
       } else {

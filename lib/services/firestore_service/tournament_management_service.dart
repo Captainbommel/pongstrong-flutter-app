@@ -288,6 +288,7 @@ mixin TournamentManagementService
         'creatorId': creatorId,
         'creatorEmail': creatorEmail,
         'password': password, // In production, this should be hashed
+        'participants': [creatorId], // Creator is automatically a participant
         'phase': 'setup', // 'setup', 'groups' or 'knockouts'
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -420,6 +421,48 @@ mixin TournamentManagementService
       return data.containsKey('password') &&
           data['password'] != null &&
           data['password'].toString().isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ==================== PARTICIPANT MANAGEMENT ====================
+
+  /// Adds a user to the tournament's participants list.
+  /// Called after password verification or when creator creates the tournament.
+  Future<bool> joinTournament(String tournamentId, String userId) async {
+    try {
+      await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .update({
+        'participants': FieldValue.arrayUnion([userId]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      Logger.error('Error joining tournament',
+          tag: 'TournamentService', error: e);
+      return false;
+    }
+  }
+
+  /// Checks if a user is a participant of (or creator of) a tournament.
+  Future<bool> isParticipant(String tournamentId, String userId) async {
+    try {
+      final doc = await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .get();
+      if (!doc.exists) return false;
+
+      final data = doc.data() as Map<String, dynamic>;
+
+      // Creator is always considered a participant
+      if (data['creatorId'] == userId) return true;
+
+      final participants = data['participants'] as List<dynamic>? ?? [];
+      return participants.contains(userId);
     } catch (e) {
       return false;
     }

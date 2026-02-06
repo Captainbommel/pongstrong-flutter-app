@@ -91,6 +91,11 @@ class _LandingPageState extends State<LandingPage> {
 
     if (mounted) {
       if (success) {
+        // Check the user's role for this tournament (admin/participant)
+        final authState = Provider.of<AuthState>(context, listen: false);
+        await authState.checkTournamentRole(tournamentId);
+
+        if (!mounted) return;
         Provider.of<TournamentSelectionState>(context, listen: false)
             .setSelectedTournament(tournamentId);
       } else {

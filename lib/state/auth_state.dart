@@ -2,15 +2,22 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pongstrong/services/auth_service.dart';
+import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/utils/app_logger.dart';
 
 /// Manages the authentication state across the app
 class AuthState extends ChangeNotifier {
   final AuthService _authService = AuthService();
+  final FirestoreService _firestoreService = FirestoreService();
   StreamSubscription<User?>? _authSubscription;
   User? _user;
   bool _isLoading = false;
   String? _error;
+
+  // Tournament role tracking
+  String? _currentTournamentId;
+  bool _isAdmin = false;
+  bool _isParticipant = false;
 
   AuthState() {
     // Listen to auth state changes
@@ -18,6 +25,10 @@ class AuthState extends ChangeNotifier {
       _user = user;
       Logger.debug('Auth state changed: ${user?.uid ?? 'null'}',
           tag: 'AuthState');
+      // Re-check tournament role when auth changes (e.g. after logout/login)
+      if (_currentTournamentId != null) {
+        checkTournamentRole(_currentTournamentId!);
+      }
       notifyListeners();
     });
     _user = _authService.user;
@@ -31,6 +42,56 @@ class AuthState extends ChangeNotifier {
   bool get isEmailUser => _user?.email != null;
   String? get userId => _user?.uid;
   String? get userEmail => _user?.email;
+
+  /// Whether the current user is the admin (creator) of the current tournament
+  bool get isAdmin => _isAdmin;
+
+  /// Whether the current user is a participant of the current tournament
+  bool get isParticipant => _isParticipant;
+
+  /// Check the user's role for a given tournament and cache it
+  Future<void> checkTournamentRole(String tournamentId) async {
+    _currentTournamentId = tournamentId;
+    final uid = _user?.uid;
+    if (uid == null) {
+      _isAdmin = false;
+      _isParticipant = false;
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final results = await Future.wait([
+        _firestoreService.isCreator(tournamentId, uid),
+        _firestoreService.isParticipant(tournamentId, uid),
+      ]);
+      _isAdmin = results[0];
+      _isParticipant = results[1];
+      Logger.debug(
+          'Tournament role for $tournamentId: admin=$_isAdmin, participant=$_isParticipant',
+          tag: 'AuthState');
+    } catch (e) {
+      Logger.error('Error checking tournament role',
+          tag: 'AuthState', error: e);
+      _isAdmin = false;
+      _isParticipant = false;
+    }
+    notifyListeners();
+  }
+
+  /// Mark the current user as a participant (after successful password entry)
+  void markAsParticipant() {
+    _isParticipant = true;
+    notifyListeners();
+  }
+
+  /// Clear tournament role (when leaving a tournament)
+  void clearTournamentRole() {
+    _currentTournamentId = null;
+    _isAdmin = false;
+    _isParticipant = false;
+    notifyListeners();
+  }
 
   /// Sign in with email and password
   Future<bool> signInWithEmail(String email, String password) async {

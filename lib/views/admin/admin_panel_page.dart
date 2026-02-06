@@ -5,6 +5,7 @@ import 'package:pongstrong/views/admin/admin_panel_dialogs.dart';
 import 'package:pongstrong/views/admin/widgets/admin_widgets.dart';
 import 'package:pongstrong/views/admin/teams_management_page.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/widgets/error_banner.dart';
 
@@ -66,6 +67,12 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Auth guard: only admin (tournament creator) can access this panel
+    final authState = Provider.of<AuthState>(context);
+    if (!authState.isAdmin) {
+      return _buildAccessDenied(context);
+    }
+
     final isCompact = MediaQuery.of(context).size.width < 600;
 
     return ChangeNotifierProvider.value(
@@ -107,6 +114,53 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Shows a locked/access denied screen for non-admin users
+  Widget _buildAccessDenied(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: GroupPhaseColors.cupred.withAlpha(20),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.lock_outline,
+                  size: 64,
+                  color: GroupPhaseColors.cupred,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Kein Zugriff',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Nur der Ersteller des Turniers kann die Turnierverwaltung nutzen.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

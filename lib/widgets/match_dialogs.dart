@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/app_logger.dart';
 import 'package:provider/provider.dart';
@@ -90,6 +91,21 @@ Future<dynamic> finnishMatchDialog(
             ),
             ElevatedButton(
               onPressed: () async {
+                // Verify user is participant/admin before allowing match finish
+                final authState =
+                    Provider.of<AuthState>(context, listen: false);
+                if (!authState.isParticipant && !authState.isAdmin) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Keine Berechtigung. Bitte dem Turnier beitreten.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
                 // Update match with scores and mark as done
                 match.score1 = int.tryParse(cups1.text) ?? 0;
                 match.score2 = int.tryParse(cups2.text) ?? 0;
@@ -205,6 +221,19 @@ Future<dynamic> startMatchDialog(
       final isLargeScreen = screenWidth > 600;
 
       Future<void> handleStartMatch() async {
+        // Verify user is participant/admin before allowing match start
+        final authState = Provider.of<AuthState>(context, listen: false);
+        if (!authState.isParticipant && !authState.isAdmin) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Keine Berechtigung. Bitte dem Turnier beitreten.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
         final tournamentData =
             Provider.of<TournamentDataState>(context, listen: false);
         final matchId = match.id;

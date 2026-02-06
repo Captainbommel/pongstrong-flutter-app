@@ -22,6 +22,7 @@ enum TournamentStyle {
 /// Admin panel state management with Firebase integration
 class AdminPanelState extends ChangeNotifier {
   final FirestoreService _firestoreService = FirestoreService();
+  bool _disposed = false;
 
   // Tournament info
   String _currentTournamentId = FirestoreBase.defaultTournamentId;
@@ -586,6 +587,19 @@ class AdminPanelState extends ChangeNotifier {
     } finally {
       _setLoading(false);
     }
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 
   void shuffleMatches() {
