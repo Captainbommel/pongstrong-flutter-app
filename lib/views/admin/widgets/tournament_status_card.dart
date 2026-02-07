@@ -5,6 +5,7 @@ import 'package:pongstrong/views/admin/admin_panel_state.dart';
 /// Card widget for tournament status display
 class TournamentStatusCard extends StatelessWidget {
   final TournamentPhase currentPhase;
+  final TournamentStyle tournamentStyle;
   final int totalTeams;
   final int totalMatches;
   final int completedMatches;
@@ -14,6 +15,7 @@ class TournamentStatusCard extends StatelessWidget {
   const TournamentStatusCard({
     super.key,
     required this.currentPhase,
+    this.tournamentStyle = TournamentStyle.groupsAndKnockouts,
     required this.totalTeams,
     required this.totalMatches,
     required this.completedMatches,
@@ -22,6 +24,16 @@ class TournamentStatusCard extends StatelessWidget {
   });
 
   String get phaseDisplayName {
+    // For single-mode tournaments, show the mode name
+    if (tournamentStyle == TournamentStyle.everyoneVsEveryone) {
+      if (currentPhase == TournamentPhase.finished) return 'Beendet';
+      return 'Jeder gegen Jeden';
+    }
+    if (tournamentStyle == TournamentStyle.knockoutsOnly) {
+      if (currentPhase == TournamentPhase.finished) return 'Beendet';
+      return 'Nur K.O.-Phase';
+    }
+    // For Group+KO mode, show the phase
     switch (currentPhase) {
       case TournamentPhase.notStarted:
         return 'Nicht gestartet';
@@ -35,6 +47,18 @@ class TournamentStatusCard extends StatelessWidget {
   }
 
   Color get phaseColor {
+    // For single-mode tournaments, use consistent colors
+    if (tournamentStyle == TournamentStyle.everyoneVsEveryone) {
+      return currentPhase == TournamentPhase.finished
+          ? FieldColors.springgreen
+          : GroupPhaseColors.steelblue;
+    }
+    if (tournamentStyle == TournamentStyle.knockoutsOnly) {
+      return currentPhase == TournamentPhase.finished
+          ? FieldColors.springgreen
+          : TreeColors.rebeccapurple;
+    }
+    // For Group+KO mode, color by phase
     switch (currentPhase) {
       case TournamentPhase.notStarted:
         return Colors.grey;

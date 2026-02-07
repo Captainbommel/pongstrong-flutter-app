@@ -49,6 +49,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     await _adminState.loadTournamentMetadata();
     await _adminState.loadTeams();
     await _adminState.loadGroups();
+    await _adminState.loadMatchStats();
   }
 
   @override
@@ -299,6 +300,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
 
     final statusCard = TournamentStatusCard(
       currentPhase: state.currentPhase,
+      tournamentStyle: state.tournamentStyle,
       totalTeams: state.totalTeams,
       totalMatches: state.totalMatches,
       completedMatches: state.completedMatches,

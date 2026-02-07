@@ -254,6 +254,75 @@ class AdminPanelState extends ChangeNotifier {
     }
   }
 
+  /// Load and calculate match statistics
+  Future<void> loadMatchStats() async {
+    try {
+      int totalMatches = 0;
+      int completedMatches = 0;
+
+      // Load gruppenphase
+      final gruppenphase = await _firestoreService.loadGruppenphase(
+          tournamentId: _currentTournamentId);
+      if (gruppenphase != null) {
+        for (var group in gruppenphase.groups) {
+          totalMatches += group.length;
+          completedMatches += group.where((m) => m.done).length;
+        }
+      }
+
+      // Load knockouts if in knockout phase
+      final knockouts = await _firestoreService.loadKnockouts(
+          tournamentId: _currentTournamentId);
+      if (knockouts != null) {
+        // Count champions matches
+        for (var round in knockouts.champions.rounds) {
+          for (var match in round) {
+            if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
+              totalMatches++;
+              if (match.done) completedMatches++;
+            }
+          }
+        }
+        // Count europa matches
+        for (var round in knockouts.europa.rounds) {
+          for (var match in round) {
+            if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
+              totalMatches++;
+              if (match.done) completedMatches++;
+            }
+          }
+        }
+        // Count conference matches
+        for (var round in knockouts.conference.rounds) {
+          for (var match in round) {
+            if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
+              totalMatches++;
+              if (match.done) completedMatches++;
+            }
+          }
+        }
+        // Count super cup matches
+        for (var match in knockouts.superCup.matches) {
+          if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
+            totalMatches++;
+            if (match.done) completedMatches++;
+          }
+        }
+      }
+
+      _totalMatches = totalMatches;
+      _completedMatches = completedMatches;
+      _remainingMatches = totalMatches - completedMatches;
+
+      Logger.debug(
+          'Match stats loaded: $completedMatches/$totalMatches completed',
+          tag: 'AdminPanel');
+      notifyListeners();
+    } catch (e) {
+      Logger.error('Error loading match stats', tag: 'AdminPanel', error: e);
+    }
+  }
+
   Future<bool> addTeam({
     required String name,
     required String member1,
