@@ -284,6 +284,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
 
     final controlCard = TournamentControlCard(
       currentPhase: state.currentPhase,
+      tournamentStyle: state.tournamentStyle,
       onStartTournament: () =>
           AdminPanelDialogs.showStartConfirmation(context, state),
       onAdvancePhase: () =>

@@ -95,7 +95,15 @@ bool isValid(int b1, int b2) {
 
 // evaluate evaluates a List of Matches and returns a table
 List<TableRow> evaluate(List<Match> matches) {
-  final table = List.generate(4, (_) => TableRow());
+  // Count unique teams first
+  final uniqueTeams = <String>{};
+  for (var match in matches) {
+    uniqueTeams.add(match.teamId1);
+    uniqueTeams.add(match.teamId2);
+  }
+  final teamCount = uniqueTeams.length;
+
+  final table = List.generate(teamCount, (_) => TableRow());
 
   // Build a map of teamId -> table index by scanning all matches
   final teamIndexMap = <String, int>{};

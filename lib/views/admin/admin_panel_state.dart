@@ -39,6 +39,10 @@ class AdminPanelState extends ChangeNotifier {
   bool _groupsAssigned = false;
   int _numberOfGroups = 6;
 
+  // Selected team count for KO-only and round-robin modes
+  // (controls how many of the saved teams are used when starting)
+  int _targetTeamCount = 8;
+
   // Match statistics
   int _totalMatches = 0;
   int _completedMatches = 0;
@@ -57,6 +61,7 @@ class AdminPanelState extends ChangeNotifier {
   bool get groupsAssigned => _groupsAssigned;
   int get numberOfGroups => _numberOfGroups;
   int get totalTeams => _teams.length;
+  int get targetTeamCount => _targetTeamCount;
   int get totalMatches => _totalMatches;
   int get completedMatches => _completedMatches;
   int get remainingMatches => _remainingMatches;
@@ -83,6 +88,14 @@ class AdminPanelState extends ChangeNotifier {
     if (_tournamentStyle == TournamentStyle.groupsAndKnockouts) {
       return _groupsAssigned && _validateGroupAssignment();
     }
+    if (_tournamentStyle == TournamentStyle.knockoutsOnly) {
+      final validCounts = [8, 16, 32, 64];
+      return validCounts.contains(_targetTeamCount) &&
+          _teams.length >= _targetTeamCount;
+    }
+    if (_tournamentStyle == TournamentStyle.everyoneVsEveryone) {
+      return _teams.length >= 2;
+    }
     return true;
   }
 
@@ -96,6 +109,20 @@ class AdminPanelState extends ChangeNotifier {
       }
       if (!_validateGroupAssignment()) {
         return 'Nicht alle Teams sind einer Gruppe zugewiesen.';
+      }
+    }
+    if (_tournamentStyle == TournamentStyle.knockoutsOnly) {
+      final validCounts = [8, 16, 32, 64];
+      if (!validCounts.contains(_targetTeamCount)) {
+        return 'Für die K.O.-Phase werden 8, 16, 32 oder 64 Teams benötigt (gewählt: $_targetTeamCount).';
+      }
+      if (_teams.length < _targetTeamCount) {
+        return 'Es sind nur ${_teams.length} Teams vorhanden, aber $_targetTeamCount gewählt.';
+      }
+    }
+    if (_tournamentStyle == TournamentStyle.everyoneVsEveryone) {
+      if (_teams.length < 2) {
+        return 'Es werden mindestens 2 Teams für Jeder gegen Jeden benötigt.';
       }
     }
     return null;
@@ -153,7 +180,22 @@ class AdminPanelState extends ChangeNotifier {
               _currentPhase = TournamentPhase.notStarted;
           }
         }
-        Logger.info('Loaded tournament phase: $_currentPhase',
+        // Load tournament style from metadata
+        final styleStr = metadata['tournamentStyle'] as String?;
+        if (styleStr != null) {
+          switch (styleStr) {
+            case 'knockoutsOnly':
+              _tournamentStyle = TournamentStyle.knockoutsOnly;
+              break;
+            case 'everyoneVsEveryone':
+              _tournamentStyle = TournamentStyle.everyoneVsEveryone;
+              break;
+            default:
+              _tournamentStyle = TournamentStyle.groupsAndKnockouts;
+          }
+        }
+        Logger.info(
+            'Loaded tournament phase: $_currentPhase, style: $_tournamentStyle',
             tag: 'AdminPanel');
       }
       notifyListeners();
@@ -471,7 +513,40 @@ class AdminPanelState extends ChangeNotifier {
       if (style != TournamentStyle.groupsAndKnockouts) {
         _groupsAssigned = false;
       }
+      // Set sensible default target counts
+      if (style == TournamentStyle.groupsAndKnockouts) {
+        _targetTeamCount = 24;
+      } else if (style == TournamentStyle.knockoutsOnly) {
+        _targetTeamCount = 8;
+      }
+      // Persist style to Firebase
+      _saveTournamentStyle(style);
       notifyListeners();
+    }
+  }
+
+  /// Update the target team count for KO-only and round-robin modes
+  void setTargetTeamCount(int count) {
+    if (_targetTeamCount != count) {
+      _targetTeamCount = count;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _saveTournamentStyle(TournamentStyle style) async {
+    try {
+      final styleStr = style == TournamentStyle.groupsAndKnockouts
+          ? 'groupsAndKnockouts'
+          : style == TournamentStyle.knockoutsOnly
+              ? 'knockoutsOnly'
+              : 'everyoneVsEveryone';
+      await _firestoreService.updateTournamentStyle(
+        tournamentId: _currentTournamentId,
+        style: styleStr,
+      );
+    } catch (e) {
+      Logger.error('Error saving tournament style',
+          tag: 'AdminPanel', error: e);
     }
   }
 
@@ -514,18 +589,53 @@ class AdminPanelState extends ChangeNotifier {
     _setLoading(true);
     _clearError();
     try {
-      await _firestoreService.initializeTournament(
-        _teams,
-        _groups,
-        tournamentId: _currentTournamentId,
-      );
-      _totalMatches = _numberOfGroups * 6;
-      _completedMatches = 0;
-      _remainingMatches = _totalMatches;
-      _currentPhase = TournamentPhase.groupPhase;
-      Logger.info(
-          'Tournament started successfully with ${_teams.length} teams in $_numberOfGroups groups',
-          tag: 'AdminPanel');
+      switch (_tournamentStyle) {
+        case TournamentStyle.groupsAndKnockouts:
+          await _firestoreService.initializeTournament(
+            _teams,
+            _groups,
+            tournamentId: _currentTournamentId,
+          );
+          _totalMatches = _numberOfGroups * 6;
+          _completedMatches = 0;
+          _remainingMatches = _totalMatches;
+          _currentPhase = TournamentPhase.groupPhase;
+          Logger.info(
+              'Tournament started (Group+KO) with ${_teams.length} teams in $_numberOfGroups groups',
+              tag: 'AdminPanel');
+          break;
+
+        case TournamentStyle.knockoutsOnly:
+          final selectedTeams = _teams.take(_targetTeamCount).toList();
+          await _firestoreService.initializeKOOnlyTournament(
+            selectedTeams,
+            tournamentId: _currentTournamentId,
+          );
+          // Calculate total matches for single-elimination: n-1 matches
+          _totalMatches = selectedTeams.length - 1;
+          _completedMatches = 0;
+          _remainingMatches = _totalMatches;
+          _currentPhase = TournamentPhase.knockoutPhase;
+          Logger.info(
+              'Tournament started (KO only) with ${selectedTeams.length} teams',
+              tag: 'AdminPanel');
+          break;
+
+        case TournamentStyle.everyoneVsEveryone:
+          await _firestoreService.initializeRoundRobinTournament(
+            _teams,
+            tournamentId: _currentTournamentId,
+          );
+          // Round robin: n*(n-1)/2 matches
+          _totalMatches = (_teams.length * (_teams.length - 1)) ~/ 2;
+          _completedMatches = 0;
+          _remainingMatches = _totalMatches;
+          _currentPhase = TournamentPhase.groupPhase;
+          Logger.info(
+              'Tournament started (Round Robin) with ${_teams.length} teams, $_totalMatches matches',
+              tag: 'AdminPanel');
+          break;
+      }
       notifyListeners();
       return true;
     } catch (e) {

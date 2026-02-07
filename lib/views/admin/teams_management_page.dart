@@ -23,6 +23,23 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   bool _hasUnsavedChanges = false;
   bool _isSaving = false;
 
+  TournamentStyle get _style => widget.adminState.tournamentStyle;
+  bool get _isGroupPhase => _style == TournamentStyle.groupsAndKnockouts;
+  bool get _isKOOnly => _style == TournamentStyle.knockoutsOnly;
+  bool get _isRoundRobin => _style == TournamentStyle.everyoneVsEveryone;
+
+  /// Returns the allowed team counts for the dropdown based on tournament style
+  List<int> get _allowedTeamCounts {
+    switch (_style) {
+      case TournamentStyle.groupsAndKnockouts:
+        return [24]; // locked
+      case TournamentStyle.knockoutsOnly:
+        return [8, 16, 32, 64]; // powers of 2
+      case TournamentStyle.everyoneVsEveryone:
+        return List.generate(63, (i) => i + 2); // 2..64
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -49,12 +66,38 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
     if (_teamControllers.isNotEmpty) {
       _targetTeamCount = _teamControllers.length;
+      // Snap KO-only count to nearest valid power of 2
+      if (_isKOOnly && ![8, 16, 32, 64].contains(_targetTeamCount)) {
+        // Pick the largest power of 2 that fits, or default to 8
+        final valid = [64, 32, 16, 8];
+        _targetTeamCount = valid.firstWhere(
+          (v) => v <= _teamControllers.length,
+          orElse: () => 8,
+        );
+      }
+      // For KO-only: trim the visible list to targetTeamCount
+      if (_isKOOnly && _teamControllers.length > _targetTeamCount) {
+        while (_teamControllers.length > _targetTeamCount) {
+          final last = _teamControllers.removeLast();
+          last.dispose();
+        }
+      }
     } else {
-      _targetTeamCount = 24;
-      for (int i = 0; i < _targetTeamCount; i++) {
-        _teamControllers.add(TeamEditController(isNew: true));
+      _targetTeamCount = _isGroupPhase
+          ? 24
+          : _isKOOnly
+              ? 8
+              : 8;
+      // In round-robin mode, don't pre-create empty slots
+      if (!_isRoundRobin) {
+        for (int i = 0; i < _targetTeamCount; i++) {
+          _teamControllers.add(TeamEditController(isNew: true));
+        }
       }
     }
+
+    // Sync the selected count into admin state
+    widget.adminState.setTargetTeamCount(_targetTeamCount);
 
     _hasUnsavedChanges = false;
   }
@@ -65,6 +108,57 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         _hasUnsavedChanges = true;
       });
     }
+  }
+
+  /// Update team slot count (for KO-only and Group+KO modes with fixed slots)
+  void _updateTargetTeamCount(int count) {
+    setState(() {
+      _targetTeamCount = count;
+      // Grow or shrink the controller list
+      while (_teamControllers.length < count) {
+        _teamControllers.add(TeamEditController(isNew: true));
+      }
+      while (_teamControllers.length > count) {
+        final last = _teamControllers.removeLast();
+        last.dispose();
+      }
+      _hasUnsavedChanges = true;
+    });
+    // Sync with admin state so startTournament knows the selected count
+    widget.adminState.setTargetTeamCount(count);
+  }
+
+  /// Add a single new team entry (for round-robin mode)
+  void _addTeamEntry() {
+    setState(() {
+      _teamControllers.add(TeamEditController(isNew: true));
+      _targetTeamCount =
+          _teamControllers.where((c) => !c.markedForRemoval).length;
+      _hasUnsavedChanges = true;
+    });
+  }
+
+  /// Remove a team entry entirely (for round-robin mode)
+  void _removeTeamEntry(int index) {
+    setState(() {
+      final controller = _teamControllers[index];
+      controller.markedForRemoval = true;
+      _targetTeamCount =
+          _teamControllers.where((c) => !c.markedForRemoval).length;
+      _hasUnsavedChanges = true;
+    });
+  }
+
+  /// Clear team fields but keep the slot (for group+KO and KO-only modes)
+  void _clearTeamFields(int index) {
+    setState(() {
+      final controller = _teamControllers[index];
+      controller.nameController.clear();
+      controller.member1Controller.clear();
+      controller.member2Controller.clear();
+      controller.groupIndex = null;
+      _hasUnsavedChanges = true;
+    });
   }
 
   Future<void> _saveAllTeams() async {
@@ -226,14 +320,18 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              foregroundColor: GroupPhaseColors.cupred,
+            ),
             child: const Text('Abbrechen'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              'Verwerfen',
-              style: TextStyle(color: GroupPhaseColors.cupred),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
             ),
+            child: const Text('Verwerfen'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -245,7 +343,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: FieldColors.springgreen,
+              backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
             ),
             child: const Text('Speichern & Schließen'),
@@ -267,8 +365,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isGroupPhase =
-        widget.adminState.tournamentStyle == TournamentStyle.groupsAndKnockouts;
+    final showGroups = _isGroupPhase;
     final isLocked = widget.adminState.isTournamentStarted;
     final isMobile = MediaQuery.of(context).size.width < 600;
 
@@ -325,9 +422,9 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             ),
             body: Column(
               children: [
-                _buildTopControls(isLocked, isGroupPhase, isMobile),
+                _buildTopControls(isLocked, showGroups, isMobile),
                 Expanded(
-                  child: _buildTeamsList(isGroupPhase, isLocked, isMobile),
+                  child: _buildTeamsList(showGroups, isLocked, isMobile),
                 ),
                 _buildBottomBar(isLocked),
               ],
@@ -338,7 +435,40 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     );
   }
 
-  Widget _buildTopControls(bool isLocked, bool isGroupPhase, bool isMobile) {
+  Widget _buildTopControls(bool isLocked, bool showGroups, bool isMobile) {
+    final filledCount = _teamControllers
+        .where((c) => !c.markedForRemoval && c.nameController.text.isNotEmpty)
+        .length;
+    final activeCount =
+        _teamControllers.where((c) => !c.markedForRemoval).length;
+    final allowed = _allowedTeamCounts;
+    final isDropdownEnabled =
+        !isLocked && (_isKOOnly || _isRoundRobin) && !_isGroupPhase;
+    // In round-robin mode, the count is dynamic, so we don't use a dropdown
+    final showTeamCountDropdown = !_isRoundRobin;
+
+    // Mode label
+    String modeLabel;
+    IconData modeIcon;
+    Color modeColor;
+    switch (_style) {
+      case TournamentStyle.groupsAndKnockouts:
+        modeLabel = 'Gruppenphase + K.O.';
+        modeIcon = Icons.grid_view;
+        modeColor = GroupPhaseColors.steelblue;
+        break;
+      case TournamentStyle.knockoutsOnly:
+        modeLabel = 'Nur K.O.-Phase';
+        modeIcon = Icons.account_tree;
+        modeColor = TreeColors.rebeccapurple;
+        break;
+      case TournamentStyle.everyoneVsEveryone:
+        modeLabel = 'Jeder gegen Jeden';
+        modeIcon = Icons.sync_alt;
+        modeColor = FieldColors.springgreen;
+        break;
+    }
+
     return Container(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       decoration: BoxDecoration(
@@ -354,127 +484,115 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Mode badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: modeColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: modeColor.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(modeIcon, size: 16, color: modeColor),
+                const SizedBox(width: 6),
+                Text(
+                  modeLabel,
+                  style: TextStyle(
+                    color: modeColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
           if (!isLocked) ...[
-            if (isMobile)
-              Column(
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.groups,
-                          size: 20, color: TreeColors.rebeccapurple),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Teams:',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: isMobile ? 14 : 16),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 70,
-                        child: DropdownButtonFormField<int>(
-                          value: _targetTeamCount,
-                          isDense: true,
-                          decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 6),
-                            border: OutlineInputBorder(),
-                          ),
-                          items: List.generate(32, (i) => i + 2).map((count) {
-                            final isEnabled = count == 24;
-                            return DropdownMenuItem(
-                              value: count,
-                              enabled: isEnabled,
-                              child: Text('$count',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: isEnabled ? null : Colors.grey,
-                                  )),
-                            );
-                          }).toList(),
-                          onChanged: null,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color:
-                              TreeColors.rebeccapurple.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${_teamControllers.where((c) => !c.markedForRemoval && c.nameController.text.isNotEmpty).length}/$_targetTeamCount',
-                          style: const TextStyle(
-                            color: TreeColors.rebeccapurple,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              )
-            else
-              Row(
-                children: [
-                  const Icon(Icons.groups, color: TreeColors.rebeccapurple),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Anzahl Teams:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(width: 12),
+            // Teams count row
+            Row(
+              children: [
+                Icon(Icons.groups,
+                    size: isMobile ? 20 : 24, color: TreeColors.rebeccapurple),
+                SizedBox(width: isMobile ? 8 : 12),
+                Text(
+                  _isRoundRobin ? 'Teams:' : 'Anzahl Teams:',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: isMobile ? 14 : 16),
+                ),
+                SizedBox(width: isMobile ? 8 : 12),
+                if (showTeamCountDropdown)
                   SizedBox(
-                    width: 80,
+                    width: isMobile ? 70 : 80,
                     child: DropdownButtonFormField<int>(
-                      value: _targetTeamCount,
+                      value: allowed.contains(_targetTeamCount)
+                          ? _targetTeamCount
+                          : allowed.first,
                       isDense: true,
-                      decoration: const InputDecoration(
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 8 : 12,
+                            vertical: isMobile ? 6 : 8),
+                        border: const OutlineInputBorder(),
                       ),
-                      items: List.generate(32, (i) => i + 2).map((count) {
-                        final isEnabled = count == 24;
+                      items: allowed.map((count) {
                         return DropdownMenuItem(
                           value: count,
-                          enabled: isEnabled,
                           child: Text(
                             '$count',
-                            style: TextStyle(
-                              color: isEnabled ? null : Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: isMobile ? 14 : null),
                           ),
                         );
                       }).toList(),
-                      onChanged: null,
+                      onChanged: isDropdownEnabled
+                          ? (value) {
+                              if (value != null) {
+                                _updateTargetTeamCount(value);
+                              }
+                            }
+                          : null,
+                    ),
+                  )
+                else
+                  // Round-robin: show count as text
+                  Text(
+                    '$activeCount',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: TreeColors.rebeccapurple,
                     ),
                   ),
-                  const Spacer(),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: TreeColors.rebeccapurple.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      '${_teamControllers.where((c) => !c.markedForRemoval && c.nameController.text.isNotEmpty).length} / $_targetTeamCount ausgefüllt',
-                      style: const TextStyle(
-                        color: TreeColors.rebeccapurple,
-                        fontWeight: FontWeight.w500,
-                      ),
+                const Spacer(),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 8 : 12,
+                      vertical: isMobile ? 4 : 6),
+                  decoration: BoxDecoration(
+                    color: TreeColors.rebeccapurple.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
+                  ),
+                  child: Text(
+                    _isRoundRobin
+                        ? '$filledCount Teams'
+                        : '$filledCount / $_targetTeamCount ausgefüllt',
+                    style: TextStyle(
+                      color: TreeColors.rebeccapurple,
+                      fontWeight: FontWeight.w500,
+                      fontSize: isMobile ? 12 : null,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
             if (!isMobile) const SizedBox(height: 16),
           ],
-          if (isGroupPhase) ...[
+
+          // Groups row (only for group+KO mode)
+          if (showGroups) ...[
             Row(
               children: [
                 Icon(Icons.grid_view,
@@ -514,6 +632,35 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                       );
                     }).toList(),
                     onChanged: null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Show locked 24 teams badge for group+KO
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: GroupPhaseColors.steelblue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color:
+                            GroupPhaseColors.steelblue.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.lock,
+                          size: 12, color: GroupPhaseColors.steelblue),
+                      SizedBox(width: 4),
+                      Text(
+                        '24 Teams',
+                        style: TextStyle(
+                          color: GroupPhaseColors.steelblue,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
@@ -598,8 +745,10 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     );
   }
 
-  Widget _buildTeamsList(bool isGroupPhase, bool isLocked, bool isMobile) {
-    if (_teamControllers.isEmpty) {
+  Widget _buildTeamsList(bool showGroups, bool isLocked, bool isMobile) {
+    final activeControllers =
+        _teamControllers.where((c) => !c.markedForRemoval).toList();
+    if (activeControllers.isEmpty && !_isRoundRobin) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -617,14 +766,34 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _teamControllers.length,
+      itemCount: _teamControllers.length + (_isRoundRobin && !isLocked ? 1 : 0),
       itemBuilder: (context, index) {
+        // "Add Team" button at the end for round-robin
+        if (index == _teamControllers.length) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: OutlinedButton.icon(
+              onPressed: _addTeamEntry,
+              icon: const Icon(Icons.add),
+              label: const Text('Team hinzufügen'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: TreeColors.rebeccapurple,
+                side: BorderSide(
+                    color: TreeColors.rebeccapurple.withValues(alpha: 0.5)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          );
+        }
+
         final controller = _teamControllers[index];
         if (controller.markedForRemoval) {
           return const SizedBox.shrink();
         }
-        return _buildTeamRow(
-            index, controller, isGroupPhase, isLocked, isMobile);
+        return _buildTeamRow(index, controller, showGroups, isLocked, isMobile);
       },
     );
   }
@@ -632,7 +801,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   Widget _buildTeamRow(
     int index,
     TeamEditController controller,
-    bool isGroupPhase,
+    bool showGroups,
     bool isLocked,
     bool isMobile,
   ) {
@@ -643,8 +812,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: isMobile
-            ? _buildMobileTeamRow(index, controller, isGroupPhase, isLocked)
-            : _buildDesktopTeamRow(index, controller, isGroupPhase, isLocked),
+            ? _buildMobileTeamRow(index, controller, showGroups, isLocked)
+            : _buildDesktopTeamRow(index, controller, showGroups, isLocked),
       ),
     );
   }
@@ -652,7 +821,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   Widget _buildDesktopTeamRow(
     int index,
     TeamEditController controller,
-    bool isGroupPhase,
+    bool showGroups,
     bool isLocked,
   ) {
     return Row(
@@ -717,7 +886,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             onChanged: (_) => _onFieldChanged(),
           ),
         ),
-        if (isGroupPhase) ...[
+        if (showGroups) ...[
           const SizedBox(width: 12),
           SizedBox(
             width: 120,
@@ -756,17 +925,19 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         ],
         if (!isLocked) ...[
           const SizedBox(width: 8),
-          IconButton(
-            onPressed: () {
-              setState(() {
-                controller.markedForRemoval = true;
-                _hasUnsavedChanges = true;
-              });
-            },
-            icon: const Icon(Icons.delete_outline),
-            color: GroupPhaseColors.cupred,
-            tooltip: 'Team entfernen',
-          ),
+          _isRoundRobin
+              ? IconButton(
+                  onPressed: () => _removeTeamEntry(index),
+                  icon: const Icon(Icons.delete_outline),
+                  color: GroupPhaseColors.cupred,
+                  tooltip: 'Team löschen',
+                )
+              : IconButton(
+                  onPressed: () => _clearTeamFields(index),
+                  icon: const Icon(Icons.backspace_outlined),
+                  color: Colors.orange,
+                  tooltip: 'Felder leeren',
+                ),
         ],
       ],
     );
@@ -775,7 +946,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   Widget _buildMobileTeamRow(
     int index,
     TeamEditController controller,
-    bool isGroupPhase,
+    bool showGroups,
     bool isLocked,
   ) {
     return Column(
@@ -815,16 +986,17 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
               ),
             ),
             if (!isLocked)
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    controller.markedForRemoval = true;
-                    _hasUnsavedChanges = true;
-                  });
-                },
-                icon: const Icon(Icons.delete_outline, size: 20),
-                color: GroupPhaseColors.cupred,
-              ),
+              _isRoundRobin
+                  ? IconButton(
+                      onPressed: () => _removeTeamEntry(index),
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      color: GroupPhaseColors.cupred,
+                    )
+                  : IconButton(
+                      onPressed: () => _clearTeamFields(index),
+                      icon: const Icon(Icons.backspace_outlined, size: 20),
+                      color: Colors.orange,
+                    ),
           ],
         ),
         const SizedBox(height: 8),
@@ -857,7 +1029,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             ),
           ],
         ),
-        if (isGroupPhase) ...[
+        if (showGroups) ...[
           const SizedBox(height: 8),
           DropdownButtonFormField<int?>(
             value: controller.groupIndex,

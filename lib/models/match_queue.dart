@@ -113,6 +113,9 @@ class MatchQueue {
 
   // updateKnockQueue adds new ready Matches to the matchQueue
   void updateKnockQueue(Knockouts knock) {
+    if (knock.champions.rounds.isEmpty || knock.champions.rounds[0].isEmpty) {
+      return;
+    }
     if (knock.champions.rounds[0][0].teamId1.isEmpty &&
         knock.champions.rounds[0][0].teamId2.isEmpty) {
       return;

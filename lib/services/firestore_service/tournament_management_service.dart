@@ -110,6 +110,251 @@ mixin TournamentManagementService
     }
   }
 
+  /// Imports teams only (without groups) for round-robin / KO-only modes
+  Future<void> importTeamsOnly(
+    List<Team> teams, {
+    String tournamentId = FirestoreBase.defaultTournamentId,
+  }) async {
+    await saveTeams(teams, tournamentId: tournamentId);
+
+    try {
+      await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .update({
+        'phase': 'notStarted',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .set({
+        'phase': 'notStarted',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+  }
+
+  /// Updates the tournament style in Firebase metadata
+  Future<void> updateTournamentStyle({
+    String tournamentId = FirestoreBase.defaultTournamentId,
+    required String style,
+  }) async {
+    try {
+      await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .update({
+        'tournamentStyle': style,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .set({
+        'tournamentStyle': style,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+  }
+
+  /// Initializes a KO-only tournament (single elimination bracket)
+  /// Teams must be a power of 2 (8, 16, 32, 64)
+  Future<void> initializeKOOnlyTournament(
+    List<Team> teams, {
+    String tournamentId = FirestoreBase.defaultTournamentId,
+  }) async {
+    // Save teams
+    await saveTeams(teams, tournamentId: tournamentId);
+
+    // Build single-elimination bracket
+    final numTeams = teams.length;
+    final numRounds = _log2(numTeams);
+
+    // Create knockout rounds
+    final rounds = <List<Match>>[];
+    // First round has numTeams/2 matches
+    final firstRound = <Match>[];
+    for (int i = 0; i < numTeams ~/ 2; i++) {
+      firstRound.add(Match(
+        teamId1: teams[i * 2].id,
+        teamId2: teams[i * 2 + 1].id,
+        id: 'ko_r1_${i + 1}',
+        tischNr: (i % 6) + 1,
+      ));
+    }
+    rounds.add(firstRound);
+
+    // Subsequent rounds are empty until teams advance
+    int matchesInRound = numTeams ~/ 4;
+    for (int r = 2; r <= numRounds; r++) {
+      final round = <Match>[];
+      for (int i = 0; i < matchesInRound; i++) {
+        round.add(Match(
+          id: 'ko_r${r}_${i + 1}',
+          tischNr: (i % 6) + 1,
+        ));
+      }
+      rounds.add(round);
+      matchesInRound ~/= 2;
+    }
+
+    // Store as a simplified Knockouts structure using only champions bracket
+    final knockouts = Knockouts(
+      champions: Champions(rounds: rounds),
+    );
+    await saveKnockouts(knockouts, tournamentId: tournamentId);
+
+    // Create match queue with first-round matches
+    final queue = MatchQueue(
+      waiting: List.generate(6, (_) => <Match>[]),
+      playing: [],
+    );
+    for (var match in firstRound) {
+      queue.waiting[match.tischNr - 1].add(match);
+    }
+    await saveMatchQueue(queue, tournamentId: tournamentId);
+
+    // Save empty gruppenphase (not used in KO-only)
+    await saveGruppenphase(Gruppenphase(), tournamentId: tournamentId);
+
+    // Save empty groups
+    await saveGroups(Groups(), tournamentId: tournamentId);
+
+    // Update metadata
+    try {
+      await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .update({
+        'phase': 'knockouts',
+        'tournamentStyle': 'knockoutsOnly',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .set({
+        'phase': 'knockouts',
+        'tournamentStyle': 'knockoutsOnly',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+  }
+
+  /// Initializes a round-robin tournament (everyone vs everyone)
+  Future<void> initializeRoundRobinTournament(
+    List<Team> teams, {
+    String tournamentId = FirestoreBase.defaultTournamentId,
+  }) async {
+    // Save teams
+    await saveTeams(teams, tournamentId: tournamentId);
+
+    // ── Circle-method round-robin scheduling ──
+    // Produces (N-1) rounds where every team plays exactly once per round.
+    // This ensures fair distribution: no team plays twice before all others
+    // have played once.
+    final n = teams.length;
+    final isOdd = n % 2 != 0;
+    final effectiveN = isOdd ? n + 1 : n; // virtual BYE slot if odd
+    final numRounds = effectiveN - 1;
+    final halfN = effectiveN ~/ 2;
+
+    // Rotating index array – position 0 stays fixed, rest rotate each round
+    final idx = List.generate(effectiveN, (i) => i);
+
+    final matches = <Match>[];
+    int matchId = 1;
+    int tableSlot = 0; // cycles through 6 tables
+
+    for (int round = 0; round < numRounds; round++) {
+      for (int i = 0; i < halfN; i++) {
+        final home = idx[i];
+        final away = idx[effectiveN - 1 - i];
+
+        // Skip BYE matches (virtual slot == effectiveN - 1 when odd)
+        if (isOdd && (home >= n || away >= n)) continue;
+
+        matches.add(Match(
+          teamId1: teams[home].id,
+          teamId2: teams[away].id,
+          id: 'rr_$matchId',
+          tischNr: (tableSlot % 6) + 1,
+        ));
+        matchId++;
+        tableSlot++;
+      }
+
+      // Rotate: keep idx[0] fixed, shift idx[1..end] by one position
+      final last = idx.removeLast();
+      idx.insert(1, last);
+    }
+
+    // Store matches as a single-group Gruppenphase (reuse existing structure)
+    final gruppenphase = Gruppenphase(groups: [matches]);
+    await saveGruppenphase(gruppenphase, tournamentId: tournamentId);
+
+    // Build match queue – each table's queue receives matches in generation
+    // order, so matches from the same round land on different tables and can
+    // be started concurrently.
+    final queue = MatchQueue(
+      waiting: List.generate(6, (_) => <Match>[]),
+      playing: [],
+    );
+    for (var match in matches) {
+      queue.waiting[match.tischNr - 1].add(match);
+    }
+    await saveMatchQueue(queue, tournamentId: tournamentId);
+
+    // Save empty groups (not used in round-robin)
+    await saveGroups(Groups(), tournamentId: tournamentId);
+
+    // Save empty knockouts
+    final knockouts = Knockouts();
+    await saveKnockouts(knockouts, tournamentId: tournamentId);
+
+    // Initial standings
+    final tabellen = evalGruppen(gruppenphase);
+    await saveTabellen(tabellen, tournamentId: tournamentId);
+
+    // Update metadata
+    try {
+      await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .update({
+        'phase': 'groups',
+        'tournamentStyle': 'everyoneVsEveryone',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .set({
+        'phase': 'groups',
+        'tournamentStyle': 'everyoneVsEveryone',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+  }
+
+  /// Helper: integer log2
+  int _log2(int n) {
+    int result = 0;
+    while (n > 1) {
+      n ~/= 2;
+      result++;
+    }
+    return result;
+  }
+
   /// Transitions tournament from group phase to knockout phase
   Future<void> transitionToKnockouts({
     String tournamentId = FirestoreBase.defaultTournamentId,

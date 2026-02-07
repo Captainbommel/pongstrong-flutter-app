@@ -158,7 +158,9 @@ class Knockouts {
 
   // update checks for finished matches and moves teams to the next round
   void update() {
-    //TODO: improve or remove this check
+    // Guard: nothing to update if champions bracket is empty
+    if (champions.rounds.isEmpty || champions.rounds[0].isEmpty) return;
+
     if (champions.rounds[0][0].teamId1.isEmpty &&
         champions.rounds[0][0].teamId2.isEmpty) {
       return;
@@ -204,6 +206,9 @@ class Knockouts {
   }
 
   void _updateSuperCup() {
+    // Guard against empty super cup (e.g. KO-only mode)
+    if (superCup.matches.length < 2) return;
+
     // Update the first super cup match if done
     if (superCup.matches[0].done) {
       final winnerId = superCup.matches[0].getWinnerId();
@@ -213,10 +218,14 @@ class Knockouts {
     }
 
     // Move league winners to the super cup
-    for (var leagueFinal in [
-      europa.rounds.last[0],
-      conference.rounds.last[0]
-    ]) {
+    final leagueFinals = <Match>[];
+    if (europa.rounds.isNotEmpty && europa.rounds.last.isNotEmpty) {
+      leagueFinals.add(europa.rounds.last[0]);
+    }
+    if (conference.rounds.isNotEmpty && conference.rounds.last.isNotEmpty) {
+      leagueFinals.add(conference.rounds.last[0]);
+    }
+    for (var leagueFinal in leagueFinals) {
       if (leagueFinal.done) {
         final winnerId = leagueFinal.getWinnerId();
         if (winnerId != null && winnerId.isNotEmpty) {
@@ -232,7 +241,9 @@ class Knockouts {
     }
 
     // Move champions league winner to the second super cup match
-    if (champions.rounds.last[0].done) {
+    if (champions.rounds.isNotEmpty &&
+        champions.rounds.last.isNotEmpty &&
+        champions.rounds.last[0].done) {
       final winnerId = champions.rounds.last[0].getWinnerId();
       if (winnerId != null &&
           winnerId.isNotEmpty &&

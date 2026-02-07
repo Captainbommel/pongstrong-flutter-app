@@ -108,6 +108,16 @@ class TreeViewPageState extends State<TreeViewPage>
     List<List<Match>> rounds,
     Color color,
   ) {
+    // Guard: no rounds or all rounds empty → show placeholder
+    if (rounds.isEmpty || rounds.every((r) => r.isEmpty)) {
+      return Center(
+        child: Text(
+          'Keine Daten verfügbar',
+          style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+        ),
+      );
+    }
+
     final graph = Graph()..isTree = true;
     final builder = BuchheimWalkerConfiguration();
 
@@ -248,6 +258,16 @@ class TreeViewPageState extends State<TreeViewPage>
   }
 
   Widget _buildSuperCupTree(Knockouts knockouts) {
+    // Guard: no super cup matches → show placeholder
+    if (knockouts.superCup.matches.length < 2) {
+      return Center(
+        child: Text(
+          'Keine Daten verfügbar',
+          style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+        ),
+      );
+    }
+
     final graph = Graph()..isTree = true;
     final builder = BuchheimWalkerConfiguration();
 

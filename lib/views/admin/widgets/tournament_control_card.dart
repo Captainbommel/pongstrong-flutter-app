@@ -5,6 +5,7 @@ import 'package:pongstrong/views/admin/admin_panel_state.dart';
 /// Card widget for tournament control actions
 class TournamentControlCard extends StatelessWidget {
   final TournamentPhase currentPhase;
+  final TournamentStyle tournamentStyle;
   final VoidCallback? onStartTournament;
   final VoidCallback? onAdvancePhase;
   final VoidCallback? onResetTournament;
@@ -13,6 +14,7 @@ class TournamentControlCard extends StatelessWidget {
   const TournamentControlCard({
     super.key,
     required this.currentPhase,
+    this.tournamentStyle = TournamentStyle.groupsAndKnockouts,
     this.onStartTournament,
     this.onAdvancePhase,
     this.onResetTournament,
@@ -71,26 +73,57 @@ class TournamentControlCard extends StatelessWidget {
                 ),
               ),
             ] else if (isGroupPhase) ...[
-              // Show "Zur K.O.-Phase" button only during group phase
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: onAdvancePhase,
-                  icon: const Icon(Icons.skip_next, size: 28),
-                  label: const Text(
-                    'Zur K.O.-Phase',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: GroupPhaseColors.cupred,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              // Show "Zur K.O.-Phase" button only for Group+KO mode
+              if (tournamentStyle == TournamentStyle.groupsAndKnockouts)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: onAdvancePhase,
+                    icon: const Icon(Icons.skip_next, size: 28),
+                    label: const Text(
+                      'Zur K.O.-Phase',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: GroupPhaseColors.cupred,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
+                )
+              else
+                // Round-robin / KO-only: show "in progress" status
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: GroupPhaseColors.cupred.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: GroupPhaseColors.cupred),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.sports_esports,
+                          color: GroupPhaseColors.cupred, size: 32),
+                      const SizedBox(width: 12),
+                      Text(
+                        tournamentStyle == TournamentStyle.everyoneVsEveryone
+                            ? 'Jeder gegen Jeden läuft'
+                            : 'K.O.-Phase läuft',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: GroupPhaseColors.cupred,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
             ] else if (isKnockoutPhase) ...[
               // K.O. phase in progress
               Container(

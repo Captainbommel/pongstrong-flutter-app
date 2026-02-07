@@ -45,6 +45,21 @@ class AdminPanelDialogs {
       return;
     }
 
+    String successMessage;
+    switch (state.tournamentStyle) {
+      case TournamentStyle.groupsAndKnockouts:
+        successMessage =
+            'Turnier gestartet! Gruppenphase-Spiele wurden generiert.';
+        break;
+      case TournamentStyle.knockoutsOnly:
+        successMessage = 'Turnier gestartet! K.O.-Bracket wurde erstellt.';
+        break;
+      case TournamentStyle.everyoneVsEveryone:
+        successMessage =
+            'Turnier gestartet! Alle Rundenspiele wurden generiert.';
+        break;
+    }
+
     final confirmed = await showConfirmationDialog(
       context,
       title: 'Turnier starten?',
@@ -74,7 +89,7 @@ class AdminPanelDialogs {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(success
-                ? 'Turnier gestartet! Gruppenphase-Spiele wurden generiert.'
+                ? successMessage
                 : state.errorMessage ?? 'Fehler beim Starten des Turniers'),
             backgroundColor:
                 success ? FieldColors.springgreen : GroupPhaseColors.cupred,

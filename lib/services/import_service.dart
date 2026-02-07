@@ -7,6 +7,7 @@ import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
 import 'package:pongstrong/utils/app_logger.dart';
+import 'package:pongstrong/views/admin/admin_panel_state.dart';
 
 class ImportService {
   /// Parse teams from JSON data
@@ -74,14 +75,81 @@ class ImportService {
     return (allTeams, groups);
   }
 
+  /// Parse teams from a flat JSON array (no groups) for round-robin / KO-only
+  /// Expected JSON format:
+  /// [
+  ///   {"name": "Thunder", "mem1": "Alice", "mem2": "Bob"},
+  ///   ...
+  /// ]
+  /// OR: { "teams": [...] }
+  static List<Team> parseTeamsFlatFromJson(dynamic jsonData) {
+    final allTeams = <Team>[];
+
+    if (jsonData is List) {
+      // Check if first element is also a list (group format) -> flatten
+      if (jsonData.isNotEmpty && jsonData[0] is List) {
+        // Flatten group format
+        int idx = 0;
+        for (var group in jsonData) {
+          for (var teamJson in (group as List)) {
+            final map = teamJson as Map<String, dynamic>;
+            allTeams.add(Team(
+              id: 'team_$idx',
+              name: map['name'] as String,
+              mem1: map['mem1'] as String? ?? '',
+              mem2: map['mem2'] as String? ?? '',
+            ));
+            idx++;
+          }
+        }
+      } else {
+        // Flat list of teams
+        for (int i = 0; i < jsonData.length; i++) {
+          final teamJson = jsonData[i] as Map<String, dynamic>;
+          allTeams.add(Team(
+            id: teamJson['id'] as String? ?? 'team_$i',
+            name: teamJson['name'] as String,
+            mem1: teamJson['mem1'] as String? ?? '',
+            mem2: teamJson['mem2'] as String? ?? '',
+          ));
+        }
+      }
+    } else if (jsonData is Map<String, dynamic>) {
+      final teamsList = jsonData['teams'] as List;
+      for (int i = 0; i < teamsList.length; i++) {
+        final teamJson = teamsList[i] as Map<String, dynamic>;
+        allTeams.add(Team(
+          id: teamJson['id'] as String? ?? 'team_$i',
+          name: teamJson['name'] as String,
+          mem1: teamJson['mem1'] as String? ?? '',
+          mem2: teamJson['mem2'] as String? ?? '',
+        ));
+      }
+    }
+
+    return allTeams;
+  }
+
   /// Upload teams from JSON file
   /// Uses the currently selected tournament ID from TournamentSelectionState
+  /// Adapts behavior based on the current tournament style
   static Future<void> uploadTeamsFromJson(BuildContext context) async {
     // Get the current tournament ID from selection state
     final selectionState =
         Provider.of<TournamentSelectionState>(context, listen: false);
     final tournamentId = selectionState.selectedTournamentId ??
         FirestoreBase.defaultTournamentId;
+
+    // Determine tournament style if AdminPanelState is available
+    TournamentStyle? style;
+    try {
+      final adminState = Provider.of<AdminPanelState>(context, listen: false);
+      style = adminState.tournamentStyle;
+    } catch (_) {
+      // AdminPanelState might not be in the tree - defaults to group+KO
+      style = TournamentStyle.groupsAndKnockouts;
+    }
+
     try {
       // Pick JSON file
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -127,51 +195,72 @@ class ImportService {
       final jsonString = utf8.decode(bytes);
       final jsonData = json.decode(jsonString);
 
-      // Parse teams and groups from JSON
-      final result2 = ImportService.parseTeamsFromJson(jsonData);
-      final allTeams = result2.$1;
-      final groups = result2.$2;
-
-      Logger.info(
-          'Loaded ${allTeams.length} teams from JSON in ${groups.groups.length} groups',
-          tag: 'ImportService');
-
-      // Import teams and groups only (without starting the tournament)
       final service = FirestoreService();
-      await service.importTeamsAndGroups(
-        allTeams,
-        groups,
-        tournamentId: tournamentId,
-      );
-      Logger.info('Teams and groups imported from JSON for $tournamentId',
-          tag: 'ImportService');
 
-      // Load teams from Firestore to update the UI
-      final loadedTeams = await service.loadTeams(
-        tournamentId: tournamentId,
-      );
+      if (style == TournamentStyle.groupsAndKnockouts) {
+        // Parse teams and groups from JSON (with group structure)
+        final result2 = ImportService.parseTeamsFromJson(jsonData);
+        final allTeams = result2.$1;
+        final groups = result2.$2;
 
-      // Update the TournamentDataState with just teams (no matches yet)
-      if (context.mounted && loadedTeams != null) {
+        Logger.info(
+            'Loaded ${allTeams.length} teams from JSON in ${groups.groups.length} groups',
+            tag: 'ImportService');
+
+        await service.importTeamsAndGroups(
+          allTeams,
+          groups,
+          tournamentId: tournamentId,
+        );
+        Logger.info('Teams and groups imported from JSON for $tournamentId',
+            tag: 'ImportService');
+
+        if (context.mounted) Navigator.pop(context);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        // Parse teams without groups (round-robin / KO-only)
+        final allTeams = ImportService.parseTeamsFlatFromJson(jsonData);
+
+        Logger.info(
+            'Loaded ${allTeams.length} teams from JSON (flat, no groups)',
+            tag: 'ImportService');
+
+        await service.importTeamsOnly(
+          allTeams,
+          tournamentId: tournamentId,
+        );
+        Logger.info('Teams imported (flat) from JSON for $tournamentId',
+            tag: 'ImportService');
+
+        if (context.mounted) Navigator.pop(context);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${allTeams.length} Teams importiert!'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+
+      // Reload tournament data into state
+      if (context.mounted) {
         final tournamentData =
             Provider.of<TournamentDataState>(context, listen: false);
         await tournamentData.loadTournamentData(tournamentId);
         Logger.info('Data loaded into app state', tag: 'ImportService');
-      }
-
-      // Close loading dialog
-      if (context.mounted) Navigator.pop(context);
-
-      // Show success message
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
       }
     } catch (e) {
       Logger.error('Error loading teams from JSON',

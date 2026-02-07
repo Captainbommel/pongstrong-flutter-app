@@ -29,8 +29,14 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
   bool get _isGroupPhase =>
       tournamentStyle == TournamentStyle.groupsAndKnockouts;
 
+  bool get _isKOOnly => tournamentStyle == TournamentStyle.knockoutsOnly;
+
+  bool get _isRoundRobin =>
+      tournamentStyle == TournamentStyle.everyoneVsEveryone;
+
   String get _groupStatus {
-    if (!_isGroupPhase) return 'Nur K.O.-Phase';
+    if (_isRoundRobin) return 'Jeder gegen Jeden - keine Gruppen';
+    if (_isKOOnly) return 'Nur K.O.-Phase - keine Gruppen';
     if (totalTeams == 0) return 'Keine Teams vorhanden';
     if (!groupsAssigned || teamsInGroups == 0) {
       return 'Gruppen nicht zugewiesen';
@@ -42,7 +48,7 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
   }
 
   Color get _statusColor {
-    if (!_isGroupPhase) return Colors.grey;
+    if (_isRoundRobin || _isKOOnly) return Colors.grey;
     if (totalTeams == 0) return Colors.grey;
     if (!groupsAssigned || teamsInGroups == 0) return GroupPhaseColors.cupred;
     if (teamsInGroups < totalTeams) return Colors.orange;
@@ -50,11 +56,22 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
   }
 
   IconData get _statusIcon {
-    if (!_isGroupPhase) return Icons.remove_circle_outline;
+    if (_isRoundRobin) return Icons.sync_alt;
+    if (_isKOOnly) return Icons.account_tree;
     if (totalTeams == 0) return Icons.group_off;
     if (!groupsAssigned || teamsInGroups == 0) return Icons.warning_amber;
     if (teamsInGroups < totalTeams) return Icons.pending;
     return Icons.check_circle;
+  }
+
+  String get _teamCountLabel {
+    if (_isGroupPhase) return '$totalTeams / 24 Teams';
+    if (_isKOOnly) {
+      final validCounts = [8, 16, 32, 64];
+      final isValid = validCounts.contains(totalTeams);
+      return '$totalTeams Teams${isValid ? '' : ' (benötigt: 8/16/32/64)'}';
+    }
+    return '$totalTeams Teams';
   }
 
   @override
@@ -106,7 +123,7 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '$totalTeams Teams',
+                        _teamCountLabel,
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
