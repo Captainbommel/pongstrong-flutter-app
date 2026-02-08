@@ -685,15 +685,22 @@ mixin TournamentManagementService
 
       final data = doc.data() as Map<String, dynamic>;
       // Don't return the password - return available fields
-      return {
+      // Note: Return null for selectedRuleset if not set, don't default here
+      final result = {
         'name': data['name'] ?? tournamentId,
         'creatorId': data['creatorId'],
         'creatorEmail': data['creatorEmail'],
         'phase': data['phase'] ?? 'groups',
         'tournamentStyle': data['tournamentStyle'] ?? 'groupsAndKnockouts',
-        'selectedRuleset': data['selectedRuleset'] as String? ?? 'bmt-cup',
         'createdAt': data['createdAt'],
       };
+
+      // Include selectedRuleset in result map only if it exists in Firestore
+      if (data.containsKey('selectedRuleset')) {
+        result['selectedRuleset'] = data['selectedRuleset'];
+      }
+
+      return result;
     } catch (e) {
       return null;
     }
