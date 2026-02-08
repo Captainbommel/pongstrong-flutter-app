@@ -18,6 +18,8 @@ class TournamentDataState extends ChangeNotifier {
   Knockouts _knockouts = Knockouts();
   String _currentTournamentId = FirestoreBase.defaultTournamentId;
   bool _isKnockoutMode = false;
+  String _tournamentStyle = 'groupsAndKnockouts';
+  String? _selectedRuleset = 'bmt-cup';
 
   // Stream subscriptions for real-time updates
   StreamSubscription? _groupPhaseSubscription;
@@ -30,6 +32,9 @@ class TournamentDataState extends ChangeNotifier {
   Knockouts get knockouts => _knockouts;
   String get currentTournamentId => _currentTournamentId;
   bool get isKnockoutMode => _isKnockoutMode;
+  String get tournamentStyle => _tournamentStyle;
+  bool get rulesEnabled => _selectedRuleset != null;
+  String? get selectedRuleset => _selectedRuleset;
 
   bool get hasData => _teams.isNotEmpty;
 
@@ -50,6 +55,17 @@ class TournamentDataState extends ChangeNotifier {
         Logger.warning('Tournament not found: $tournamentId',
             tag: 'TournamentData');
         return false;
+      }
+
+      // Store tournament metadata
+      _tournamentStyle =
+          tournamentInfo['tournamentStyle'] ?? 'groupsAndKnockouts';
+      // Only default to 'bmt-cup' if the field doesn't exist (backwards compatibility)
+      // If it exists and is null, keep it as null (user explicitly disabled rules)
+      if (tournamentInfo.containsKey('selectedRuleset')) {
+        _selectedRuleset = tournamentInfo['selectedRuleset'] as String?;
+      } else {
+        _selectedRuleset = 'bmt-cup'; // Default for old tournaments
       }
 
       final teams = await service.loadTeams(tournamentId: tournamentId);
@@ -121,7 +137,15 @@ class TournamentDataState extends ChangeNotifier {
     _tabellen = Tabellen();
     _knockouts = Knockouts();
     _isKnockoutMode = false;
+    _tournamentStyle = 'groupsAndKnockouts';
+    _selectedRuleset = 'bmt-cup';
     _cancelStreams();
+    notifyListeners();
+  }
+
+  /// Update the selected ruleset (called from admin panel to sync state)
+  void updateSelectedRuleset(String? ruleset) {
+    _selectedRuleset = ruleset;
     notifyListeners();
   }
 

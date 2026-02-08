@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/utils/app_logger.dart';
@@ -43,6 +44,9 @@ class AdminPanelState extends ChangeNotifier {
   // (controls how many of the saved teams are used when starting)
   int _targetTeamCount = 8;
 
+  // Rules configuration
+  String? _selectedRuleset = 'bmt-cup';
+
   // Match statistics
   int _totalMatches = 0;
   int _completedMatches = 0;
@@ -65,6 +69,8 @@ class AdminPanelState extends ChangeNotifier {
   int get totalMatches => _totalMatches;
   int get completedMatches => _completedMatches;
   int get remainingMatches => _remainingMatches;
+  bool get rulesEnabled => _selectedRuleset != null;
+  String? get selectedRuleset => _selectedRuleset;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isTournamentStarted => _currentPhase != TournamentPhase.notStarted;
@@ -194,6 +200,15 @@ class AdminPanelState extends ChangeNotifier {
               _tournamentStyle = TournamentStyle.groupsAndKnockouts;
           }
         }
+        // Load rules setting from metadata
+        // Only default to 'bmt-cup' if the field doesn't exist (backwards compatibility)
+        // If it exists and is null, keep it as null (user explicitly disabled rules)
+        if (metadata.containsKey('selectedRuleset')) {
+          _selectedRuleset = metadata['selectedRuleset'] as String?;
+        } else {
+          _selectedRuleset = 'bmt-cup'; // Default for old tournaments
+        }
+
         Logger.info(
             'Loaded tournament phase: $_currentPhase, style: $_tournamentStyle',
             tag: 'AdminPanel');
@@ -597,6 +612,48 @@ class AdminPanelState extends ChangeNotifier {
     if (_targetTeamCount != count) {
       _targetTeamCount = count;
       notifyListeners();
+    }
+  }
+
+  /// Toggle rules visibility
+  Future<void> setRulesEnabled(bool enabled) async {
+    _selectedRuleset = enabled ? 'bmt-cup' : null;
+    notifyListeners();
+
+    try {
+      await _firestoreService.firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(_currentTournamentId)
+          .set({
+        'selectedRuleset': _selectedRuleset,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      Logger.info('Ruleset updated to $_selectedRuleset', tag: 'AdminPanel');
+    } catch (e) {
+      Logger.error('Error updating rules setting', tag: 'AdminPanel', error: e);
+      _setError('Fehler beim Speichern: $e');
+    }
+  }
+
+  /// Set selected ruleset
+  Future<void> setSelectedRuleset(String? ruleset) async {
+    _selectedRuleset = ruleset;
+    notifyListeners();
+
+    try {
+      await _firestoreService.firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(_currentTournamentId)
+          .set({
+        'selectedRuleset': ruleset,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      Logger.info('Ruleset updated to $ruleset', tag: 'AdminPanel');
+    } catch (e) {
+      Logger.error('Error updating ruleset', tag: 'AdminPanel', error: e);
+      _setError('Fehler beim Speichern: $e');
     }
   }
 

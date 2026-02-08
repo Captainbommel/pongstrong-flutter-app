@@ -3,6 +3,7 @@ import 'package:pongstrong/state/app_state.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
+import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/views/admin/admin_panel_page.dart';
 import 'package:pongstrong/views/playing_field_view.dart';
 import 'package:pongstrong/views/rules_view.dart';
@@ -76,6 +77,7 @@ class _AppShellState extends State<AppShell> {
   Widget _buildDesktopShell(BuildContext context) {
     final appState = Provider.of<AppState>(context);
     final authState = Provider.of<AuthState>(context);
+    final tournamentData = Provider.of<TournamentDataState>(context);
 
     // If user is not admin but on admin view, redirect to playing field
     if (!authState.isAdmin && appState.currentView == AppView.adminPanel) {
@@ -83,6 +85,21 @@ class _AppShellState extends State<AppShell> {
         appState.setView(AppView.playingField);
       });
     }
+
+    // Determine which tabs to show based on tournament style and phase
+    final isKnockoutsOnly = tournamentData.tournamentStyle == 'knockoutsOnly';
+    final isEveryoneVsEveryone =
+        tournamentData.tournamentStyle == 'everyoneVsEveryone';
+    final isKnockoutPhase = tournamentData.isKnockoutMode;
+    final rulesEnabled = tournamentData.rulesEnabled;
+    final hasStarted =
+        tournamentData.hasData; // Only show game tabs if tournament has data
+
+    final showGroupPhase = hasStarted &&
+        !isKnockoutsOnly; // Show in group+KO and everyoneVsEveryone
+    final showTournamentTree = hasStarted &&
+        !isEveryoneVsEveryone &&
+        (isKnockoutsOnly || isKnockoutPhase);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -94,46 +111,55 @@ class _AppShellState extends State<AppShell> {
           tooltip: 'Zurück zur Übersicht',
           onPressed: () => _showBackConfirmationDialog(context),
         ),
-        title: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _navButton(context, 'Spielfeld', AppView.playingField),
-              const SizedBox(width: 8),
-              _navButton(context, 'Gruppenphase', AppView.groupPhase),
-              const SizedBox(width: 8),
-              _navButton(context, 'Turnierbaum', AppView.tournamentTree),
-              const SizedBox(width: 8),
-              _navButton(context, 'Regeln', AppView.rules),
-              const SizedBox(width: 8),
-              // Admin button - only for tournament creator
-              Consumer<AuthState>(
-                builder: (context, authState, child) {
-                  if (!authState.isAdmin) return const SizedBox.shrink();
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(width: 16),
-                      TextButton.icon(
-                        onPressed: () => appState.setView(AppView.adminPanel),
-                        icon: const Icon(Icons.settings,
-                            color: GroupPhaseColors.cupred, size: 20),
-                        label: const Text(
-                          'Turnierverwaltung',
-                          style: TextStyle(
-                            color: GroupPhaseColors.cupred,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+        title: Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _navButton(context, 'Spielfeld', AppView.playingField),
+                    const SizedBox(width: 8),
+                    if (showGroupPhase) ...[
+                      _navButton(context, 'Gruppenphase', AppView.groupPhase),
+                      const SizedBox(width: 8),
                     ],
-                  );
-                },
+                    if (showTournamentTree) ...[
+                      _navButton(
+                          context, 'Turnierbaum', AppView.tournamentTree),
+                      const SizedBox(width: 8),
+                    ],
+                    if (rulesEnabled) ...[
+                      _navButton(context, 'Regeln', AppView.rules),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+            // Admin button - only for tournament creator, aligned to the right
+            Consumer<AuthState>(
+              builder: (context, authState, child) {
+                if (!authState.isAdmin) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(left: 16),
+                  child: TextButton.icon(
+                    onPressed: () => appState.setView(AppView.adminPanel),
+                    icon: const Icon(Icons.settings,
+                        color: GroupPhaseColors.cupred, size: 20),
+                    label: const Text(
+                      'Turnierverwaltung',
+                      style: TextStyle(
+                        color: GroupPhaseColors.cupred,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
         backgroundColor: Colors.white,
       ),
@@ -161,11 +187,35 @@ class _AppShellState extends State<AppShell> {
   Widget _buildMobileShell(BuildContext context) {
     final appState = Provider.of<AppState>(context);
     final authState = Provider.of<AuthState>(context);
+    final tournamentData = Provider.of<TournamentDataState>(context);
     final selectedTournament =
         Provider.of<TournamentSelectionState>(context).selectedTournamentId;
 
     final isAdmin = authState.isAdmin;
-    final pageCount = isAdmin ? 5 : 4;
+
+    // Determine which tabs to show
+    final isKnockoutsOnly = tournamentData.tournamentStyle == 'knockoutsOnly';
+    final isEveryoneVsEveryone =
+        tournamentData.tournamentStyle == 'everyoneVsEveryone';
+    final isKnockoutPhase = tournamentData.isKnockoutMode;
+    final rulesEnabled = tournamentData.rulesEnabled;
+    final hasStarted = tournamentData.hasData;
+
+    final showGroupPhase = hasStarted && !isKnockoutsOnly;
+    final showTournamentTree = hasStarted &&
+        !isEveryoneVsEveryone &&
+        (isKnockoutsOnly || isKnockoutPhase);
+
+    // Build page list dynamically
+    final pages = <Widget>[
+      _buildPageWithHint(const PlayingFieldView(), showHint: true),
+      if (showGroupPhase) const SingleChildScrollView(child: TeamsView()),
+      if (showTournamentTree) const TreeViewPage(),
+      if (rulesEnabled) const SingleChildScrollView(child: RulesView()),
+      if (isAdmin) const AdminPanelPage(),
+    ];
+
+    final pageCount = pages.length;
 
     // Sync PageView with state changes from drawer
     final targetView = appState.currentView;
@@ -194,14 +244,7 @@ class _AppShellState extends State<AppShell> {
       body: PageView(
         controller: _pageController,
         onPageChanged: (index) => appState.setViewFromPageIndex(index),
-        children: [
-          _buildPageWithHint(const PlayingFieldView(), showHint: true),
-          const SingleChildScrollView(child: TeamsView()),
-          const SingleChildScrollView(
-              child: Placeholder()), // Tournament tree placeholder
-          const SingleChildScrollView(child: RulesView()),
-          if (isAdmin) const AdminPanelPage(),
-        ],
+        children: pages,
       ),
     );
   }

@@ -17,6 +17,7 @@ class TreeViewPage extends StatefulWidget {
 class TreeViewPageState extends State<TreeViewPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  int _selectedIndex = 0;
 
   // Colors for each tournament
   final List<Color> _tournamentColors = [
@@ -26,12 +27,21 @@ class TreeViewPageState extends State<TreeViewPage>
     TreeColors.hotpink,
   ];
 
+  final List<String> _tournamentNames = [
+    'Champions League',
+    'Europa League',
+    'Conference League',
+    'Super Cup',
+  ];
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
-      setState(() {}); // Rebuild to update indicator color
+      setState(() {
+        _selectedIndex = _tabController.index;
+      });
     });
   }
 
@@ -45,6 +55,7 @@ class TreeViewPageState extends State<TreeViewPage>
   Widget build(BuildContext context) {
     final tournamentData = Provider.of<TournamentDataState>(context);
     final knockouts = tournamentData.knockouts;
+    final isLargeScreen = MediaQuery.of(context).size.width > 940;
 
     // Check if knockouts are empty (not yet generated)
     final hasKnockouts = knockouts.champions.rounds.isNotEmpty &&
@@ -52,26 +63,84 @@ class TreeViewPageState extends State<TreeViewPage>
         (knockouts.champions.rounds[0][0].teamId1.isNotEmpty ||
             knockouts.champions.rounds[0][0].teamId2.isNotEmpty);
 
+    if (!hasKnockouts) {
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            'Keine Daten verfügbar',
+            style: TextStyle(fontSize: 18),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Column(
         children: [
-          Container(
-            color: Colors.grey[100],
-            child: TabBar(
-              controller: _tabController,
-              labelColor: Colors.black,
-              indicatorColor: _tournamentColors[_tabController.index],
-              indicatorWeight: 4,
-              tabs: const [
-                Tab(text: 'Champions League'),
-                Tab(text: 'Europa League'),
-                Tab(text: 'Conference League'),
-                Tab(text: 'Super Cup'),
-              ],
+          if (isLargeScreen)
+            // Desktop: Show TabBar
+            Container(
+              color: Colors.grey[100],
+              child: TabBar(
+                controller: _tabController,
+                labelColor: Colors.black,
+                indicatorColor: _tournamentColors[_tabController.index],
+                indicatorWeight: 4,
+                tabs: [
+                  for (final name in _tournamentNames) Tab(text: name),
+                ],
+              ),
+            )
+          else
+            // Mobile: Show Dropdown
+            Container(
+              color: Colors.grey[100],
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: DropdownButtonFormField<int>(
+                value: _selectedIndex,
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: _tournamentColors[_selectedIndex],
+                      width: 2,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: _tournamentColors[_selectedIndex],
+                      width: 2,
+                    ),
+                  ),
+                ),
+                dropdownColor: Colors.white,
+                focusColor: Colors.transparent,
+                items: [
+                  for (int i = 0; i < _tournamentNames.length; i++)
+                    DropdownMenuItem(
+                      value: i,
+                      child: Text(_tournamentNames[i]),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedIndex = value;
+                    });
+                  }
+                },
+              ),
             ),
-          ),
           Expanded(
-            child: hasKnockouts
+            child: isLargeScreen
                 ? TabBarView(
                     controller: _tabController,
                     children: [
@@ -93,16 +162,38 @@ class TreeViewPageState extends State<TreeViewPage>
                       _buildSuperCupTree(knockouts),
                     ],
                   )
-                : const Center(
-                    child: Text(
-                      'Keine Daten verfügbar',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
+                : _buildSelectedTournament(knockouts),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildSelectedTournament(Knockouts knockouts) {
+    switch (_selectedIndex) {
+      case 0:
+        return _buildTournamentTree(
+          'Champions League',
+          knockouts.champions.rounds,
+          TreeColors.rebeccapurple,
+        );
+      case 1:
+        return _buildTournamentTree(
+          'Europa League',
+          knockouts.europa.rounds,
+          TreeColors.royalblue,
+        );
+      case 2:
+        return _buildTournamentTree(
+          'Conference League',
+          knockouts.conference.rounds,
+          TreeColors.yellowgreen,
+        );
+      case 3:
+        return _buildSuperCupTree(knockouts);
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   Widget _buildTournamentTree(

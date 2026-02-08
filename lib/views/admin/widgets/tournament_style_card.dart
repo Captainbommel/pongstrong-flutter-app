@@ -7,6 +7,8 @@ class TournamentStyleCard extends StatelessWidget {
   final TournamentStyle selectedStyle;
   final bool isTournamentStarted;
   final ValueChanged<TournamentStyle>? onStyleChanged;
+  final String? selectedRuleset;
+  final ValueChanged<String?>? onRulesetChanged;
   final bool isCompact;
 
   const TournamentStyleCard({
@@ -14,6 +16,8 @@ class TournamentStyleCard extends StatelessWidget {
     required this.selectedStyle,
     required this.isTournamentStarted,
     this.onStyleChanged,
+    this.selectedRuleset,
+    this.onRulesetChanged,
     this.isCompact = false,
   });
 
@@ -36,6 +40,7 @@ class TournamentStyleCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: isCompact ? 16 : 18,
                     fontWeight: FontWeight.bold,
+                    color: GroupPhaseColors.steelblue,
                   ),
                 ),
               ],
@@ -61,6 +66,71 @@ class TournamentStyleCard extends StatelessWidget {
               'Jeder gegen Jeden',
               'Alle Teams spielen gegeneinander',
               Icons.sync_alt,
+            ),
+            const Divider(),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Regelwerk',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                      color: GroupPhaseColors.steelblue,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String?>(
+                    value: selectedRuleset,
+                    focusColor: Colors.transparent,
+                    dropdownColor: Colors.white,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide:
+                            const BorderSide(color: GroupPhaseColors.steelblue),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide:
+                            const BorderSide(color: GroupPhaseColors.steelblue),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                            color: GroupPhaseColors.steelblue, width: 2),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: null,
+                        child: Text('Keine Regeln anzeigen'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'bmt-cup',
+                        child: Text('BMT-Cup Regeln'),
+                      ),
+                    ],
+                    onChanged: onRulesetChanged,
+                    hint: const Text('Regelwerk wählen'),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Wähle ein Regelwerk zur Anzeige im Navigationsmenü',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

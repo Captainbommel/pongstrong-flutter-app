@@ -690,6 +690,8 @@ mixin TournamentManagementService
         'creatorId': data['creatorId'],
         'creatorEmail': data['creatorEmail'],
         'phase': data['phase'] ?? 'groups',
+        'tournamentStyle': data['tournamentStyle'] ?? 'groupsAndKnockouts',
+        'selectedRuleset': data['selectedRuleset'] as String? ?? 'bmt-cup',
         'createdAt': data['createdAt'],
       };
     } catch (e) {

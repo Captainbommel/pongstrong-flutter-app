@@ -329,6 +329,13 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       selectedStyle: state.tournamentStyle,
       isTournamentStarted: state.isTournamentStarted,
       onStyleChanged: (style) => state.setTournamentStyle(style),
+      selectedRuleset: state.selectedRuleset,
+      onRulesetChanged: (ruleset) {
+        state.setSelectedRuleset(ruleset);
+        // Also update TournamentDataState so navbar/drawer reacts immediately
+        Provider.of<TournamentDataState>(context, listen: false)
+            .updateSelectedRuleset(ruleset);
+      },
       isCompact: isCompact,
     );
 
