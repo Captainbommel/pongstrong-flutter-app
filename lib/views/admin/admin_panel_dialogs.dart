@@ -227,6 +227,59 @@ class AdminPanelDialogs {
     }
   }
 
+  /// Show revert to group phase confirmation
+  static Future<void> showRevertToGroupPhaseConfirmation(
+    BuildContext context,
+    AdminPanelState state, {
+    VoidCallback? onRevertComplete,
+  }) async {
+    if (!_verifyAdmin(context)) return;
+
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: 'Zurück zur Gruppenphase?',
+      titleIcon: Icons.undo,
+      confirmText: 'Zurücksetzen',
+      confirmIcon: Icons.undo,
+      confirmColor: GroupPhaseColors.cupred,
+      content: const Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Möchtest du wirklich zur Gruppenphase zurückkehren?'),
+          SizedBox(height: 16),
+          InfoBanner(
+            text:
+                'Alle K.O.-Bäume werden gelöscht. Nicht abgeschlossene Gruppenspiele werden wieder in die Warteschlange eingereiht.',
+            color: GroupPhaseColors.cupred,
+            icon: Icons.warning,
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final success = await state.revertToGroupPhase();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? 'Zurück zur Gruppenphase'
+                : state.errorMessage ?? 'Fehler beim Zurücksetzen'),
+            backgroundColor:
+                success ? FieldColors.springgreen : GroupPhaseColors.cupred,
+          ),
+        );
+        if (success) {
+          onRevertComplete?.call();
+          final tournamentData =
+              Provider.of<TournamentDataState>(context, listen: false);
+          await tournamentData.loadTournamentData(state.currentTournamentId);
+        }
+      }
+    }
+  }
+
   /// Show export dialog
   static Future<void> showExportDialog(BuildContext context) async {
     await showDialog(

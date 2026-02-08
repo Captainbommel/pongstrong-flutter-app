@@ -391,6 +391,46 @@ mixin TournamentManagementService
     }
   }
 
+  /// Reverts tournament from knockout phase back to group phase.
+  /// Clears knockout trees and rebuilds the match queue with unfinished group matches.
+  Future<void> revertToGroupPhase({
+    String tournamentId = FirestoreBase.defaultTournamentId,
+  }) async {
+    // Load current gruppenphase (still in Firestore from group phase)
+    final gruppenphase = await loadGruppenphase(tournamentId: tournamentId);
+    if (gruppenphase == null) return;
+
+    // Rebuild match queue with only unfinished group matches
+    final queue = MatchQueue(
+      waiting: List.generate(6, (_) => <Match>[]),
+      playing: [],
+    );
+    for (var group in gruppenphase.groups) {
+      for (var match in group) {
+        if (!match.done) {
+          queue.waiting[match.tischNr - 1].add(match);
+        }
+      }
+    }
+
+    // Save empty knockouts (clears the trees)
+    final knockouts = Knockouts();
+    knockouts.instantiate();
+    await saveKnockouts(knockouts, tournamentId: tournamentId);
+
+    // Save rebuilt match queue
+    await saveMatchQueue(queue, tournamentId: tournamentId);
+
+    // Update tournament phase back to groups
+    await firestore
+        .collection(FirestoreBase.tournamentsCollection)
+        .doc(tournamentId)
+        .update({
+      'phase': 'groups',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   /// Re-evaluates group standings based on current match results
   Future<void> updateStandings({
     String tournamentId = FirestoreBase.defaultTournamentId,

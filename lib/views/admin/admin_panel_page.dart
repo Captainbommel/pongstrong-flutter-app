@@ -295,6 +295,12 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         state,
         onResetComplete: _loadData,
       ),
+      onRevertToGroupPhase: () =>
+          AdminPanelDialogs.showRevertToGroupPhaseConfirmation(
+        context,
+        state,
+        onRevertComplete: _loadData,
+      ),
       isCompact: isCompact,
     );
 

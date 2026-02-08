@@ -254,58 +254,56 @@ class AdminPanelState extends ChangeNotifier {
     }
   }
 
-  /// Load and calculate match statistics
+  /// Load and calculate match statistics for the current phase only
   Future<void> loadMatchStats() async {
     try {
       int totalMatches = 0;
       int completedMatches = 0;
 
-      // Load gruppenphase
-      final gruppenphase = await _firestoreService.loadGruppenphase(
-          tournamentId: _currentTournamentId);
-      if (gruppenphase != null) {
-        for (var group in gruppenphase.groups) {
-          totalMatches += group.length;
-          completedMatches += group.where((m) => m.done).length;
-        }
-      }
-
-      // Load knockouts if in knockout phase
-      final knockouts = await _firestoreService.loadKnockouts(
-          tournamentId: _currentTournamentId);
-      if (knockouts != null) {
-        // Count champions matches
-        for (var round in knockouts.champions.rounds) {
-          for (var match in round) {
+      if (_currentPhase == TournamentPhase.knockoutPhase) {
+        // In KO phase: only count knockout matches
+        final knockouts = await _firestoreService.loadKnockouts(
+            tournamentId: _currentTournamentId);
+        if (knockouts != null) {
+          for (var round in knockouts.champions.rounds) {
+            for (var match in round) {
+              if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
+                totalMatches++;
+                if (match.done) completedMatches++;
+              }
+            }
+          }
+          for (var round in knockouts.europa.rounds) {
+            for (var match in round) {
+              if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
+                totalMatches++;
+                if (match.done) completedMatches++;
+              }
+            }
+          }
+          for (var round in knockouts.conference.rounds) {
+            for (var match in round) {
+              if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
+                totalMatches++;
+                if (match.done) completedMatches++;
+              }
+            }
+          }
+          for (var match in knockouts.superCup.matches) {
             if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
               totalMatches++;
               if (match.done) completedMatches++;
             }
           }
         }
-        // Count europa matches
-        for (var round in knockouts.europa.rounds) {
-          for (var match in round) {
-            if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
-              totalMatches++;
-              if (match.done) completedMatches++;
-            }
-          }
-        }
-        // Count conference matches
-        for (var round in knockouts.conference.rounds) {
-          for (var match in round) {
-            if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
-              totalMatches++;
-              if (match.done) completedMatches++;
-            }
-          }
-        }
-        // Count super cup matches
-        for (var match in knockouts.superCup.matches) {
-          if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
-            totalMatches++;
-            if (match.done) completedMatches++;
+      } else {
+        // In group phase (or other phases): only count group matches
+        final gruppenphase = await _firestoreService.loadGruppenphase(
+            tournamentId: _currentTournamentId);
+        if (gruppenphase != null) {
+          for (var group in gruppenphase.groups) {
+            totalMatches += group.length;
+            completedMatches += group.where((m) => m.done).length;
           }
         }
       }
@@ -740,6 +738,31 @@ class AdminPanelState extends ChangeNotifier {
     } catch (e) {
       _setError('Fehler beim Phasenwechsel: $e');
       Logger.error('Error advancing phase', tag: 'AdminPanel', error: e);
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> revertToGroupPhase() async {
+    if (_currentPhase != TournamentPhase.knockoutPhase) {
+      _setError('Zurücksetzen ist nur in der K.O.-Phase möglich.');
+      return false;
+    }
+    _setLoading(true);
+    _clearError();
+    try {
+      await _firestoreService.revertToGroupPhase(
+          tournamentId: _currentTournamentId);
+      _currentPhase = TournamentPhase.groupPhase;
+      await loadMatchStats();
+      Logger.info('Reverted to group phase', tag: 'AdminPanel');
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('Fehler beim Zurücksetzen zur Gruppenphase: $e');
+      Logger.error('Error reverting to group phase',
+          tag: 'AdminPanel', error: e);
       return false;
     } finally {
       _setLoading(false);

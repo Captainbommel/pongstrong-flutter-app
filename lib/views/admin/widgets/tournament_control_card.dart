@@ -9,6 +9,7 @@ class TournamentControlCard extends StatelessWidget {
   final VoidCallback? onStartTournament;
   final VoidCallback? onAdvancePhase;
   final VoidCallback? onResetTournament;
+  final VoidCallback? onRevertToGroupPhase;
   final bool isCompact;
 
   const TournamentControlCard({
@@ -18,6 +19,7 @@ class TournamentControlCard extends StatelessWidget {
     this.onStartTournament,
     this.onAdvancePhase,
     this.onResetTournament,
+    this.onRevertToGroupPhase,
     this.isCompact = false,
   });
 
@@ -151,6 +153,25 @@ class TournamentControlCard extends StatelessWidget {
                   ],
                 ),
               ),
+              // Revert to group phase button (only for Group+KO mode)
+              if (tournamentStyle == TournamentStyle.groupsAndKnockouts) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: onRevertToGroupPhase,
+                    icon: const Icon(Icons.undo),
+                    label: const Text('Zurück zur Gruppenphase'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: GroupPhaseColors.cupred,
+                      side: const BorderSide(color: GroupPhaseColors.cupred),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ] else if (isFinished) ...[
               Container(
                 width: double.infinity,
