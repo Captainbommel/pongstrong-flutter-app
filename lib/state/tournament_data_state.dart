@@ -520,4 +520,158 @@ class TournamentDataState extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Edit a finished match score
+  /// For knockout matches, this will clear all dependent matches (with cascade reset)
+  Future<bool> editMatchScore(
+    String matchId,
+    int newScore1,
+    int newScore2,
+    int groupIndex, {
+    required bool isKnockout,
+  }) async {
+    Logger.info(
+      'Editing match $matchId: $newScore1-$newScore2 (knockout: $isKnockout)',
+      tag: 'TournamentData',
+    );
+
+    if (isKnockout) {
+      return _editKnockoutMatch(matchId, newScore1, newScore2);
+    } else {
+      return _editGroupMatch(matchId, newScore1, newScore2, groupIndex);
+    }
+  }
+
+  /// Edit a group phase match
+  Future<bool> _editGroupMatch(
+    String matchId,
+    int newScore1,
+    int newScore2,
+    int groupIndex,
+  ) async {
+    Logger.debug('Editing group match: $matchId', tag: 'TournamentData');
+    final service = FirestoreService();
+
+    try {
+      // Load current group phase
+      final groupPhase =
+          await service.loadGruppenphase(tournamentId: _currentTournamentId);
+
+      if (groupPhase == null) {
+        Logger.error('Could not load group phase', tag: 'TournamentData');
+        return false;
+      }
+
+      // Find and update the match
+      Match? targetMatch;
+      for (int i = 0; i < groupPhase.groups.length; i++) {
+        for (var match in groupPhase.groups[i]) {
+          if (match.id == matchId) {
+            match.score1 = newScore1;
+            match.score2 = newScore2;
+            targetMatch = match;
+            break;
+          }
+        }
+        if (targetMatch != null) break;
+      }
+
+      if (targetMatch == null) {
+        Logger.warning('Match $matchId not found in group phase',
+            tag: 'TournamentData');
+        return false;
+      }
+
+      Logger.info('Updated match $matchId scores to $newScore1-$newScore2',
+          tag: 'TournamentData');
+
+      // Recalculate tables
+      final updatedTables = evalGruppen(groupPhase);
+
+      // Save to Firestore
+      await service.saveGruppenphase(
+        groupPhase,
+        tournamentId: _currentTournamentId,
+      );
+      await service.saveTabellen(
+        updatedTables,
+        tournamentId: _currentTournamentId,
+      );
+
+      Logger.info('Saved updated group phase and tables',
+          tag: 'TournamentData');
+
+      // Update local state
+      _tabellen = updatedTables;
+      notifyListeners();
+
+      return true;
+    } catch (e) {
+      Logger.error('Error editing group match',
+          tag: 'TournamentData', error: e);
+      return false;
+    }
+  }
+
+  /// Edit a knockout match (with cascade reset of dependent matches)
+  Future<bool> _editKnockoutMatch(
+    String matchId,
+    int newScore1,
+    int newScore2,
+  ) async {
+    Logger.debug('Editing knockout match: $matchId', tag: 'TournamentData');
+    final service = FirestoreService();
+
+    try {
+      // Clear dependent matches first
+      final clearedIds = _knockouts.clearDependentMatches(matchId);
+
+      if (clearedIds.isNotEmpty) {
+        Logger.info(
+          'Cleared ${clearedIds.length} dependent matches: ${clearedIds.join(", ")}',
+          tag: 'TournamentData',
+        );
+      }
+
+      // Update the target match score
+      final updated =
+          _knockouts.updateMatchScore(matchId, newScore1, newScore2);
+
+      if (!updated) {
+        Logger.warning('Match $matchId not found in knockouts',
+            tag: 'TournamentData');
+        return false;
+      }
+
+      Logger.info('Updated match $matchId scores to $newScore1-$newScore2',
+          tag: 'TournamentData');
+
+      // Recalculate knockout progression
+      _knockouts.update();
+
+      // Update match queue with new ready matches
+      _matchQueue.updateKnockQueue(_knockouts);
+
+      // Save to Firestore
+      await service.saveKnockouts(
+        _knockouts,
+        tournamentId: _currentTournamentId,
+      );
+      await service.saveMatchQueue(
+        _matchQueue,
+        tournamentId: _currentTournamentId,
+      );
+
+      Logger.info('Saved updated knockouts and match queue',
+          tag: 'TournamentData');
+
+      notifyListeners();
+
+      return true;
+    } catch (e) {
+      Logger.error('Error editing knockout match',
+          tag: 'TournamentData', error: e);
+      return false;
+    }
+  }
 }

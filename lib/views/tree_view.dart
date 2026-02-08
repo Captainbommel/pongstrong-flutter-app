@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
+import 'package:pongstrong/widgets/match_edit_dialog.dart';
 import 'package:provider/provider.dart';
 
 class TreeViewPage extends StatefulWidget {
@@ -185,6 +187,7 @@ class TreeViewPageState extends State<TreeViewPage>
     // Access the team data from the provider
     final tournamentData =
         Provider.of<TournamentDataState>(context, listen: false);
+    final isAdmin = Provider.of<AuthState>(context, listen: false).isAdmin;
 
     // Get team names or fallback to IDs
     String getTeamName(String teamId) {
@@ -195,9 +198,17 @@ class TreeViewPageState extends State<TreeViewPage>
 
     // Determine if match is ready (both teams are assigned)
     final bool isReady = match.teamId1.isNotEmpty && match.teamId2.isNotEmpty;
+    final bool canEdit = isAdmin && match.done;
 
     return InkWell(
-      onTap: () {},
+      onTap: canEdit
+          ? () => _onEditKnockoutMatch(
+                context,
+                match,
+                getTeamName(match.teamId1),
+                getTeamName(match.teamId2),
+              )
+          : null,
       child: Container(
         width: 180,
         padding: const EdgeInsets.all(8),
@@ -255,6 +266,43 @@ class TreeViewPageState extends State<TreeViewPage>
         ),
       ),
     );
+  }
+
+  Future<void> _onEditKnockoutMatch(
+    BuildContext context,
+    Match match,
+    String team1Name,
+    String team2Name,
+  ) async {
+    final result = await MatchEditDialog.show(
+      context,
+      match: match,
+      team1Name: team1Name,
+      team2Name: team2Name,
+      isKnockout: true,
+    );
+    if (result != null && context.mounted) {
+      final tournamentData =
+          Provider.of<TournamentDataState>(context, listen: false);
+      final success = await tournamentData.editMatchScore(
+        match.id,
+        result['score1']!,
+        result['score2']!,
+        -1,
+        isKnockout: true,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? 'Ergebnis aktualisiert'
+                : 'Fehler beim Aktualisieren'),
+            backgroundColor:
+                success ? FieldColors.springgreen : GroupPhaseColors.cupred,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildSuperCupTree(Knockouts knockouts) {

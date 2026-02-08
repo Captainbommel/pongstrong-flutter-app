@@ -4,7 +4,9 @@ import 'package:pongstrong/models/gruppenphase.dart';
 import 'package:pongstrong/models/tabellen.dart' as tabellen;
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
+import 'package:pongstrong/widgets/match_edit_dialog.dart';
 import 'package:provider/provider.dart';
 
 class TeamsView extends StatelessWidget {
@@ -193,25 +195,35 @@ class _GroupOverview extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(8),
-            itemCount: matches.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final match = matches[index];
-              final team1 = data.getTeam(match.teamId1);
-              final team2 = data.getTeam(match.teamId2);
+          Builder(builder: (context) {
+            final isAdmin =
+                Provider.of<AuthState>(context, listen: false).isAdmin;
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(8),
+              itemCount: matches.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final match = matches[index];
+                final team1 = data.getTeam(match.teamId1);
+                final team2 = data.getTeam(match.teamId2);
+                final team1Name = team1?.name ?? 'Team 1';
+                final team2Name = team2?.name ?? 'Team 2';
 
-              return _MatchCard(
-                matchIndex: index + 1,
-                match: match,
-                team1Name: team1?.name ?? 'Team 1',
-                team2Name: team2?.name ?? 'Team 2',
-              );
-            },
-          ),
+                return _MatchCard(
+                  matchIndex: index + 1,
+                  match: match,
+                  team1Name: team1Name,
+                  team2Name: team2Name,
+                  onEditTap: isAdmin && match.done
+                      ? () => _onEditGroupMatch(
+                          context, match, team1Name, team2Name, groupIndex)
+                      : null,
+                );
+              },
+            );
+          }),
         ],
       ),
     );
@@ -325,94 +337,137 @@ class _GroupOverview extends StatelessWidget {
   }
 }
 
+Future<void> _onEditGroupMatch(
+  BuildContext context,
+  Match match,
+  String team1Name,
+  String team2Name,
+  int groupIndex,
+) async {
+  final result = await MatchEditDialog.show(
+    context,
+    match: match,
+    team1Name: team1Name,
+    team2Name: team2Name,
+    isKnockout: false,
+  );
+  if (result != null && context.mounted) {
+    final tournamentData =
+        Provider.of<TournamentDataState>(context, listen: false);
+    final success = await tournamentData.editMatchScore(
+      match.id,
+      result['score1']!,
+      result['score2']!,
+      groupIndex,
+      isKnockout: false,
+    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              success ? 'Ergebnis aktualisiert' : 'Fehler beim Aktualisieren'),
+          backgroundColor:
+              success ? FieldColors.springgreen : GroupPhaseColors.cupred,
+        ),
+      );
+    }
+  }
+}
+
 class _MatchCard extends StatelessWidget {
   final int matchIndex;
   final Match match;
   final String team1Name;
   final String team2Name;
+  final VoidCallback? onEditTap;
 
   const _MatchCard({
     required this.matchIndex,
     required this.match,
     required this.team1Name,
     required this.team2Name,
+    this.onEditTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDone = match.done;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color:
-            isDone ? Colors.white : GroupPhaseColors.grouppurple.withAlpha(50),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
+    return GestureDetector(
+      onTap: onEditTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
           color: isDone
-              ? GroupPhaseColors.steelblue
-              : GroupPhaseColors.grouppurple,
-          width: 2,
+              ? Colors.white
+              : GroupPhaseColors.grouppurple.withAlpha(50),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDone
+                ? GroupPhaseColors.steelblue
+                : GroupPhaseColors.grouppurple,
+            width: 2,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          // Checkmark for finished matches or match index
-          if (isDone)
-            const Padding(
-              padding: EdgeInsets.only(right: 8),
-              child: Icon(
-                Icons.check_circle,
-                color: GroupPhaseColors.steelblue,
-                size: 24,
+        child: Row(
+          children: [
+            // Checkmark for finished matches or match index
+            if (isDone)
+              const Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: Icon(
+                  Icons.check_circle,
+                  color: GroupPhaseColors.steelblue,
+                  size: 24,
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Text(
+                  '$matchIndex.',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: GroupPhaseColors.grouppurple,
+                  ),
+                ),
               ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Text(
-                '$matchIndex.',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: GroupPhaseColors.grouppurple,
+            // Teams and scores
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTeamRow(team1Name, match.score1, isDone),
+                  const SizedBox(height: 4),
+                  _buildTeamRow(team2Name, match.score2, isDone),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Table number at the back
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: isDone
+                    ? GroupPhaseColors.steelblue
+                    : GroupPhaseColors.grouppurple.withAlpha(150),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  match.tischNr.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ),
-          // Teams and scores
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTeamRow(team1Name, match.score1, isDone),
-                const SizedBox(height: 4),
-                _buildTeamRow(team2Name, match.score2, isDone),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Table number at the back
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: isDone
-                  ? GroupPhaseColors.steelblue
-                  : GroupPhaseColors.grouppurple.withAlpha(150),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                match.tischNr.toString(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
