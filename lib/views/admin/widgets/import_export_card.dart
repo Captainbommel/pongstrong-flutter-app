@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'dart:convert';
+import 'dart:js_interop';
+import 'package:web/web.dart' as web;
 import 'package:pongstrong/state/tournament_data_state.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'dart:html' as html;
 
 /// Card widget for import/export functionality
 class ImportExportCard extends StatelessWidget {
@@ -28,14 +28,20 @@ class ImportExportCard extends StatelessWidget {
       // Convert the state to JSON
       final jsonString = jsonEncode(tournamentState);
 
+      // TODO: Ensure compatibility with the import function in the future
+
       // Create a Blob and trigger a download
-      final blob = html.Blob([jsonString], 'application/json');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
+      final blob = web.Blob(
+        [jsonString.toJS].toJS,
+        web.BlobPropertyBag(type: 'application/json'),
+      );
+      final url = web.URL.createObjectURL(blob);
+      final anchor = web.document.createElement('a') as web.HTMLAnchorElement
+        ..href = url
         ..target = 'blank'
         ..download = 'tournament_state.json';
       anchor.click();
-      html.Url.revokeObjectUrl(url);
+      web.URL.revokeObjectURL(url);
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
