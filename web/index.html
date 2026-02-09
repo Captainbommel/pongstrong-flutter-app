@@ -22,6 +22,7 @@
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="pongstrong">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
@@ -44,26 +45,27 @@
         justify-content: center;
         align-items: center;
         height: 100vh;
-        background-image: linear-gradient(to bottom, tomato, skyblue);
+        background: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       }
     
       p {
         position: relative;
-        font-family: sans-serif;
+        font-weight: 700;
         text-transform: uppercase;
-        font-size: 2em;
-        letter-spacing: 4px;
-        overflow: hidden;
-        background: linear-gradient(90deg, #000, springgreen, #000);
+        font-size: 3.5em;
+        letter-spacing: 8px;
+        background: linear-gradient(90deg, #FF6347, #00FF7F, #FF6347);
         background-repeat: no-repeat;
         background-size: 80%;
-        animation: animate 3s linear infinite;
+        animation: shimmer 2.5s ease-in-out infinite;
         background-clip: text;
         -webkit-background-clip: text;
-        -webkit-text-fill-color: rgba(255, 255, 255, 0);
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
       }
 
-      @keyframes animate {
+      @keyframes shimmer {
         0% {
           background-position: -500%;
         }
