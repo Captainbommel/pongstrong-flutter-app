@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
 import 'package:pongstrong/models/models.dart';
@@ -8,7 +9,9 @@ import 'package:pongstrong/widgets/match_edit_dialog.dart';
 import 'package:provider/provider.dart';
 
 class TreeViewPage extends StatefulWidget {
-  const TreeViewPage({super.key});
+  final ValueChanged<bool>? onExploreChanged;
+
+  const TreeViewPage({super.key, this.onExploreChanged});
 
   @override
   TreeViewPageState createState() => TreeViewPageState();
@@ -18,6 +21,7 @@ class TreeViewPageState extends State<TreeViewPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _selectedIndex = 0;
+  bool _isExploring = false;
 
   // Colors for each tournament
   final List<Color> _tournamentColors = [
@@ -162,10 +166,71 @@ class TreeViewPageState extends State<TreeViewPage>
                       _buildSuperCupTree(knockouts),
                     ],
                   )
-                : _buildSelectedTournament(knockouts),
+                : _buildMobileTreeWithOverlay(knockouts),
           ),
         ],
       ),
+    );
+  }
+
+  void _setExploring(bool value) {
+    setState(() => _isExploring = value);
+    widget.onExploreChanged?.call(value);
+  }
+
+  Widget _buildMobileTreeWithOverlay(Knockouts knockouts) {
+    return Stack(
+      children: [
+        // Tree content (always rendered, interactive only when exploring)
+        IgnorePointer(
+          ignoring: !_isExploring,
+          child: _buildSelectedTournament(knockouts),
+        ),
+        // Blur overlay when not exploring
+        if (!_isExploring) ...[
+          Positioned.fill(
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
+                child: Container(
+                  color: Colors.white.withAlpha(80),
+                ),
+              ),
+            ),
+          ),
+          // "Explore" button centered
+          Center(
+            child: ElevatedButton.icon(
+              onPressed: () => _setExploring(true),
+              icon: const Icon(Icons.zoom_in),
+              label: const Text('Erkunden'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _tournamentColors[_selectedIndex],
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                textStyle: const TextStyle(fontSize: 16),
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+        // "Back" button when exploring
+        if (_isExploring)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton.small(
+              onPressed: () => _setExploring(false),
+              backgroundColor: Colors.black.withAlpha(150),
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.close),
+            ),
+          ),
+      ],
     );
   }
 

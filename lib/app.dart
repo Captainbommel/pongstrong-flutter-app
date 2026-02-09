@@ -28,6 +28,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   late PageController _pageController;
   bool _showSwipeHint = true;
+  bool _isTreeExploring = false;
 
   @override
   void initState() {
@@ -210,7 +211,12 @@ class _AppShellState extends State<AppShell> {
     final pages = <Widget>[
       _buildPageWithHint(const PlayingFieldView(), showHint: true),
       if (showGroupPhase) const SingleChildScrollView(child: TeamsView()),
-      if (showTournamentTree) const TreeViewPage(),
+      if (showTournamentTree)
+        TreeViewPage(
+          onExploreChanged: (exploring) {
+            setState(() => _isTreeExploring = exploring);
+          },
+        ),
       if (rulesEnabled) const SingleChildScrollView(child: RulesView()),
       if (isAdmin) const AdminPanelPage(),
     ];
@@ -248,7 +254,14 @@ class _AppShellState extends State<AppShell> {
       ),
       body: PageView(
         controller: _pageController,
-        onPageChanged: (index) => appState.setViewFromPageIndex(index),
+        physics: _isTreeExploring ? const NeverScrollableScrollPhysics() : null,
+        onPageChanged: (index) {
+          appState.setViewFromPageIndex(index);
+          // Reset explore mode when swiping away from tree
+          if (_isTreeExploring) {
+            setState(() => _isTreeExploring = false);
+          }
+        },
         children: pages,
       ),
     );
