@@ -23,6 +23,9 @@ class TreeViewPageState extends State<TreeViewPage>
   int _selectedIndex = 0;
   bool _isExploring = false;
 
+  // Cached graph data to avoid rebuilding on every frame
+  final Map<String, _CachedGraph> _graphCache = {};
+
   // Colors for each tournament
   final List<Color> _tournamentColors = [
     TreeColors.rebeccapurple,
@@ -59,7 +62,7 @@ class TreeViewPageState extends State<TreeViewPage>
   Widget build(BuildContext context) {
     final tournamentData = Provider.of<TournamentDataState>(context);
     final knockouts = tournamentData.knockouts;
-    final isLargeScreen = MediaQuery.of(context).size.width > 940;
+    final isLargeScreen = MediaQuery.sizeOf(context).width > 940;
 
     // Check if knockouts are empty (not yet generated)
     final hasKnockouts = knockouts.champions.rounds.isNotEmpty &&
@@ -276,38 +279,43 @@ class TreeViewPageState extends State<TreeViewPage>
       );
     }
 
-    final graph = Graph()..isTree = true;
-    final builder = BuchheimWalkerConfiguration();
+    // Use cached graph or build a new one
+    final cacheKey = title;
+    final matchCount = rounds.fold<int>(0, (sum, round) => sum + round.length);
+    var cached = _graphCache[cacheKey];
+    if (cached == null || cached.matchCount != matchCount) {
+      final graph = Graph()..isTree = true;
+      final nodes = <String, Node>{};
 
-    // Build graph from rounds (bottom-up: final to first round)
-    final nodes = <String, Node>{};
-
-    // Create all nodes
-    for (int roundIndex = 0; roundIndex < rounds.length; roundIndex++) {
-      for (int matchIndex = 0;
-          matchIndex < rounds[roundIndex].length;
-          matchIndex++) {
-        final matchId = 'r${roundIndex}_m$matchIndex';
-        nodes[matchId] = Node.Id(matchId);
+      for (int roundIndex = 0; roundIndex < rounds.length; roundIndex++) {
+        for (int matchIndex = 0;
+            matchIndex < rounds[roundIndex].length;
+            matchIndex++) {
+          final matchId = 'r${roundIndex}_m$matchIndex';
+          nodes[matchId] = Node.Id(matchId);
+        }
       }
-    }
 
-    // Add edges (connect matches from current round to next round)
-    for (int roundIndex = 0; roundIndex < rounds.length - 1; roundIndex++) {
-      for (int matchIndex = 0;
-          matchIndex < rounds[roundIndex].length;
-          matchIndex++) {
-        final currentMatch = 'r${roundIndex}_m$matchIndex';
-        final nextMatch = 'r${roundIndex + 1}_m${matchIndex ~/ 2}';
-        graph.addEdge(nodes[nextMatch]!, nodes[currentMatch]!);
+      for (int roundIndex = 0; roundIndex < rounds.length - 1; roundIndex++) {
+        for (int matchIndex = 0;
+            matchIndex < rounds[roundIndex].length;
+            matchIndex++) {
+          final currentMatch = 'r${roundIndex}_m$matchIndex';
+          final nextMatch = 'r${roundIndex + 1}_m${matchIndex ~/ 2}';
+          graph.addEdge(nodes[nextMatch]!, nodes[currentMatch]!);
+        }
       }
-    }
 
-    builder
-      ..siblingSeparation = 25
-      ..levelSeparation = 50
-      ..subtreeSeparation = 50
-      ..orientation = BuchheimWalkerConfiguration.ORIENTATION_RIGHT_LEFT;
+      final builder = BuchheimWalkerConfiguration()
+        ..siblingSeparation = 25
+        ..levelSeparation = 50
+        ..subtreeSeparation = 50
+        ..orientation = BuchheimWalkerConfiguration.ORIENTATION_RIGHT_LEFT;
+
+      cached =
+          _CachedGraph(graph: graph, config: builder, matchCount: matchCount);
+      _graphCache[cacheKey] = cached;
+    }
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -317,9 +325,9 @@ class TreeViewPageState extends State<TreeViewPage>
         minScale: 1.0,
         maxScale: 1.0,
         child: GraphView(
-          graph: graph,
-          algorithm:
-              BuchheimWalkerAlgorithm(builder, TreeEdgeRenderer(builder)),
+          graph: cached.graph,
+          algorithm: BuchheimWalkerAlgorithm(
+              cached.config, TreeEdgeRenderer(cached.config)),
           paint: Paint()
             ..color = color.withAlpha(76)
             ..strokeWidth = 2
@@ -515,4 +523,16 @@ class TreeViewPageState extends State<TreeViewPage>
       ),
     );
   }
+}
+
+class _CachedGraph {
+  final Graph graph;
+  final BuchheimWalkerConfiguration config;
+  final int matchCount;
+
+  _CachedGraph({
+    required this.graph,
+    required this.config,
+    required this.matchCount,
+  });
 }

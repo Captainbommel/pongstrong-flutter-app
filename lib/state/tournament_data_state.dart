@@ -14,6 +14,7 @@ import 'package:pongstrong/utils/app_logger.dart';
 class TournamentDataState extends ChangeNotifier {
   List<Team> _teams = [];
   MatchQueue _matchQueue = MatchQueue();
+  Gruppenphase _gruppenphase = Gruppenphase();
   Tabellen _tabellen = Tabellen();
   Knockouts _knockouts = Knockouts();
   String _currentTournamentId = FirestoreBase.defaultTournamentId;
@@ -28,6 +29,7 @@ class TournamentDataState extends ChangeNotifier {
 
   List<Team> get teams => _teams;
   MatchQueue get matchQueue => _matchQueue;
+  Gruppenphase get gruppenphase => _gruppenphase;
   Tabellen get tabellen => _tabellen;
   Knockouts get knockouts => _knockouts;
   String get currentTournamentId => _currentTournamentId;
@@ -79,6 +81,7 @@ class TournamentDataState extends ChangeNotifier {
       if (teams != null && matchQueue != null && groupPhase != null) {
         _teams = teams;
         _matchQueue = matchQueue;
+        _gruppenphase = groupPhase;
         _tabellen = evalGruppen(groupPhase);
         _knockouts = knockouts ?? Knockouts();
         _currentTournamentId = tournamentId;
@@ -97,6 +100,7 @@ class TournamentDataState extends ChangeNotifier {
         // Tournament exists but is in setup phase - clear any old data
         _teams = [];
         _matchQueue = MatchQueue();
+        _gruppenphase = Gruppenphase();
         _tabellen = Tabellen();
         _knockouts = Knockouts();
         _currentTournamentId = tournamentId;
@@ -134,6 +138,7 @@ class TournamentDataState extends ChangeNotifier {
     Logger.debug('Clearing tournament data', tag: 'TournamentData');
     _teams = [];
     _matchQueue = MatchQueue();
+    _gruppenphase = Gruppenphase();
     _tabellen = Tabellen();
     _knockouts = Knockouts();
     _isKnockoutMode = false;
@@ -165,6 +170,7 @@ class TournamentDataState extends ChangeNotifier {
       if (groupPhase != null) {
         Logger.debug('Group phase updated from Firestore',
             tag: 'TournamentData');
+        _gruppenphase = groupPhase;
         _tabellen = evalGruppen(groupPhase);
         notifyListeners();
       }

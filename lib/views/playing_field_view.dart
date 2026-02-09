@@ -17,7 +17,7 @@ class PlayingFieldView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLargeScreen = MediaQuery.of(context).size.width > 940;
+    final isLargeScreen = MediaQuery.sizeOf(context).width > 940;
 
     return Consumer<TournamentDataState>(
       builder: (context, data, child) {
@@ -39,7 +39,7 @@ class _DesktopLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: MediaQuery.of(context).size.height,
+      height: MediaQuery.sizeOf(context).height,
       child: Padding(
         padding: const EdgeInsets.only(top: 16.0),
         child: Row(
@@ -129,8 +129,8 @@ class _RunningMatchesSection extends StatelessWidget {
       FieldColors.tomato,
       FieldColors.tomato.withAlpha(128),
       true,
-      Consumer<TournamentDataState>(
-        builder: (context, data, child) {
+      Builder(
+        builder: (context) {
           if (!data.hasData) {
             return const Center(child: Text('Keine Daten geladen'));
           }
@@ -185,8 +185,8 @@ class _UpcomingMatchesSection extends StatelessWidget {
       FieldColors.springgreen,
       FieldColors.springgreen.withAlpha(128),
       true,
-      Consumer<TournamentDataState>(
-        builder: (context, data, child) {
+      Builder(
+        builder: (context) {
           if (!data.hasData) {
             return const Center(child: Text('Keine Daten geladen'));
           }
@@ -262,6 +262,7 @@ class _StandingsSection extends StatelessWidget {
           final groupIndex = entry.key;
           final table = entry.value;
           return StandingsTable(
+            key: Key('table_$groupIndex'),
             groupIndex: groupIndex,
             rows: table.map((row) {
               final team = data.getTeam(row.teamId);

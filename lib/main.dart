@@ -46,6 +46,8 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  static final _fontFamily = GoogleFonts.notoSansMono().fontFamily;
+
   @override
   Widget build(BuildContext context) {
     // TODO: App rebuilds when screen size changes, causing unnecessary provider recreations.
@@ -60,7 +62,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         home: const AppSelector(),
         theme: ThemeData(
-          fontFamily: GoogleFonts.notoSansMono().fontFamily,
+          fontFamily: _fontFamily,
         ),
       ),
     );

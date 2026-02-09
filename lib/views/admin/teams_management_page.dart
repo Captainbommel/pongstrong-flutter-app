@@ -96,8 +96,11 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       }
     }
 
-    // Sync the selected count into admin state
-    widget.adminState.setTargetTeamCount(_targetTeamCount);
+    // Sync the selected count into admin state (deferred to avoid
+    // notifyListeners during build)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.adminState.setTargetTeamCount(_targetTeamCount);
+    });
 
     _hasUnsavedChanges = false;
   }

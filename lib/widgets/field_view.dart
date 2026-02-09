@@ -47,29 +47,26 @@ class FieldView extends StatelessWidget {
               ),
             ),
           ),
-          () {
-            if (smallScreen) {
-              return Padding(
+          if (smallScreen)
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Card(
+                color: color2,
+                child: child,
+              ),
+            )
+          else
+            Expanded(
+              child: Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: Card(
                   color: color2,
-                  child: child,
-                ),
-              );
-            } else {
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Card(
-                    color: color2,
-                    child: SingleChildScrollView(
-                      child: child,
-                    ),
+                  child: SingleChildScrollView(
+                    child: child,
                   ),
                 ),
-              );
-            }
-          }(),
+              ),
+            ),
         ],
       ),
     );

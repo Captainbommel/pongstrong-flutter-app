@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/gruppenphase.dart';
 import 'package:pongstrong/models/tabellen.dart' as tabellen;
-import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
@@ -25,48 +23,38 @@ class TeamsView extends StatelessWidget {
       );
     }
 
-    return StreamBuilder<Gruppenphase?>(
-      stream: FirestoreService().gruppenphaseStream(
-        tournamentId: tournamentData.currentTournamentId,
-      ),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    final gruppenphase = tournamentData.gruppenphase;
+    if (gruppenphase.groups.isEmpty) {
+      return const Center(
+        child: Text(
+          'Keine Gruppendaten verfügbar',
+          style: TextStyle(fontSize: 18),
+        ),
+      );
+    }
 
-        final gruppenphase = snapshot.data;
-        if (gruppenphase == null || gruppenphase.groups.isEmpty) {
-          return const Center(
-            child: Text(
-              'Keine Gruppendaten verfügbar',
-              style: TextStyle(fontSize: 18),
-            ),
-          );
-        }
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isLargeScreen = screenWidth > 900;
 
-        final screenWidth = MediaQuery.of(context).size.width;
-        final isLargeScreen = screenWidth > 900;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: List.generate(
-              gruppenphase.groups.length,
-              (groupIndex) => Padding(
-                padding: const EdgeInsets.only(bottom: 24.0),
-                child: _GroupOverview(
-                  groupIndex: groupIndex,
-                  matches: gruppenphase.groups[groupIndex],
-                  table: groupIndex < tournamentData.tabellen.tables.length
-                      ? tournamentData.tabellen.tables[groupIndex]
-                      : [],
-                  isLargeScreen: isLargeScreen,
-                ),
-              ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: List.generate(
+          gruppenphase.groups.length,
+          (groupIndex) => Padding(
+            padding: const EdgeInsets.only(bottom: 24.0),
+            child: _GroupOverview(
+              key: ValueKey('group_$groupIndex'),
+              groupIndex: groupIndex,
+              matches: gruppenphase.groups[groupIndex],
+              table: groupIndex < tournamentData.tabellen.tables.length
+                  ? tournamentData.tabellen.tables[groupIndex]
+                  : [],
+              isLargeScreen: isLargeScreen,
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -78,6 +66,7 @@ class _GroupOverview extends StatelessWidget {
   final bool isLargeScreen;
 
   const _GroupOverview({
+    super.key,
     required this.groupIndex,
     required this.matches,
     required this.table,
@@ -212,6 +201,7 @@ class _GroupOverview extends StatelessWidget {
                 final team2Name = team2?.name ?? 'Team 2';
 
                 return _MatchCard(
+                  key: ValueKey(match.id),
                   matchIndex: index + 1,
                   match: match,
                   team1Name: team1Name,
@@ -382,6 +372,7 @@ class _MatchCard extends StatelessWidget {
   final VoidCallback? onEditTap;
 
   const _MatchCard({
+    super.key,
     required this.matchIndex,
     required this.match,
     required this.team1Name,

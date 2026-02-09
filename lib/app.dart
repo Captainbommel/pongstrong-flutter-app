@@ -66,7 +66,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final isLargeScreen = MediaQuery.of(context).size.width > 940;
+    final isLargeScreen = MediaQuery.sizeOf(context).width > 940;
 
     return isLargeScreen
         ? _buildDesktopShell(context)
