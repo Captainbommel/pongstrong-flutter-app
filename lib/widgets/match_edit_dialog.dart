@@ -98,19 +98,46 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
               ),
               const SizedBox(height: 16),
             ],
+            // Team names row
             Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
-                    child: _teamColumn(widget.team1Name, _score1Controller)),
-                const Padding(
-                  padding: EdgeInsets.only(left: 16, right: 16, bottom: 14),
-                  child: Text(':',
-                      style:
-                          TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    widget.team1Name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
+                const SizedBox(width: 48),
                 Expanded(
-                    child: _teamColumn(widget.team2Name, _score2Controller)),
+                  child: Text(
+                    widget.team2Name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Score inputs row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 80,
+                  child: _scoreField(_score1Controller),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    ':',
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                SizedBox(
+                  width: 80,
+                  child: _scoreField(_score2Controller),
+                ),
               ],
             ),
           ],
@@ -136,27 +163,19 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
     );
   }
 
-  Widget _teamColumn(String name, TextEditingController controller) {
-    return Column(
-      children: [
-        Text(name,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(vertical: 12),
-          ),
-          validator: (value) =>
-              (value == null || value.isEmpty) ? 'Erforderlich' : null,
-        ),
-      ],
+  Widget _scoreField(TextEditingController controller) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      textAlign: TextAlign.center,
+      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      decoration: const InputDecoration(
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(vertical: 12),
+      ),
+      validator: (value) =>
+          (value == null || value.isEmpty) ? 'Erforderlich' : null,
     );
   }
 
