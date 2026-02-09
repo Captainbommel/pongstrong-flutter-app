@@ -98,45 +98,69 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
               ),
               const SizedBox(height: 16),
             ],
-            // Team names row
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    widget.team1Name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(width: 48),
-                Expanded(
-                  child: Text(
-                    widget.team2Name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Score inputs row
+            // Team names and scores in aligned columns
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 80,
-                  child: _scoreField(_score1Controller),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    ':',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                // Team 1 column
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        widget.team1Name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 12),
+                      _scoreField(_score1Controller),
+                    ],
                   ),
                 ),
-                SizedBox(
-                  width: 80,
-                  child: _scoreField(_score2Controller),
+                // Separator
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24), // Align with team names
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: const Text(
+                          ':',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: GroupPhaseColors.cupred,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Team 2 column
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        widget.team2Name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 12),
+                      _scoreField(_score2Controller),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -169,10 +193,26 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       textAlign: TextAlign.center,
-      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(vertical: 12),
+      style: const TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.bold,
+        color: GroupPhaseColors.cupred,
+      ),
+      decoration: InputDecoration(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: GroupPhaseColors.steelblue),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: GroupPhaseColors.cupred,
+            width: 2,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+        filled: true,
+        fillColor: Colors.grey.shade50,
       ),
       validator: (value) =>
           (value == null || value.isEmpty) ? 'Erforderlich' : null,

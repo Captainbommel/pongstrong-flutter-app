@@ -56,12 +56,6 @@ class MobileDrawer extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(
-            height: 20,
-            thickness: 5,
-            indent: 0,
-            color: FieldColors.springgreen,
-          ),
           if (showGroupPhase)
             ListTile(
               title: const Text('Gruppenphase'),

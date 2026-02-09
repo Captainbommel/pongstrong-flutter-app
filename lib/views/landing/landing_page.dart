@@ -184,20 +184,27 @@ class _LandingPageState extends State<LandingPage> {
           flex: 4,
           child: Container(
             color: Colors.white,
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(48.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildUserInfo(isLarge: true),
-                    const SizedBox(height: 48),
-                    _buildTournamentSelection(isLarge: true),
-                    const SizedBox(height: 32),
-                    _buildCreateTournamentButton(isLarge: true),
-                  ],
+            child: Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(48.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildUserInfo(isLarge: true),
+                          const SizedBox(height: 48),
+                          _buildTournamentSelection(isLarge: true),
+                          const SizedBox(height: 32),
+                          _buildCreateTournamentButton(isLarge: true),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                _buildFooter(isLarge: true),
+              ],
             ),
           ),
         ),
@@ -247,12 +254,43 @@ class _LandingPageState extends State<LandingPage> {
                 const SizedBox(height: 24),
                 _buildCreateTournamentButton(isLarge: false),
                 const SizedBox(height: 32),
-                _buildFeaturesList(),
+                // _buildFeaturesList(),
                 const SizedBox(height: 24),
+                _buildFooter(isLarge: false),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFooter({required bool isLarge}) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        vertical: isLarge ? 12 : 16,
+        horizontal: 16,
+      ),
+      child: Center(
+        child: TextButton(
+          onPressed: () {
+            // TODO: Navigate to impressum/legal page
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Impressum - Pongstrong Tournament Manager'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+          child: Text(
+            'Impressum & Datenschutz',
+            style: TextStyle(
+              fontSize: isLarge ? 10 : 12,
+              color: Colors.grey.shade600,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
       ),
     );
   }

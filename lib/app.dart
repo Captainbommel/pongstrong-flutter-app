@@ -207,7 +207,16 @@ class _AppShellState extends State<AppShell> {
         !isEveryoneVsEveryone &&
         (isKnockoutsOnly || isKnockoutPhase);
 
-    // Build page list dynamically
+    // Build view list that matches the pages being displayed
+    final availableViews = <AppView>[
+      AppView.playingField,
+      if (showGroupPhase) AppView.groupPhase,
+      if (showTournamentTree) AppView.tournamentTree,
+      if (rulesEnabled) AppView.rules,
+      if (isAdmin) AppView.adminPanel,
+    ];
+
+    // Build page list dynamically (must match availableViews order)
     final pages = <Widget>[
       _buildPageWithHint(const PlayingFieldView(), showHint: true),
       if (showGroupPhase) const SingleChildScrollView(child: TeamsView()),
@@ -229,7 +238,11 @@ class _AppShellState extends State<AppShell> {
     final effectiveView = (!isAdmin && targetView == AppView.adminPanel)
         ? AppView.playingField
         : targetView;
-    final currentPage = AppState.pageIndexFromView(effectiveView);
+
+    // Calculate actual page index based on which pages are currently shown
+    final currentPage = availableViews.contains(effectiveView)
+        ? availableViews.indexOf(effectiveView)
+        : 0; // Default to playing field if view not available
 
     if (_pageController.hasClients &&
         _pageController.page?.round() != currentPage) {
@@ -256,7 +269,10 @@ class _AppShellState extends State<AppShell> {
         controller: _pageController,
         physics: _isTreeExploring ? const NeverScrollableScrollPhysics() : null,
         onPageChanged: (index) {
-          appState.setViewFromPageIndex(index);
+          // Map page index back to view using the same availableViews list
+          if (index >= 0 && index < availableViews.length) {
+            appState.setView(availableViews[index]);
+          }
           // Reset explore mode when swiping away from tree
           if (_isTreeExploring) {
             setState(() => _isTreeExploring = false);
