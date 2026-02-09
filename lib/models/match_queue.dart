@@ -46,40 +46,30 @@ class MatchQueue {
     return false;
   }
 
-  //TODO: Why is this so difficult? Check my Go implementation for reference to fix this!
-
   // nextMatches returns all Matches with unoccupied table that are next in line
   List<Match> nextMatches() {
     final matches = <Match>[];
-    final tables = <int>[];
+    final tables = <int>{};
 
     for (int i = 0; i < waiting.length; i++) {
       if (waiting[i].isNotEmpty &&
-          !tables.contains(waiting[i][0].tischNr) &&
-          isFree(waiting[i][0].tischNr)) {
+          isFree(waiting[i][0].tischNr) &&
+          !tables.contains(waiting[i][0].tischNr)) {
         tables.add(waiting[i][0].tischNr);
         matches.add(waiting[i][0]);
       }
     }
-
     return matches;
   }
 
   // nextNextMatches returns all Matches with occupied table that are next in line
   List<Match> nextNextMatches() {
     final matches = <Match>[];
-    final tables = <int>[];
-
     for (int i = 0; i < waiting.length; i++) {
-      for (int j = 0; j < waiting[i].length; j++) {
-        if (!isFree(waiting[i][j].tischNr) &&
-            !tables.contains(waiting[i][j].tischNr)) {
-          matches.add(waiting[i][j]);
-          tables.add(waiting[i][j].tischNr);
-        }
+      if (waiting[i].isNotEmpty && !isFree(waiting[i][0].tischNr)) {
+        matches.add(waiting[i][0]);
       }
     }
-
     return matches;
   }
 
