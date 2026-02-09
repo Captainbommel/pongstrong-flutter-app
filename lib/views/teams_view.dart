@@ -151,137 +151,155 @@ class _GroupOverview extends StatelessWidget {
   }
 
   Widget _buildMatchesList(BuildContext context) {
-    final data = Provider.of<TournamentDataState>(context, listen: false);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: GroupPhaseColors.steelblue.withAlpha(50),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: GroupPhaseColors.steelblue.withAlpha(100),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              color: GroupPhaseColors.grouppurple.withAlpha(150),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(6),
-              ),
-            ),
-            child: const Text(
-              'Spiele',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
+    // Use Selector to only rebuild when matches for this group change
+    return Selector<TournamentDataState, List<Match>>(
+      selector: (_, state) => matches,
+      builder: (context, currentMatches, child) {
+        return Container(
+          decoration: BoxDecoration(
+            color: GroupPhaseColors.steelblue.withAlpha(50),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: GroupPhaseColors.steelblue.withAlpha(100),
+              width: 2,
             ),
           ),
-          Builder(builder: (context) {
-            final isAdmin =
-                Provider.of<AuthState>(context, listen: false).isAdmin;
-            return ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(8),
-              itemCount: matches.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final match = matches[index];
-                final team1 = data.getTeam(match.teamId1);
-                final team2 = data.getTeam(match.teamId2);
-                final team1Name = team1?.name ?? 'Team 1';
-                final team2Name = team2?.name ?? 'Team 2';
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: GroupPhaseColors.grouppurple.withAlpha(150),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(6),
+                    topRight: Radius.circular(6),
+                  ),
+                ),
+                child: const Text(
+                  'Spiele',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Builder(builder: (context) {
+                final data =
+                    Provider.of<TournamentDataState>(context, listen: false);
+                final isAdmin =
+                    Provider.of<AuthState>(context, listen: false).isAdmin;
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(8),
+                  itemCount: currentMatches.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final match = currentMatches[index];
+                    // Pre-fetch team names once for caching
+                    final team1 = data.getTeam(match.teamId1);
+                    final team2 = data.getTeam(match.teamId2);
+                    final team1Name = team1?.name ?? 'Team 1';
+                    final team2Name = team2?.name ?? 'Team 2';
 
-                return _MatchCard(
-                  key: ValueKey(match.id),
-                  matchIndex: index + 1,
-                  match: match,
-                  team1Name: team1Name,
-                  team2Name: team2Name,
-                  onEditTap: isAdmin && match.done
-                      ? () => _onEditGroupMatch(
-                          context, match, team1Name, team2Name, groupIndex)
-                      : null,
+                    return _MatchCard(
+                      key: ValueKey(match.id),
+                      matchIndex: index + 1,
+                      match: match,
+                      team1Name: team1Name,
+                      team2Name: team2Name,
+                      onEditTap: isAdmin && match.done
+                          ? () => _onEditGroupMatch(
+                              context, match, team1Name, team2Name, groupIndex)
+                          : null,
+                    );
+                  },
                 );
-              },
-            );
-          }),
-        ],
-      ),
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildTable(BuildContext context) {
-    final data = Provider.of<TournamentDataState>(context, listen: false);
+    // Use Selector to only rebuild when this specific group's table changes
+    return Selector<TournamentDataState, List<tabellen.TableRow>>(
+      selector: (_, state) => groupIndex < state.tabellen.tables.length
+          ? state.tabellen.tables[groupIndex]
+          : [],
+      builder: (context, currentTable, child) {
+        final data = Provider.of<TournamentDataState>(context, listen: false);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: GroupPhaseColors.steelblue.withAlpha(50),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: GroupPhaseColors.steelblue.withAlpha(100),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              color: GroupPhaseColors.grouppurple.withAlpha(150),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(6),
-              ),
-            ),
-            child: const Text(
-              'Tabelle',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
+        return Container(
+          decoration: BoxDecoration(
+            color: GroupPhaseColors.steelblue.withAlpha(50),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: GroupPhaseColors.steelblue.withAlpha(100),
+              width: 2,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Table(
-              border: TableBorder.all(
-                color: GroupPhaseColors.steelblue,
-                width: 1.5,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: GroupPhaseColors.grouppurple.withAlpha(150),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(6),
+                    topRight: Radius.circular(6),
+                  ),
+                ),
+                child: const Text(
+                  'Tabelle',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-              columnWidths: const {
-                0: FlexColumnWidth(3),
-                1: FlexColumnWidth(1.5),
-                2: FlexColumnWidth(1.5),
-                3: FlexColumnWidth(1.5),
-              },
-              children: [
-                _tableHeaderRow(),
-                ...table.map((row) {
-                  final team = data.getTeam(row.teamId);
-                  return _tableDataRow(
-                    team?.name ?? 'Team',
-                    row.punkte.toString(),
-                    row.differenz.toString(),
-                    row.becher.toString(),
-                  );
-                }),
-              ],
-            ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Table(
+                  border: TableBorder.all(
+                    color: GroupPhaseColors.steelblue,
+                    width: 1.5,
+                  ),
+                  columnWidths: const {
+                    0: FlexColumnWidth(3),
+                    1: FlexColumnWidth(1.5),
+                    2: FlexColumnWidth(1.5),
+                    3: FlexColumnWidth(1.5),
+                  },
+                  children: [
+                    _tableHeaderRow(),
+                    ...currentTable.map((row) {
+                      final team = data.getTeam(row.teamId);
+                      return _tableDataRow(
+                        team?.name ?? 'Team',
+                        row.punkte.toString(),
+                        row.differenz.toString(),
+                        row.becher.toString(),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

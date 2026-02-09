@@ -416,6 +416,9 @@ class Knockouts {
         'super': superCup.toJson(),
       };
 
+  /// Creates a deep copy of this Knockouts.
+  Knockouts clone() => Knockouts.fromJson(toJson());
+
   factory Knockouts.fromJson(Map<String, dynamic> json) => Knockouts(
         champions: Champions.fromJson(json['champions'] ?? []),
         europa: Europa.fromJson(json['europa'] ?? []),

@@ -46,6 +46,9 @@ class Gruppenphase {
       .map((group) => {'matches': group.map((m) => m.toJson()).toList()})
       .toList();
 
+  /// Creates a deep copy of this Gruppenphase.
+  Gruppenphase clone() => Gruppenphase.fromJson(toJson());
+
   static Gruppenphase fromJson(List<dynamic> json) => Gruppenphase(
         groups: json
             .map((group) => (group['matches'] as List)

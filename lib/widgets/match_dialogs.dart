@@ -107,14 +107,17 @@ Future<dynamic> finnishMatchDialog(
                 }
 
                 // Update match with scores and mark as done
-                match.score1 = int.tryParse(cups1.text) ?? 0;
-                match.score2 = int.tryParse(cups2.text) ?? 0;
-                match.done = true;
+                final score1 = int.tryParse(cups1.text) ?? 0;
+                final score2 = int.tryParse(cups2.text) ?? 0;
 
                 // Remove match from playing queue through TournamentDataState
                 final tournamentData =
                     Provider.of<TournamentDataState>(context, listen: false);
-                final success = await tournamentData.finishMatch(match.id);
+                final success = await tournamentData.finishMatch(
+                  match.id,
+                  score1: score1,
+                  score2: score2,
+                );
 
                 if (!context.mounted) return;
 

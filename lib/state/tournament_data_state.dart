@@ -4,13 +4,8 @@ import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/utils/app_logger.dart';
 
-// TODO: Consider adding explicit caching layer for frequently accessed data
-// While Firestore streams provide local caching, adding app-level caching for:
-// - Team lookups by ID
-// - Match lookups by ID
-// - Table rankings
-
 /// Holds the current tournament data loaded from Firestore
+/// with performance optimizations including caching for teams and tables
 class TournamentDataState extends ChangeNotifier {
   List<Team> _teams = [];
   MatchQueue _matchQueue = MatchQueue();
@@ -21,6 +16,15 @@ class TournamentDataState extends ChangeNotifier {
   bool _isKnockoutMode = false;
   String _tournamentStyle = 'groupsAndKnockouts';
   String? _selectedRuleset = 'bmt-cup';
+
+  // Performance optimization: Team lookup cache (O(1) instead of O(n))
+  Map<String, Team> _teamCache = {};
+
+  // Performance optimization: Tabellen caching to avoid unnecessary recalculation
+  String _tabellenHash = '';
+
+  // Performance optimization: Debounce timer for notifyListeners
+  Timer? _notifyTimer;
 
   // Stream subscriptions for real-time updates
   StreamSubscription? _groupPhaseSubscription;
@@ -80,9 +84,11 @@ class TournamentDataState extends ChangeNotifier {
       // Tournament exists but may be in setup phase (no game data yet)
       if (teams != null && matchQueue != null && groupPhase != null) {
         _teams = teams;
+        _rebuildTeamCache(); // Build O(1) lookup cache
         _matchQueue = matchQueue;
         _gruppenphase = groupPhase;
         _tabellen = evalGruppen(groupPhase);
+        _tabellenHash = _computeGruppenphaseHash(groupPhase);
         _knockouts = knockouts ?? Knockouts();
         _currentTournamentId = tournamentId;
         // Check if knockouts have been initialized to determine mode
@@ -171,8 +177,20 @@ class TournamentDataState extends ChangeNotifier {
         Logger.debug('Group phase updated from Firestore',
             tag: 'TournamentData');
         _gruppenphase = groupPhase;
-        _tabellen = evalGruppen(groupPhase);
-        notifyListeners();
+
+        // Only recalculate tables if match data actually changed
+        final newHash = _computeGruppenphaseHash(groupPhase);
+        if (newHash != _tabellenHash) {
+          Logger.debug('Recalculating tables due to match changes',
+              tag: 'TournamentData');
+          _tabellen = evalGruppen(groupPhase);
+          _tabellenHash = newHash;
+        } else {
+          Logger.debug('Using cached table calculations',
+              tag: 'TournamentData');
+        }
+
+        _notifyListenersDebounced();
       }
     }, onError: (e) {
       Logger.error('Error in group phase stream',
@@ -187,7 +205,7 @@ class TournamentDataState extends ChangeNotifier {
         Logger.debug('Match queue updated from Firestore',
             tag: 'TournamentData');
         _matchQueue = queue;
-        notifyListeners();
+        _notifyListenersDebounced();
       }
     }, onError: (e) {
       Logger.error('Error in match queue stream',
@@ -201,7 +219,7 @@ class TournamentDataState extends ChangeNotifier {
       if (knockouts != null) {
         Logger.debug('Knockouts updated from Firestore', tag: 'TournamentData');
         _knockouts = knockouts;
-        notifyListeners();
+        _notifyListenersDebounced();
       }
     }, onError: (e) {
       Logger.error('Error in knockouts stream',
@@ -220,17 +238,42 @@ class TournamentDataState extends ChangeNotifier {
   @override
   void dispose() {
     Logger.debug('Disposing TournamentDataState', tag: 'TournamentData');
+    _notifyTimer?.cancel();
     _cancelStreams();
     super.dispose();
   }
 
-  /// Get team by ID
-  Team? getTeam(String teamId) {
-    try {
-      return _teams.firstWhere((t) => t.id == teamId);
-    } catch (e) {
-      return null;
+  /// Rebuild team cache for O(1) lookups
+  void _rebuildTeamCache() {
+    _teamCache = {for (var team in _teams) team.id: team};
+    Logger.debug('Rebuilt team cache with ${_teamCache.length} teams',
+        tag: 'TournamentData');
+  }
+
+  /// Compute hash of gruppenphase state to detect actual changes
+  String _computeGruppenphaseHash(Gruppenphase phase) {
+    final buffer = StringBuffer();
+    for (var group in phase.groups) {
+      for (var match in group) {
+        if (match.done) {
+          buffer.write('${match.id}:${match.score1}:${match.score2}|');
+        }
+      }
     }
+    return buffer.toString();
+  }
+
+  /// Debounced notifyListeners to prevent rapid-fire updates
+  void _notifyListenersDebounced() {
+    _notifyTimer?.cancel();
+    _notifyTimer = Timer(const Duration(milliseconds: 100), () {
+      notifyListeners();
+    });
+  }
+
+  /// Get team by ID - O(1) cached lookup
+  Team? getTeam(String teamId) {
+    return _teamCache[teamId];
   }
 
   /// Get next matches (waiting and available to play)
@@ -284,7 +327,7 @@ class TournamentDataState extends ChangeNotifier {
   }
 
   /// Remove a match from playing queue and update standings
-  Future<bool> finishMatch(String matchId) async {
+  Future<bool> finishMatch(String matchId, {int? score1, int? score2}) async {
     Logger.info('Finishing match: $matchId', tag: 'TournamentData');
     // find the match in playing
     final match = _matchQueue.playing.firstWhere(
@@ -297,11 +340,21 @@ class TournamentDataState extends ChangeNotifier {
       return false; // match not found
     }
 
+    // Update scores if provided (from dialog)
+    if (score1 != null && score2 != null) {
+      match.score1 = score1;
+      match.score2 = score2;
+      match.done = true;
+    }
+
     // validate score from queue
+    Logger.debug(
+        'Validating match $matchId: score1=${match.score1} (${match.score1.runtimeType}), score2=${match.score2} (${match.score2.runtimeType})',
+        tag: 'TournamentData');
     final points = match.getPoints();
     if (points == null) {
       Logger.warning(
-          'Invalid score for match $matchId - not updating standings',
+          'Invalid score for match $matchId: ${match.score1}-${match.score2} - not updating standings',
           tag: 'TournamentData');
       return false; // invalid score
     }
@@ -454,6 +507,7 @@ class TournamentDataState extends ChangeNotifier {
 
     // Store previous state for rollback
     final previousMatchQueue = _matchQueue.clone();
+    final previousKnockouts = _knockouts.clone();
 
     // Remove from playing
     _matchQueue.removeFromPlaying(matchId);
@@ -485,6 +539,7 @@ class TournamentDataState extends ChangeNotifier {
           tag: 'TournamentData', error: e);
       // Revert local changes on Firestore save failure
       _matchQueue = previousMatchQueue;
+      _knockouts = previousKnockouts;
       Logger.warning('Reverted local changes for match: $matchId',
           tag: 'TournamentData');
       return false;
@@ -493,9 +548,7 @@ class TournamentDataState extends ChangeNotifier {
 
   /// Transition from group phase to knockout phase
   /// This will evaluate the group standings and populate the knockout structure
-  Future<bool> transitionToKnockouts({int numberOfGroups = 8}) async {
-    Logger.info('Transitioning to knockouts with $numberOfGroups groups',
-        tag: 'TournamentData');
+  Future<bool> transitionToKnockouts({int? numberOfGroups}) async {
     try {
       final service = FirestoreService();
 
@@ -509,13 +562,24 @@ class TournamentDataState extends ChangeNotifier {
         return false;
       }
 
+      // Auto-detect number of groups if not provided
+      final groupCount = numberOfGroups ?? groupPhase.groups.length;
+
+      Logger.info('Transitioning to knockouts with $groupCount groups',
+          tag: 'TournamentData');
+
       // Calculate final standings
       final tabellen = evalGruppen(groupPhase);
 
       // Evaluate and create knockouts based on number of groups
-      final knockouts = numberOfGroups == 8
+      final knockouts = groupCount == 8
           ? evaluateGroups8(tabellen)
           : evaluateGroups6(tabellen);
+
+      // Store previous state for rollback
+      final previousKnockouts = _knockouts.clone();
+      final previousMatchQueue = _matchQueue.clone();
+      final previousIsKnockoutMode = _isKnockoutMode;
 
       // Clear match queue and fill with knockout matches
       _matchQueue = MatchQueue(
@@ -528,24 +592,36 @@ class TournamentDataState extends ChangeNotifier {
           tag: 'TournamentData');
 
       // Save knockouts and match queue to Firestore
-      await service.saveKnockouts(knockouts,
-          tournamentId: _currentTournamentId);
-      await service.saveMatchQueue(_matchQueue,
-          tournamentId: _currentTournamentId);
+      try {
+        await service.saveKnockouts(knockouts,
+            tournamentId: _currentTournamentId);
+        await service.saveMatchQueue(_matchQueue,
+            tournamentId: _currentTournamentId);
 
-      Logger.info(
-        'Successfully transitioned to knockouts with $numberOfGroups groups',
-        tag: 'TournamentData',
-      );
+        Logger.info(
+          'Successfully transitioned to knockouts with $groupCount groups',
+          tag: 'TournamentData',
+        );
 
-      // Update local state
-      _knockouts = knockouts;
-      _isKnockoutMode = true;
-      notifyListeners();
+        // Update local state
+        _knockouts = knockouts;
+        _isKnockoutMode = true;
+        notifyListeners();
 
-      return true;
+        return true;
+      } catch (e) {
+        Logger.error('Error transitioning to knockouts',
+            tag: 'TournamentData', error: e);
+        // Revert local changes on Firestore save failure
+        _knockouts = previousKnockouts;
+        _matchQueue = previousMatchQueue;
+        _isKnockoutMode = previousIsKnockoutMode;
+        Logger.warning('Reverted local changes for knockout transition',
+            tag: 'TournamentData');
+        return false;
+      }
     } catch (e) {
-      Logger.error('Error transitioning to knockouts',
+      Logger.error('Error in knockout transition preparation',
           tag: 'TournamentData', error: e);
       return false;
     }
@@ -615,27 +691,44 @@ class TournamentDataState extends ChangeNotifier {
       Logger.info('Updated match $matchId scores to $newScore1-$newScore2',
           tag: 'TournamentData');
 
+      // Store previous state for rollback
+      final previousGruppenphase = _gruppenphase.clone();
+      final previousTabellen = _tabellen.clone();
+
       // Recalculate tables
       final updatedTables = evalGruppen(groupPhase);
 
       // Save to Firestore
-      await service.saveGruppenphase(
-        groupPhase,
-        tournamentId: _currentTournamentId,
-      );
-      await service.saveTabellen(
-        updatedTables,
-        tournamentId: _currentTournamentId,
-      );
+      try {
+        await service.saveGruppenphase(
+          groupPhase,
+          tournamentId: _currentTournamentId,
+        );
+        await service.saveTabellen(
+          updatedTables,
+          tournamentId: _currentTournamentId,
+        );
 
-      Logger.info('Saved updated group phase and tables',
-          tag: 'TournamentData');
+        Logger.info('Saved updated group phase and tables',
+            tag: 'TournamentData');
 
-      // Update local state
-      _tabellen = updatedTables;
-      notifyListeners();
+        // Update local state
+        _gruppenphase = groupPhase;
+        _tabellen = updatedTables;
+        _tabellenHash = _computeGruppenphaseHash(groupPhase);
+        notifyListeners();
 
-      return true;
+        return true;
+      } catch (e) {
+        Logger.error('Error saving group match edit to Firestore',
+            tag: 'TournamentData', error: e);
+        // Revert local changes on Firestore save failure
+        _gruppenphase = previousGruppenphase;
+        _tabellen = previousTabellen;
+        Logger.warning('Reverted local changes for match: $matchId',
+            tag: 'TournamentData');
+        return false;
+      }
     } catch (e) {
       Logger.error('Error editing group match',
           tag: 'TournamentData', error: e);
@@ -676,6 +769,10 @@ class TournamentDataState extends ChangeNotifier {
       Logger.info('Updated match $matchId scores to $newScore1-$newScore2',
           tag: 'TournamentData');
 
+      // Store previous state for rollback
+      final previousKnockouts = _knockouts.clone();
+      final previousMatchQueue = _matchQueue.clone();
+
       // Recalculate knockout progression
       _knockouts.update();
 
@@ -683,21 +780,32 @@ class TournamentDataState extends ChangeNotifier {
       _matchQueue.updateKnockQueue(_knockouts);
 
       // Save to Firestore
-      await service.saveKnockouts(
-        _knockouts,
-        tournamentId: _currentTournamentId,
-      );
-      await service.saveMatchQueue(
-        _matchQueue,
-        tournamentId: _currentTournamentId,
-      );
+      try {
+        await service.saveKnockouts(
+          _knockouts,
+          tournamentId: _currentTournamentId,
+        );
+        await service.saveMatchQueue(
+          _matchQueue,
+          tournamentId: _currentTournamentId,
+        );
 
-      Logger.info('Saved updated knockouts and match queue',
-          tag: 'TournamentData');
+        Logger.info('Saved updated knockouts and match queue',
+            tag: 'TournamentData');
 
-      notifyListeners();
+        notifyListeners();
 
-      return true;
+        return true;
+      } catch (e) {
+        Logger.error('Error saving knockout match edit to Firestore',
+            tag: 'TournamentData', error: e);
+        // Revert local changes on Firestore save failure
+        _knockouts = previousKnockouts;
+        _matchQueue = previousMatchQueue;
+        Logger.warning('Reverted local changes for match: $matchId',
+            tag: 'TournamentData');
+        return false;
+      }
     } catch (e) {
       Logger.error('Error editing knockout match',
           tag: 'TournamentData', error: e);
