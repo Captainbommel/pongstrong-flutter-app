@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'dart:convert';
+import 'package:pongstrong/state/tournament_data_state.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'dart:html' as html;
 
 /// Card widget for import/export functionality
 class ImportExportCard extends StatelessWidget {
@@ -13,6 +18,37 @@ class ImportExportCard extends StatelessWidget {
     this.onExportJson,
     this.isCompact = false,
   });
+
+  void _exportTournamentState(BuildContext context) async {
+    try {
+      // Retrieve the tournament state using Provider
+      final tournamentState =
+          Provider.of<TournamentDataState>(context, listen: false).toJson();
+
+      // Convert the state to JSON
+      final jsonString = jsonEncode(tournamentState);
+
+      // Create a Blob and trigger a download
+      final blob = html.Blob([jsonString], 'application/json');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..target = 'blank'
+        ..download = 'tournament_state.json';
+      anchor.click();
+      html.Url.revokeObjectUrl(url);
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Tournament state downloaded as JSON file!')),
+      );
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to export tournament state: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +101,7 @@ class ImportExportCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: onExportJson,
+                    onPressed: () => _exportTournamentState(context),
                     icon: const Icon(Icons.download),
                     label: const Text('JSON Export'),
                     style: ElevatedButton.styleFrom(

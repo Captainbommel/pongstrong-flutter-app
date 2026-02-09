@@ -812,4 +812,21 @@ class TournamentDataState extends ChangeNotifier {
       return false;
     }
   }
+
+  // TODO: Ensure compatibility with the import function in the future
+
+  /// Convert the tournament state to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'teams': _teams.map((team) => team.toJson()).toList(),
+      'matchQueue': _matchQueue.toJson(),
+      'gruppenphase': _gruppenphase.toJson(),
+      'tabellen': _tabellen.toJson(),
+      'knockouts': _knockouts.toJson(),
+      'currentTournamentId': _currentTournamentId,
+      'isKnockoutMode': _isKnockoutMode,
+      'tournamentStyle': _tournamentStyle,
+      'selectedRuleset': _selectedRuleset,
+    };
+  }
 }
