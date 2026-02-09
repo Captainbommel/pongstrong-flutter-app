@@ -123,7 +123,6 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
     final tournamentId = await _firestoreService.createTournament(
       tournamentName: _tournamentNameController.text.trim(),
       creatorId: authState.userId!,
-      creatorEmail: authState.userEmail!,
       password: _passwordController.text,
     );
 
@@ -155,7 +154,6 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
     final tournamentId = await _firestoreService.createTournament(
       tournamentName: _tournamentNameController.text.trim(),
       creatorId: authState.userId!,
-      creatorEmail: authState.userEmail!,
       password: _passwordController.text,
     );
 

@@ -46,6 +46,8 @@ class MatchQueue {
     return false;
   }
 
+  //TODO: Why is this so difficult? Check my Go implementation for reference to fix this!
+
   // nextMatches returns all Matches with unoccupied table that are next in line
   List<Match> nextMatches() {
     final matches = <Match>[];

@@ -552,7 +552,6 @@ mixin TournamentManagementService
   Future<String?> createTournament({
     required String tournamentName,
     required String creatorId,
-    required String creatorEmail,
     required String password,
   }) async {
     try {
@@ -572,7 +571,6 @@ mixin TournamentManagementService
           .set({
         'name': tournamentName,
         'creatorId': creatorId,
-        'creatorEmail': creatorEmail,
         'password': PasswordHash.hash(password), // Hashed for security
         'participants': [creatorId], // Creator is automatically a participant
         'phase': 'setup', // 'setup', 'groups' or 'knockouts'
@@ -674,7 +672,7 @@ mixin TournamentManagementService
     }
   }
 
-  /// Gets tournament info (name, creatorEmail, etc.)
+  /// Gets tournament info (name, creatorId, etc.)
   Future<Map<String, dynamic>?> getTournamentInfo(String tournamentId) async {
     try {
       final doc = await firestore
@@ -689,7 +687,6 @@ mixin TournamentManagementService
       final result = {
         'name': data['name'] ?? tournamentId,
         'creatorId': data['creatorId'],
-        'creatorEmail': data['creatorEmail'],
         'phase': data['phase'] ?? 'groups',
         'tournamentStyle': data['tournamentStyle'] ?? 'groupsAndKnockouts',
         'createdAt': data['createdAt'],
