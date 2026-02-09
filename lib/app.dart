@@ -227,7 +227,12 @@ class _AppShellState extends State<AppShell> {
 
     if (_pageController.hasClients &&
         _pageController.page?.round() != currentPage) {
-      _pageController.jumpToPage(currentPage.clamp(0, pageCount - 1));
+      // Defer jumpToPage until after build to avoid setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(currentPage.clamp(0, pageCount - 1));
+        }
+      });
     }
 
     return Scaffold(
