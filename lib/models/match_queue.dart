@@ -49,9 +49,13 @@ class MatchQueue {
   // nextMatches returns all Matches with unoccupied table that are next in line
   List<Match> nextMatches() {
     final matches = <Match>[];
+    final tables = <int>[];
 
     for (int i = 0; i < waiting.length; i++) {
-      if (waiting[i].isNotEmpty && isFree(waiting[i][0].tischNr)) {
+      if (waiting[i].isNotEmpty &&
+          !tables.contains(waiting[i][0].tischNr) &&
+          isFree(waiting[i][0].tischNr)) {
+        tables.add(waiting[i][0].tischNr);
         matches.add(waiting[i][0]);
       }
     }
@@ -62,10 +66,15 @@ class MatchQueue {
   // nextNextMatches returns all Matches with occupied table that are next in line
   List<Match> nextNextMatches() {
     final matches = <Match>[];
+    final tables = <int>[];
 
     for (int i = 0; i < waiting.length; i++) {
-      if (waiting[i].isNotEmpty && !isFree(waiting[i][0].tischNr)) {
-        matches.add(waiting[i][0]);
+      for (int j = 0; j < waiting[i].length; j++) {
+        if (!isFree(waiting[i][j].tischNr) &&
+            !tables.contains(waiting[i][j].tischNr)) {
+          matches.add(waiting[i][j]);
+          tables.add(waiting[i][j].tischNr);
+        }
       }
     }
 
@@ -156,22 +165,13 @@ class MatchQueue {
   // formMatchQueue creates a MatchQueue out of Gruppenphase
   static MatchQueue create(Gruppenphase gruppenphase) {
     final queue = MatchQueue(
-      waiting: List.generate(6, (_) => <Match>[]),
+      waiting: List.generate(gruppenphase.groups.length, (_) => <Match>[]),
       playing: [],
     );
 
-    const pattern = [
-      [1, 2, 5, 6, 3, 4],
-      [3, 4, 1, 2, 5, 6],
-      [5, 6, 3, 4, 1, 2],
-      [1, 2, 5, 6, 3, 4],
-      [3, 4, 1, 2, 5, 6],
-      [5, 6, 3, 4, 1, 2],
-    ];
-
-    for (int i = 0; i < pattern[0].length; i++) {
-      for (int j = 0; j < gruppenphase.groups.length; j++) {
-        queue.waiting[pattern[j][i] - 1].add(gruppenphase.groups[j][i]);
+    for (int i = 0; i < gruppenphase.groups.length; i++) {
+      for (var match in gruppenphase.groups[i]) {
+        queue.waiting[i].add(match);
       }
     }
 
