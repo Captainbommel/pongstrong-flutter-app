@@ -51,7 +51,11 @@ class MatchQueue {
     final matches = <Match>[];
     final tables = <int>{};
 
-    for (int i = 0; i < waiting.length; i++) {
+    // Create a list of indices sorted by the length of their waiting lists (descending)
+    final rankedIndices = List.generate(waiting.length, (i) => i)
+      ..sort((a, b) => waiting[b].length.compareTo(waiting[a].length));
+
+    for (final i in rankedIndices) {
       if (waiting[i].isNotEmpty &&
           isFree(waiting[i][0].tischNr) &&
           !tables.contains(waiting[i][0].tischNr)) {
@@ -59,6 +63,7 @@ class MatchQueue {
         matches.add(waiting[i][0]);
       }
     }
+
     return matches;
   }
 
