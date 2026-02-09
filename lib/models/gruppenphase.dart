@@ -1,3 +1,5 @@
+import 'package:pongstrong/models/configurations.dart';
+
 import 'match.dart';
 import 'groups.dart';
 
@@ -11,31 +13,21 @@ class Gruppenphase {
     final length = teamGroups.groups.length;
     final groups = List<List<Match>>.generate(length, (_) => []);
 
-    // use pairing pattern to generate matches
-    const pattern = [0, 1, 2, 3, 0, 2, 1, 3, 3, 0, 1, 2];
+    final matchPattern = Configurations.generateMatchPairings(4);
     for (int i = 0; i < length; i++) {
-      for (int j = 0; j < pattern.length; j += 2) {
+      for (int j = 0; j < matchPattern.length; j++) {
         groups[i].add(Match(
-          teamId1: teamGroups.groups[i][pattern[j]],
-          teamId2: teamGroups.groups[i][pattern[j + 1]],
-          id: 'g${i + 1}${(j ~/ 2) + 1}',
+          teamId1: teamGroups.groups[i][matchPattern[j][0]],
+          teamId2: teamGroups.groups[i][matchPattern[j][1]],
+          id: 'g${i + 1}${j + 1}',
         ));
       }
     }
 
-    // use table blueprint to set the matches desks
-    const blueprint = [
-      [1, 2, 3, 4, 5, 6],
-      [2, 3, 4, 5, 6, 1],
-      [3, 4, 5, 6, 1, 2],
-      [4, 5, 6, 1, 2, 3],
-      [5, 6, 1, 2, 3, 4],
-      [6, 1, 2, 3, 4, 5],
-    ];
-
-    for (int i = 0; i < blueprint[0].length; i++) {
+    final tablePattern = Configurations.generateTableConfiguration(6, 24, 6)!;
+    for (int i = 0; i < tablePattern[0].length; i++) {
       for (int j = 0; j < length; j++) {
-        groups[j][i].tischNr = blueprint[j][i];
+        groups[j][i].tischNr = tablePattern[j][i];
       }
     }
 
