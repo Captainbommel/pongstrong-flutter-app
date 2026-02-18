@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pongstrong/app.dart';
 import 'package:pongstrong/state/app_state.dart';
@@ -12,20 +13,20 @@ import 'package:pongstrong/utils/app_logger.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
-  // Initialize Flutter bindings
-  WidgetsFlutterBinding.ensureInitialized();
-
   Logger.info('App starting...', tag: 'Main');
 
+  WidgetsFlutterBinding.ensureInitialized();
+
   // Initialize Firebase
-  // TODO: Move Firebase config to environment variables or firebase_options.dart
+  await dotenv.load();
   await Firebase.initializeApp(
-    options: const FirebaseOptions(
-        apiKey: 'AIzaSyBL6N6HwgspjRLukoVpsK6axdwU0GITKqc',
-        appId: '1:21303267607:web:d0cb107c989a02f8712752',
-        messagingSenderId: '21303267607',
-        projectId: 'pong-strong'),
+    options: FirebaseOptions(
+        apiKey: dotenv.env['API_KEY']!,
+        appId: dotenv.env['APP_ID']!,
+        messagingSenderId: dotenv.env['MESSAGING_SENDER_ID']!,
+        projectId: dotenv.env['PROJECT_ID']!),
   );
+  dotenv.clean();
   Logger.info('Firebase initialized', tag: 'Main');
 
   // Get or create anonymous user
