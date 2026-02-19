@@ -513,4 +513,171 @@ void main() {
       expect(filledSlots, greaterThan(0));
     });
   });
+
+  // =========================================================================
+  // EDGE-CASE & ADDITIONAL TESTS
+  // =========================================================================
+
+  group('evaluate – invalid done matches', () {
+    test('does NOT add cups/differenz for done match with invalid scores', () {
+      // A match marked as done but with invalid scores (11-9 is not a valid
+      // result) should not affect standings at all — not points, not cups,
+      // not differenz.
+      final matches = [
+        Match(
+          teamId1: 'team1',
+          teamId2: 'team2',
+          score1: 11,
+          score2: 9,
+          done: true,
+        ),
+      ];
+
+      final table = evaluate(matches);
+      final t1 = table.firstWhere((r) => r.teamId == 'team1');
+      final t2 = table.firstWhere((r) => r.teamId == 'team2');
+
+      expect(t1.punkte, 0, reason: 'no points for invalid score');
+      expect(t1.becher, 0, reason: 'no cups for invalid score');
+      expect(t1.differenz, 0, reason: 'no differenz for invalid score');
+      expect(t2.punkte, 0);
+      expect(t2.becher, 0);
+      expect(t2.differenz, 0);
+    });
+
+    test('only valid done matches contribute to cups', () {
+      final matches = [
+        Match(
+          teamId1: 'team1',
+          teamId2: 'team2',
+          score1: 10,
+          score2: 5,
+          done: true,
+        ),
+        // Invalid match should be ignored entirely
+        Match(
+          teamId1: 'team1',
+          teamId2: 'team2',
+          score1: 15,
+          score2: 14,
+          done: true,
+        ),
+      ];
+
+      final table = evaluate(matches);
+      final t1 = table.firstWhere((r) => r.teamId == 'team1');
+
+      // Only the valid 10-5 match should count
+      expect(t1.punkte, 3);
+      expect(t1.becher, 10);
+      expect(t1.differenz, 5);
+    });
+  });
+
+  group('isValid – boundary edge cases', () {
+    test('rejects deathcup regular with 11+ opponent cups', () {
+      expect(isValid(-1, 11), false);
+      expect(isValid(11, -1), false);
+    });
+
+    test('accepts deathcup OT at exact boundary (opponent = 10)', () {
+      expect(isValid(-2, 10), true);
+      expect(isValid(10, -2), true);
+    });
+
+    test('rejects deathcup OT below boundary (opponent < 10)', () {
+      expect(isValid(-2, 9), false);
+      expect(isValid(9, -2), false);
+      expect(isValid(-2, 0), false);
+    });
+
+    test('rejects double deathcup', () {
+      expect(isValid(-1, -1), false);
+      expect(isValid(-2, -2), false);
+    });
+
+    test('rejects invalid negative scores', () {
+      expect(isValid(-3, 5), false);
+      expect(isValid(5, -3), false);
+      expect(isValid(-10, 5), false);
+    });
+
+    test('validates deathcup OT with high opponent score', () {
+      // In OT, the opponent could reach 16 or even 19 before deathcup
+      expect(isValid(-2, 16), true);
+      expect(isValid(-2, 19), true);
+      expect(isValid(16, -2), true);
+      expect(isValid(19, -2), true);
+    });
+  });
+
+  group('calculatePoints – additional score lines', () {
+    test('19 vs 16 is overtime win (not 1-on-1)', () {
+      final points = calculatePoints(19, 16);
+      expect(points, isNotNull);
+      expect(points!.$1, 2); // OT winner
+      expect(points.$2, 1); // OT loser
+    });
+
+    test('reverse direction: 16 vs 19', () {
+      final points = calculatePoints(16, 19);
+      expect(points, isNotNull);
+      expect(points!.$1, 1);
+      expect(points.$2, 2);
+    });
+
+    test('normal win at boundary: 10 vs 0', () {
+      final points = calculatePoints(10, 0);
+      expect(points, isNotNull);
+      expect(points!.$1, 3);
+      expect(points.$2, 0);
+    });
+
+    test('normal win at boundary: 10 vs 9', () {
+      final points = calculatePoints(10, 9);
+      expect(points, isNotNull);
+      expect(points!.$1, 3);
+      expect(points.$2, 0);
+    });
+
+    test('deathcup at boundary scores', () {
+      // Deathcup with 0 opponent cups
+      final p1 = calculatePoints(-1, 0);
+      expect(p1, isNotNull);
+      expect(p1!.$1, 4);
+
+      // Deathcup with exactly 10 opponent cups
+      final p2 = calculatePoints(-1, 10);
+      expect(p2, isNotNull);
+      expect(p2!.$1, 4);
+    });
+
+    test('deathcup OT at boundary: -2 vs 10', () {
+      final points = calculatePoints(-2, 10);
+      expect(points, isNotNull);
+      expect(points!.$1, 3);
+      expect(points.$2, 1);
+    });
+  });
+
+  group('evaluate – deathcup OT cups conversion', () {
+    test('deathcup OT converts to 16 cups in standings', () {
+      final matches = [
+        Match(
+          teamId1: 'team1',
+          teamId2: 'team2',
+          score1: -2,
+          score2: 14,
+          done: true,
+        ),
+      ];
+
+      final table = evaluate(matches);
+      final t1 = table.firstWhere((r) => r.teamId == 'team1');
+
+      // -2 should be converted to 16 cups
+      expect(t1.becher, 16);
+      expect(t1.differenz, 2); // 16 - 14
+    });
+  });
 }

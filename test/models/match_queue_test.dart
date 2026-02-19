@@ -589,4 +589,159 @@ void main() {
       expect(original.playing[0].score1, 0);
     });
   });
+
+  // =========================================================================
+  // EDGE-CASE & ADDITIONAL TESTS
+  // =========================================================================
+
+  group('clearQueue', () {
+    test('removes all waiting and playing matches', () {
+      final queue = MatchQueue(
+        waiting: [
+          [Match(id: 'g11'), Match(id: 'g12')],
+          [Match(id: 'g21')],
+        ],
+        playing: [Match(id: 'p1')],
+      );
+
+      queue.clearQueue();
+
+      expect(queue.isEmpty(), true);
+      // Waiting slots should still exist (just empty)
+      expect(queue.waiting.length, 2);
+      expect(queue.waiting[0], isEmpty);
+      expect(queue.waiting[1], isEmpty);
+      expect(queue.playing, isEmpty);
+    });
+
+    test('clearQueue on already-empty queue is a no-op', () {
+      final queue = MatchQueue(
+        waiting: [[], []],
+        playing: [],
+      );
+
+      queue.clearQueue();
+
+      expect(queue.isEmpty(), true);
+    });
+  });
+
+  group('isEmpty – default constructor', () {
+    test('default-constructed queue is empty', () {
+      final queue = MatchQueue();
+      expect(queue.isEmpty(), true);
+    });
+  });
+
+  group('switchPlaying – multi-group', () {
+    test('finds and moves match from second waiting group', () {
+      final queue = MatchQueue(
+        waiting: [
+          [Match(id: 'g11', tischNr: 1)],
+          [Match(id: 'g21', tischNr: 2)],
+        ],
+        playing: [],
+      );
+
+      final result = queue.switchPlaying('g21');
+
+      expect(result, true);
+      expect(queue.playing.length, 1);
+      expect(queue.playing[0].id, 'g21');
+      expect(queue.waiting[1], isEmpty);
+    });
+
+    test('finds and moves match from last waiting group', () {
+      final queue = MatchQueue(
+        waiting: [
+          [Match(id: 'g11', tischNr: 1)],
+          [Match(id: 'g21', tischNr: 2)],
+          [Match(id: 'g31', tischNr: 3)],
+        ],
+        playing: [],
+      );
+
+      final result = queue.switchPlaying('g31');
+
+      expect(result, true);
+      expect(queue.playing.length, 1);
+      expect(queue.playing[0].id, 'g31');
+    });
+  });
+
+  group('nextMatches – table contention', () {
+    test('returns only one match when all on same table', () {
+      final queue = MatchQueue(
+        waiting: [
+          [Match(id: 'g11', tischNr: 1)],
+          [Match(id: 'g21', tischNr: 1)],
+        ],
+        playing: [],
+      );
+
+      final next = queue.nextMatches();
+
+      expect(next.length, 1);
+    });
+
+    test('returns match per free table across groups', () {
+      final queue = MatchQueue(
+        waiting: [
+          [Match(id: 'g11', tischNr: 1)],
+          [Match(id: 'g21', tischNr: 2)],
+          [Match(id: 'g31', tischNr: 3)],
+        ],
+        playing: [],
+      );
+
+      final next = queue.nextMatches();
+
+      expect(next.length, 3);
+      // All on different tables
+      final tables = next.map((m) => m.tischNr).toSet();
+      expect(tables, {1, 2, 3});
+    });
+  });
+
+  group('updateKnockQueue – bounds safety', () {
+    test('does not crash when match has tischNr 0 (unmapped)', () {
+      final knockouts = Knockouts();
+      knockouts.instantiate();
+      // Do NOT call mapTables — tischNr defaults to 0
+
+      knockouts.champions.rounds[0][0].teamId1 = 't1';
+      knockouts.champions.rounds[0][0].teamId2 = 't2';
+      // tischNr is 0 → waiting[0 - 1] = waiting[-1] would crash
+
+      final queue = MatchQueue(
+        waiting: List.generate(6, (_) => <Match>[]),
+        playing: [],
+      );
+
+      // After fix: should skip matches with invalid tischNr
+      // instead of crashing with RangeError
+      queue.updateKnockQueue(knockouts);
+
+      // The match with tischNr 0 should NOT have been added
+      expect(queue.isEmpty(), true);
+    });
+
+    test('does not crash when tischNr exceeds waiting length', () {
+      final knockouts = Knockouts();
+      knockouts.instantiate();
+      knockouts.champions.rounds[0][0].teamId1 = 't1';
+      knockouts.champions.rounds[0][0].teamId2 = 't2';
+      knockouts.champions.rounds[0][0].tischNr = 10; // Only 6 slots
+
+      final queue = MatchQueue(
+        waiting: List.generate(6, (_) => <Match>[]),
+        playing: [],
+      );
+
+      // After fix: should skip matches with out-of-bounds tischNr
+      queue.updateKnockQueue(knockouts);
+
+      expect(queue.isEmpty(), true);
+    });
+  });
 }

@@ -160,32 +160,33 @@ class MatchQueue {
     bool matchReady(Match m) =>
         m.teamId1.isNotEmpty && m.teamId2.isNotEmpty && !m.done;
 
+    void enqueue(Match match) {
+      if (matchReady(match) && !contains(match)) {
+        final idx = match.tischNr - 1;
+        if (idx >= 0 && idx < waiting.length) {
+          waiting[idx].add(match);
+        }
+      }
+    }
+
     // search for new matches
     for (var round in knock.champions.rounds) {
       for (var match in round) {
-        if (matchReady(match) && !contains(match)) {
-          waiting[match.tischNr - 1].add(match);
-        }
+        enqueue(match);
       }
     }
     for (var round in knock.europa.rounds) {
       for (var match in round) {
-        if (matchReady(match) && !contains(match)) {
-          waiting[match.tischNr - 1].add(match);
-        }
+        enqueue(match);
       }
     }
     for (var round in knock.conference.rounds) {
       for (var match in round) {
-        if (matchReady(match) && !contains(match)) {
-          waiting[match.tischNr - 1].add(match);
-        }
+        enqueue(match);
       }
     }
     for (var match in knock.superCup.matches) {
-      if (matchReady(match) && !contains(match)) {
-        waiting[match.tischNr - 1].add(match);
-      }
+      enqueue(match);
     }
   }
 

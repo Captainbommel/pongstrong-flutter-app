@@ -144,12 +144,13 @@ List<TableRow> evaluate(List<Match> matches) {
         }
       }
 
-      //TODO: should cups be added even if the points were invalid?
-      table[t1].differenz += cups(match.score1) - cups(match.score2);
-      table[t2].differenz += cups(match.score2) - cups(match.score1);
+      if (points != null) {
+        table[t1].differenz += cups(match.score1) - cups(match.score2);
+        table[t2].differenz += cups(match.score2) - cups(match.score1);
 
-      table[t1].becher += cups(match.score1);
-      table[t2].becher += cups(match.score2);
+        table[t1].becher += cups(match.score1);
+        table[t2].becher += cups(match.score2);
+      }
     }
   }
 
