@@ -7,6 +7,8 @@ analyzer:
   exclude:
     - '**.freezed.dart'
     - '**.g.dart'
+  errors:
+    todo: info
 
 # You can customize the lint rules set to your own liking. A list of all rules
 # can be found at https://dart.dev/tools/linter-rules
