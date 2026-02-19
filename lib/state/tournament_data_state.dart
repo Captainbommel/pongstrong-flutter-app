@@ -7,6 +7,15 @@ import 'package:pongstrong/utils/app_logger.dart';
 /// Holds the current tournament data loaded from Firestore
 /// with performance optimizations including caching for teams and tables
 class TournamentDataState extends ChangeNotifier {
+  final FirestoreService _firestoreService;
+
+  /// Creates a [TournamentDataState].
+  ///
+  /// [firestoreService] is optional – production code omits it and the shared
+  /// singleton is used. Pass [FirestoreService.forTesting] in unit tests.
+  TournamentDataState({FirestoreService? firestoreService})
+      : _firestoreService = firestoreService ?? FirestoreService();
+
   List<Team> _teams = [];
   MatchQueue _matchQueue = MatchQueue();
   Gruppenphase _gruppenphase = Gruppenphase();
@@ -53,7 +62,7 @@ class TournamentDataState extends ChangeNotifier {
     Logger.info('Loading tournament data: $tournamentId',
         tag: 'TournamentData');
     try {
-      final service = FirestoreService();
+      final service = _firestoreService;
 
       // First check if tournament exists at all
       final tournamentInfo = await service.getTournamentInfo(tournamentId);
@@ -167,7 +176,7 @@ class TournamentDataState extends ChangeNotifier {
         'Setting up Firestore streams for tournament: $_currentTournamentId',
         tag: 'TournamentData');
 
-    final service = FirestoreService();
+    final service = _firestoreService;
 
     // Listen to group phase changes
     _groupPhaseSubscription = service
@@ -309,7 +318,7 @@ class TournamentDataState extends ChangeNotifier {
 
     // Save updated match queue to Firestore
     try {
-      final service = FirestoreService();
+      final service = _firestoreService;
       await service.saveMatchQueue(_matchQueue,
           tournamentId: _currentTournamentId);
       Logger.info('Match started successfully: $matchId',
@@ -371,7 +380,7 @@ class TournamentDataState extends ChangeNotifier {
   Future<bool> _finishGroupMatch(String matchId, Match match) async {
     Logger.debug('Finishing group match: $matchId', tag: 'TournamentData');
     // load group phase
-    final service = FirestoreService();
+    final service = _firestoreService;
     final groupPhase =
         await service.loadGruppenphase(tournamentId: _currentTournamentId);
 
@@ -459,7 +468,7 @@ class TournamentDataState extends ChangeNotifier {
   /// Finish a knockout match
   Future<bool> _finishKnockoutMatch(String matchId, Match match) async {
     Logger.debug('Finishing knockout match: $matchId', tag: 'TournamentData');
-    final service = FirestoreService();
+    final service = _firestoreService;
 
     // Helper function to find and update match in knockout structure
     bool findAndUpdateMatch(List<List<Match>> rounds) {
@@ -550,7 +559,7 @@ class TournamentDataState extends ChangeNotifier {
   /// This will evaluate the group standings and populate the knockout structure
   Future<bool> transitionToKnockouts({int? numberOfGroups}) async {
     try {
-      final service = FirestoreService();
+      final service = _firestoreService;
 
       // Load current group phase to calculate standings
       final groupPhase =
@@ -656,7 +665,7 @@ class TournamentDataState extends ChangeNotifier {
     int groupIndex,
   ) async {
     Logger.debug('Editing group match: $matchId', tag: 'TournamentData');
-    final service = FirestoreService();
+    final service = _firestoreService;
 
     try {
       // Load current group phase
@@ -743,7 +752,7 @@ class TournamentDataState extends ChangeNotifier {
     int newScore2,
   ) async {
     Logger.debug('Editing knockout match: $matchId', tag: 'TournamentData');
-    final service = FirestoreService();
+    final service = _firestoreService;
 
     try {
       // Clear dependent matches first
