@@ -24,6 +24,7 @@ enum AppView {
 /// On mobile, the view is used to sync the PageView and drawer.
 class AppState extends ChangeNotifier {
   AppView _currentView = AppView.playingField;
+
   /// The currently active navigation view.
   AppView get currentView => _currentView;
 
@@ -56,8 +57,7 @@ class AppState extends ChangeNotifier {
 
   /// Convert an [AppView] to a page index within the given [availableViews].
   /// Returns 0 if the view is not in the list.
-  static int pageIndexFromView(AppView view,
-      {List<AppView>? availableViews}) {
+  static int pageIndexFromView(AppView view, {List<AppView>? availableViews}) {
     final views = availableViews ?? AppView.values;
     final index = views.indexOf(view);
     return index >= 0 ? index : 0;
@@ -65,8 +65,7 @@ class AppState extends ChangeNotifier {
 
   /// Convert a page index to an [AppView] within the given [availableViews].
   /// Returns [AppView.playingField] if the index is out of range.
-  static AppView viewFromPageIndex(int index,
-      {List<AppView>? availableViews}) {
+  static AppView viewFromPageIndex(int index, {List<AppView>? availableViews}) {
     final views = availableViews ?? AppView.values;
     if (index >= 0 && index < views.length) {
       return views[index];

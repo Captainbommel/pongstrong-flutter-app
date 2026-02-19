@@ -31,13 +31,17 @@ mixin GroupsService on FirestoreBase {
     if (!doc.exists) return null;
 
     final data = doc.data()! as Map<String, dynamic>;
-    final groupsMap = data['groups'] as Map<String, dynamic>;
-    final numberOfGroups = data['numberOfGroups'] as int;
+    final groupsRaw = data['groups'];
+    if (groupsRaw == null || groupsRaw is! Map<String, dynamic>) {
+      return Groups();
+    }
+    final numberOfGroups = data['numberOfGroups'] as int? ?? 0;
+    if (numberOfGroups == 0) return Groups();
 
     final groupsList = <List<String>>[];
     for (int i = 0; i < numberOfGroups; i++) {
       final group =
-          (groupsMap['group$i'] as List).map((id) => id.toString()).toList();
+          (groupsRaw['group$i'] as List).map((id) => id.toString()).toList();
       groupsList.add(group);
     }
     return Groups(groups: groupsList);
@@ -50,13 +54,17 @@ mixin GroupsService on FirestoreBase {
     return getDoc(tournamentId, 'groups').snapshots().map((doc) {
       if (!doc.exists) return null;
       final data = doc.data()! as Map<String, dynamic>;
-      final groupsMap = data['groups'] as Map<String, dynamic>;
-      final numberOfGroups = data['numberOfGroups'] as int;
+      final groupsRaw = data['groups'];
+      if (groupsRaw == null || groupsRaw is! Map<String, dynamic>) {
+        return Groups();
+      }
+      final numberOfGroups = data['numberOfGroups'] as int? ?? 0;
+      if (numberOfGroups == 0) return Groups();
 
       final groupsList = <List<String>>[];
       for (int i = 0; i < numberOfGroups; i++) {
         final group =
-            (groupsMap['group$i'] as List).map((id) => id.toString()).toList();
+            (groupsRaw['group$i'] as List).map((id) => id.toString()).toList();
         groupsList.add(group);
       }
       return Groups(groups: groupsList);

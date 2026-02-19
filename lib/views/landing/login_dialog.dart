@@ -236,8 +236,8 @@ class _LoginDialogState extends State<LoginDialog> {
                       labelText: 'Passwort',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        onPressed: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
+                        onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
                         icon: Icon(
                           _obscurePassword
                               ? Icons.visibility_off_outlined
@@ -274,7 +274,8 @@ class _LoginDialogState extends State<LoginDialog> {
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           onPressed: () => setState(() =>
-                              _obscureConfirmPassword = !_obscureConfirmPassword),
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword),
                           icon: Icon(
                             _obscureConfirmPassword
                                 ? Icons.visibility_off_outlined

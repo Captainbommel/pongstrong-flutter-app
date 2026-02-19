@@ -44,7 +44,11 @@ void main() {
 
     test('setViewFromPageIndex with custom availableViews', () {
       final state = AppState();
-      final available = [AppView.playingField, AppView.rules, AppView.adminPanel];
+      final available = [
+        AppView.playingField,
+        AppView.rules,
+        AppView.adminPanel
+      ];
 
       state.setViewFromPageIndex(0, availableViews: available);
       expect(state.currentView, AppView.playingField);
@@ -73,15 +77,31 @@ void main() {
     });
 
     test('returns correct index with custom availableViews', () {
-      final available = [AppView.playingField, AppView.tournamentTree, AppView.adminPanel];
-      expect(AppState.pageIndexFromView(AppView.playingField, availableViews: available), 0);
-      expect(AppState.pageIndexFromView(AppView.tournamentTree, availableViews: available), 1);
-      expect(AppState.pageIndexFromView(AppView.adminPanel, availableViews: available), 2);
+      final available = [
+        AppView.playingField,
+        AppView.tournamentTree,
+        AppView.adminPanel
+      ];
+      expect(
+          AppState.pageIndexFromView(AppView.playingField,
+              availableViews: available),
+          0);
+      expect(
+          AppState.pageIndexFromView(AppView.tournamentTree,
+              availableViews: available),
+          1);
+      expect(
+          AppState.pageIndexFromView(AppView.adminPanel,
+              availableViews: available),
+          2);
     });
 
     test('returns 0 for view not in availableViews', () {
       final available = [AppView.playingField, AppView.rules];
-      expect(AppState.pageIndexFromView(AppView.groupPhase, availableViews: available), 0);
+      expect(
+          AppState.pageIndexFromView(AppView.groupPhase,
+              availableViews: available),
+          0);
     });
   });
 
@@ -102,9 +122,12 @@ void main() {
 
     test('works with custom availableViews', () {
       final available = [AppView.playingField, AppView.rules];
-      expect(AppState.viewFromPageIndex(0, availableViews: available), AppView.playingField);
-      expect(AppState.viewFromPageIndex(1, availableViews: available), AppView.rules);
-      expect(AppState.viewFromPageIndex(2, availableViews: available), AppView.playingField);
+      expect(AppState.viewFromPageIndex(0, availableViews: available),
+          AppView.playingField);
+      expect(AppState.viewFromPageIndex(1, availableViews: available),
+          AppView.rules);
+      expect(AppState.viewFromPageIndex(2, availableViews: available),
+          AppView.playingField);
     });
   });
 
@@ -118,10 +141,16 @@ void main() {
     });
 
     test('round trip with custom availableViews', () {
-      final available = [AppView.playingField, AppView.tournamentTree, AppView.adminPanel];
+      final available = [
+        AppView.playingField,
+        AppView.tournamentTree,
+        AppView.adminPanel
+      ];
       for (final view in available) {
-        final index = AppState.pageIndexFromView(view, availableViews: available);
-        final roundTripped = AppState.viewFromPageIndex(index, availableViews: available);
+        final index =
+            AppState.pageIndexFromView(view, availableViews: available);
+        final roundTripped =
+            AppState.viewFromPageIndex(index, availableViews: available);
         expect(roundTripped, view);
       }
     });

@@ -644,15 +644,18 @@ class _LandingPageState extends State<LandingPage> {
     );
   }
 
-  Future<List<bool>> _getTournamentMeta(String tournamentId, AuthState authState) {
+  Future<List<bool>> _getTournamentMeta(
+      String tournamentId, AuthState authState) {
     final key = '${tournamentId}_${authState.userId ?? "anon"}';
-    return _tournamentMetaCache.putIfAbsent(key, () => Future.wait([
-      if (authState.isEmailUser && authState.userId != null)
-        _firestoreService.isCreator(tournamentId, authState.userId!)
-      else
-        Future.value(false),
-      _firestoreService.tournamentHasPassword(tournamentId),
-    ]));
+    return _tournamentMetaCache.putIfAbsent(
+        key,
+        () => Future.wait([
+              if (authState.isEmailUser && authState.userId != null)
+                _firestoreService.isCreator(tournamentId, authState.userId!)
+              else
+                Future.value(false),
+              _firestoreService.tournamentHasPassword(tournamentId),
+            ]));
   }
 
   Widget _buildTournamentListItem(String tournamentId) {

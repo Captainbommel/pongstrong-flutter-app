@@ -77,7 +77,8 @@ class MatchQueue {
         while (positions[i] < waiting[i].length) {
           final match = waiting[i][positions[i]];
           positions[i]++;
-          if (isFree(match.tableNumber) && !tables.contains(match.tableNumber)) {
+          if (isFree(match.tableNumber) &&
+              !tables.contains(match.tableNumber)) {
             tables.add(match.tableNumber);
             matches.add(match);
             added = true;
@@ -102,7 +103,8 @@ class MatchQueue {
 
     for (final i in rankedIndices) {
       for (final match in waiting[i]) {
-        if (!readyIds.contains(match.id) && !tables.contains(match.tableNumber)) {
+        if (!readyIds.contains(match.id) &&
+            !tables.contains(match.tableNumber)) {
           matches.add(match);
           tables.add(match.tableNumber);
           break;

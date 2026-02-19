@@ -230,9 +230,12 @@ class Knockouts {
 
     // Check each bracket and handle super cup cascading
     final brackets = [
-      (champions.rounds, [1]),              // Champions final → clear super cup match 1
-      (europa.rounds, [0, 1]),              // Europa final → clear super cup matches 0, 1
-      (conference.rounds, [0, 1]),          // Conference final → clear super cup matches 0, 1
+      (champions.rounds, [1]), // Champions final → clear super cup match 1
+      (europa.rounds, [0, 1]), // Europa final → clear super cup matches 0, 1
+      (
+        conference.rounds,
+        [0, 1]
+      ), // Conference final → clear super cup matches 0, 1
     ];
 
     for (final (rounds, superCupIndices) in brackets) {
@@ -404,14 +407,14 @@ class Knockouts {
           superCup == other.superCup;
 
   @override
-  int get hashCode =>
-      Object.hash(champions, europa, conference, superCup);
+  int get hashCode => Object.hash(champions, europa, conference, superCup);
 
   /// Creates a [Knockouts] from a Firestore JSON map.
   factory Knockouts.fromJson(Map<String, dynamic> json) => Knockouts(
         champions: KnockoutBracket.fromJson((json['champions'] as List?) ?? []),
         europa: KnockoutBracket.fromJson((json['europa'] as List?) ?? []),
-        conference: KnockoutBracket.fromJson((json['conference'] as List?) ?? []),
+        conference:
+            KnockoutBracket.fromJson((json['conference'] as List?) ?? []),
         superCup: Super.fromJson((json['super'] as List?) ?? []),
       );
 }

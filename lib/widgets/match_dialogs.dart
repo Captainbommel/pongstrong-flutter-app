@@ -128,8 +128,7 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
           ),
           ElevatedButton(
             onPressed: () async {
-              final authState =
-                  Provider.of<AuthState>(context, listen: false);
+              final authState = Provider.of<AuthState>(context, listen: false);
               if (!authState.isParticipant && !authState.isAdmin) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(

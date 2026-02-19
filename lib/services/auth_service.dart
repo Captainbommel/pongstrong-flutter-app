@@ -56,7 +56,8 @@ class AuthService {
   Future<User?> signInWithEmail(String email, String password) async {
     try {
       Logger.debug('Signing in with email: $email', tag: 'AuthService');
-      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      final UserCredential userCredential =
+          await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );

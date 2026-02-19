@@ -731,7 +731,8 @@ void main() {
       knockouts.instantiate();
       knockouts.champions.rounds[0][0].teamId1 = 't1';
       knockouts.champions.rounds[0][0].teamId2 = 't2';
-      knockouts.champions.rounds[0][0].tableNumber = 10; // Only 6 slots initially
+      knockouts.champions.rounds[0][0].tableNumber =
+          10; // Only 6 slots initially
 
       final queue = MatchQueue(
         waiting: List.generate(6, (_) => <Match>[]),
@@ -775,7 +776,8 @@ void main() {
         if (m.teamId1.isNotEmpty && m.teamId2.isNotEmpty && !m.done) {
           readyCount++;
           expect(queue.contains(m), true,
-              reason: 'Match ${m.id} on table ${m.tableNumber} should be in queue');
+              reason:
+                  'Match ${m.id} on table ${m.tableNumber} should be in queue');
         }
       }
       expect(readyCount, greaterThan(0));

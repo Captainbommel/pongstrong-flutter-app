@@ -391,7 +391,8 @@ class AdminPanelState extends ChangeNotifier {
       member1: _teams[index].member1,
       member2: _teams[index].member2,
     );
-    _teams[index] = Team(id: teamId, name: name, member1: member1, member2: member2);
+    _teams[index] =
+        Team(id: teamId, name: name, member1: member1, member2: member2);
     notifyListeners();
     try {
       await _firestoreService.saveTeams(_teams,
@@ -895,5 +896,4 @@ class AdminPanelState extends ChangeNotifier {
     _disposed = true;
     super.dispose();
   }
-
 }

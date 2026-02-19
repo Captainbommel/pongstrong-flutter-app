@@ -7,8 +7,7 @@ import 'package:pongstrong/utils/app_logger.dart';
 Map<String, dynamic> _bracketToMap(KnockoutBracket bracket) {
   final roundsMap = <String, dynamic>{};
   for (int i = 0; i < bracket.rounds.length; i++) {
-    roundsMap['round$i'] =
-        bracket.rounds[i].map((m) => m.toJson()).toList();
+    roundsMap['round$i'] = bracket.rounds[i].map((m) => m.toJson()).toList();
   }
   return {
     'rounds': roundsMap,
@@ -20,9 +19,13 @@ Map<String, dynamic> _bracketToMap(KnockoutBracket bracket) {
 /// Returns an empty bracket if data is missing or invalid.
 KnockoutBracket _parseBracket(dynamic raw) {
   if (raw == null || raw is! Map<String, dynamic>) return KnockoutBracket();
-  final roundsMap = raw['rounds'] as Map<String, dynamic>?;
+  final roundsRaw = raw['rounds'];
+  if (roundsRaw == null || roundsRaw is! Map<String, dynamic>) {
+    return KnockoutBracket();
+  }
+  final roundsMap = roundsRaw;
   final numberOfRounds = raw['numberOfRounds'] as int? ?? 0;
-  if (roundsMap == null || numberOfRounds == 0) return KnockoutBracket();
+  if (numberOfRounds == 0) return KnockoutBracket();
 
   final rounds = <List<Match>>[];
   for (int i = 0; i < numberOfRounds; i++) {
@@ -97,8 +100,11 @@ mixin KnockoutsService on FirestoreBase {
       final data = doc.data()! as Map<String, dynamic>;
 
       // Check if this is a placeholder document (setup phase)
-      if (data['initialized'] == true && data['champions'] is! Map) {
-        return Knockouts();
+      if (data['initialized'] == true) {
+        final championsData = data['champions'] as Map<String, dynamic>?;
+        if (championsData == null || championsData['numberOfRounds'] == null) {
+          return Knockouts();
+        }
       }
 
       final champions = _parseBracket(data['champions']);

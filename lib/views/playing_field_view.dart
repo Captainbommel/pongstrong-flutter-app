@@ -161,8 +161,8 @@ class _DesktopLayout extends StatelessWidget {
                         alignment: WrapAlignment.center,
                         clipBehavior: Clip.antiAliasWithSaveLayer,
                         children: playing
-                            .map((m) =>
-                                _buildPlayingMatchCard(context, data, m))
+                            .map(
+                                (m) => _buildPlayingMatchCard(context, data, m))
                             .toList(),
                       ),
                     ),
