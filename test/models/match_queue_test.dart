@@ -726,22 +726,99 @@ void main() {
       expect(queue.isEmpty(), true);
     });
 
-    test('does not crash when tischNr exceeds waiting length', () {
+    test('auto-expands waiting when tischNr exceeds waiting length', () {
       final knockouts = Knockouts();
       knockouts.instantiate();
       knockouts.champions.rounds[0][0].teamId1 = 't1';
       knockouts.champions.rounds[0][0].teamId2 = 't2';
-      knockouts.champions.rounds[0][0].tischNr = 10; // Only 6 slots
+      knockouts.champions.rounds[0][0].tischNr = 10; // Only 6 slots initially
 
       final queue = MatchQueue(
         waiting: List.generate(6, (_) => <Match>[]),
         playing: [],
       );
 
-      // After fix: should skip matches with out-of-bounds tischNr
+      // After fix: should auto-expand waiting lists to accommodate the tischNr
       queue.updateKnockQueue(knockouts);
 
-      expect(queue.isEmpty(), true);
+      expect(queue.waiting.length, 10);
+      expect(queue.contains(knockouts.champions.rounds[0][0]), true);
+    });
+  });
+
+  group('updateKnockQueue – fewer groups than tables', () {
+    test('enqueues all KO matches even when queue was created for 3 groups',
+        () {
+      // Simulates the bug: group-phase queue has 3 waiting lists (3 groups),
+      // but KO matches use tables 1–6. Matches on tables 4–6 were silently
+      // dropped before the fix.
+      final knockouts = Knockouts();
+      knockouts.instantiate();
+      mapTables(knockouts);
+
+      // Set up several round-1 matches across different tables
+      for (int i = 0; i < knockouts.champions.rounds[0].length; i++) {
+        knockouts.champions.rounds[0][i].teamId1 = 'a${i + 1}';
+        knockouts.champions.rounds[0][i].teamId2 = 'b${i + 1}';
+      }
+
+      // Create a queue with only 3 waiting lists (as if 3 groups existed)
+      final queue = MatchQueue(
+        waiting: List.generate(3, (_) => <Match>[]),
+        playing: [],
+      );
+      queue.updateKnockQueue(knockouts);
+
+      // ALL ready matches should be in the queue, not just those on tables 1-3
+      int readyCount = 0;
+      for (final m in knockouts.champions.rounds[0]) {
+        if (m.teamId1.isNotEmpty && m.teamId2.isNotEmpty && !m.done) {
+          readyCount++;
+          expect(queue.contains(m), true,
+              reason: 'Match ${m.id} on table ${m.tischNr} should be in queue');
+        }
+      }
+      expect(readyCount, greaterThan(0));
+      // waiting should have been auto-expanded to cover all tables
+      expect(queue.waiting.length, greaterThanOrEqualTo(6));
+    });
+
+    test('next-round matches are queued after completing round 1', () {
+      // Full scenario: 3-group queue → KO transition → finish R1 → R2 matches
+      // should appear in queue
+      final knockouts = Knockouts();
+      knockouts.instantiate();
+      mapTables(knockouts);
+
+      // Fill all round 1 champions matches and finish them
+      for (final m in knockouts.champions.rounds[0]) {
+        m.teamId1 = 'w${m.id}';
+        m.teamId2 = 'l${m.id}';
+        m.score1 = 10;
+        m.score2 = 3;
+        m.done = true;
+      }
+      knockouts.update();
+
+      // Start with a 3-slot queue (simulating 3-group origin)
+      final queue = MatchQueue(
+        waiting: List.generate(3, (_) => <Match>[]),
+        playing: [],
+      );
+      queue.updateKnockQueue(knockouts);
+
+      // Round 2 matches should be in the queue
+      int r2Ready = 0;
+      for (final m in knockouts.champions.rounds[1]) {
+        if (m.teamId1.isNotEmpty && m.teamId2.isNotEmpty && !m.done) {
+          r2Ready++;
+          expect(queue.contains(m), true,
+              reason:
+                  'R2 match ${m.id} on table ${m.tischNr} should be in queue');
+        }
+      }
+      expect(r2Ready, greaterThan(0),
+          reason: 'Should have ready R2 matches after finishing R1');
     });
   });
 }

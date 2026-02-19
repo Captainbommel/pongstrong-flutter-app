@@ -384,13 +384,14 @@ mixin TournamentManagementService
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    // Update match queue for knockouts - clear old group matches first
-    final queue = await loadMatchQueue(tournamentId: tournamentId);
-    if (queue != null) {
-      queue.clearQueue(); // Clear remaining group phase matches
-      queue.updateKnockQueue(knockouts);
-      await saveMatchQueue(queue, tournamentId: tournamentId);
-    }
+    // Create a fresh match queue with 6 waiting slots (one per table)
+    // instead of reusing the group-phase queue which may have fewer slots
+    final queue = MatchQueue(
+      waiting: List.generate(6, (_) => <Match>[]),
+      playing: [],
+    );
+    queue.updateKnockQueue(knockouts);
+    await saveMatchQueue(queue, tournamentId: tournamentId);
   }
 
   /// Reverts tournament from knockout phase back to group phase.

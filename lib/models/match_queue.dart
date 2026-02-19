@@ -163,9 +163,12 @@ class MatchQueue {
     void enqueue(Match match) {
       if (matchReady(match) && !contains(match)) {
         final idx = match.tischNr - 1;
-        if (idx >= 0 && idx < waiting.length) {
-          waiting[idx].add(match);
+        if (idx < 0) return;
+        // Auto-expand waiting lists if tischNr exceeds current size
+        while (idx >= waiting.length) {
+          waiting.add(<Match>[]);
         }
+        waiting[idx].add(match);
       }
     }
 
