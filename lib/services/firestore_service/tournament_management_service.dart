@@ -370,9 +370,7 @@ mixin TournamentManagementService
     final tabellen = evalGruppen(gruppenphase);
 
     // Evaluate and create knockouts
-    final knockouts = numberOfGroups == 8
-        ? evaluateGroups8(tabellen)
-        : evaluateGroups6(tabellen);
+    final knockouts = evaluateGroups(tabellen);
 
     // Save knockouts
     await saveKnockouts(knockouts, tournamentId: tournamentId);

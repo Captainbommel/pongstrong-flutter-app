@@ -364,32 +364,58 @@ class Knockouts {
     // Guard against empty super cup (e.g. KO-only mode)
     if (superCup.matches.length < 2) return;
 
-    // Update the first super cup match if done
-    if (superCup.matches[0].done) {
-      final winnerId = superCup.matches[0].getWinnerId();
-      if (winnerId != null && winnerId.isNotEmpty) {
-        superCup.matches[1].teamId1 = winnerId;
-      }
-    }
+    // Determine how many lower leagues feed into super cup match 0.
+    final hasEuropa = europa.rounds.isNotEmpty;
+    final hasConference = conference.rounds.isNotEmpty;
+    final leagueCount = (hasEuropa ? 1 : 0) + (hasConference ? 1 : 0);
 
-    // Move league winners to the super cup
-    final leagueFinals = <Match>[];
-    if (europa.rounds.isNotEmpty && europa.rounds.last.isNotEmpty) {
-      leagueFinals.add(europa.rounds.last[0]);
-    }
-    if (conference.rounds.isNotEmpty && conference.rounds.last.isNotEmpty) {
-      leagueFinals.add(conference.rounds.last[0]);
-    }
-    for (final leagueFinal in leagueFinals) {
-      if (leagueFinal.done) {
-        final winnerId = leagueFinal.getWinnerId();
+    // When only one lower league exists, super cup match 0 has no opponent —
+    // auto-advance the lone league winner directly to match 1.
+    if (leagueCount <= 1) {
+      Match? soleLeagueFinal;
+      if (hasEuropa && europa.rounds.last.isNotEmpty) {
+        soleLeagueFinal = europa.rounds.last[0];
+      } else if (hasConference && conference.rounds.last.isNotEmpty) {
+        soleLeagueFinal = conference.rounds.last[0];
+      }
+      if (soleLeagueFinal != null && soleLeagueFinal.done) {
+        final winnerId = soleLeagueFinal.getWinnerId();
+        if (winnerId != null &&
+            winnerId.isNotEmpty &&
+            superCup.matches[1].teamId1.isEmpty) {
+          superCup.matches[1].teamId1 = winnerId;
+        }
+      }
+    } else {
+      // Two lower leagues: play super cup match 0 between their winners.
+
+      // Update the first super cup match if done
+      if (superCup.matches[0].done) {
+        final winnerId = superCup.matches[0].getWinnerId();
         if (winnerId != null && winnerId.isNotEmpty) {
-          final firstMatch = superCup.matches[0];
-          if (firstMatch.teamId1.isEmpty && winnerId != firstMatch.teamId2) {
-            firstMatch.teamId1 = winnerId;
-          } else if (firstMatch.teamId2.isEmpty &&
-              winnerId != firstMatch.teamId1) {
-            firstMatch.teamId2 = winnerId;
+          superCup.matches[1].teamId1 = winnerId;
+        }
+      }
+
+      // Move league winners to the super cup match 0
+      final leagueFinals = <Match>[];
+      if (hasEuropa && europa.rounds.last.isNotEmpty) {
+        leagueFinals.add(europa.rounds.last[0]);
+      }
+      if (hasConference && conference.rounds.last.isNotEmpty) {
+        leagueFinals.add(conference.rounds.last[0]);
+      }
+      for (final leagueFinal in leagueFinals) {
+        if (leagueFinal.done) {
+          final winnerId = leagueFinal.getWinnerId();
+          if (winnerId != null && winnerId.isNotEmpty) {
+            final firstMatch = superCup.matches[0];
+            if (firstMatch.teamId1.isEmpty && winnerId != firstMatch.teamId2) {
+              firstMatch.teamId1 = winnerId;
+            } else if (firstMatch.teamId2.isEmpty &&
+                winnerId != firstMatch.teamId1) {
+              firstMatch.teamId2 = winnerId;
+            }
           }
         }
       }

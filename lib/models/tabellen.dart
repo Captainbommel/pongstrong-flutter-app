@@ -43,7 +43,10 @@ class Tabellen {
       if (a.punkte != b.punkte) return b.punkte.compareTo(a.punkte);
       if (a.differenz != b.differenz) return b.differenz.compareTo(a.differenz);
       if (a.becher != b.becher) return b.becher.compareTo(a.becher);
-      return 0;
+      // TODO: Better tiebreaker — use the direct comparison (head-to-head)
+      // between the two tied teams to determine who placed higher, instead of
+      // falling back to alphabetical teamId.
+      return a.teamId.compareTo(b.teamId);
     });
   }
 

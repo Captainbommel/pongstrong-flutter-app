@@ -126,7 +126,13 @@ class AdminPanelState extends ChangeNotifier {
         return 'Gruppen müssen vor dem Start zugewiesen werden.';
       }
       if (!_validateGroupAssignment()) {
-        return 'Nicht alle Teams sind einer Gruppe zugewiesen.';
+        final needed = _numberOfGroups * 4;
+        final assigned =
+            _groups.groups.fold<int>(0, (total, g) => total + g.length);
+        if (_groups.groups.length != _numberOfGroups) {
+          return 'Es werden $_numberOfGroups Gruppen benötigt, aber ${_groups.groups.length} sind vorhanden.';
+        }
+        return 'Es müssen genau $needed Teams auf $_numberOfGroups Gruppen verteilt sein ($assigned aktuell zugewiesen).';
       }
     }
     if (_tournamentStyle == TournamentStyle.knockoutsOnly) {
@@ -260,7 +266,13 @@ class AdminPanelState extends ChangeNotifier {
       if (loadedGroups != null) {
         _groups = loadedGroups;
         _groupsAssigned = _groups.groups.isNotEmpty;
-        _numberOfGroups = 6;
+        // Sync group count from saved data (initial load / reload)
+        if (_groups.groups.isNotEmpty) {
+          _numberOfGroups = _groups.groups.length;
+          if (_tournamentStyle == TournamentStyle.groupsAndKnockouts) {
+            _targetTeamCount = _numberOfGroups * 4;
+          }
+        }
         Logger.debug('Loaded ${_groups.groups.length} groups',
             tag: 'AdminPanel');
       } else {
@@ -465,10 +477,13 @@ class AdminPanelState extends ChangeNotifier {
     _setLoading(true);
     _clearError();
     final groupCount = numberOfGroups ?? _numberOfGroups;
+    final teamsNeeded = groupCount * 4;
     final shuffledTeamIds = _teams.map((t) => t.id).toList()..shuffle(Random());
+    // Only use the first teamsNeeded teams (4 per group)
+    final selectedTeams = shuffledTeamIds.take(teamsNeeded).toList();
     final newGroups = List.generate(groupCount, (_) => <String>[]);
-    for (int i = 0; i < shuffledTeamIds.length; i++) {
-      newGroups[i % groupCount].add(shuffledTeamIds[i]);
+    for (int i = 0; i < selectedTeams.length; i++) {
+      newGroups[i % groupCount].add(selectedTeams[i]);
     }
     final previousGroups = _groups;
     final previousAssigned = _groupsAssigned;
@@ -550,8 +565,16 @@ class AdminPanelState extends ChangeNotifier {
   }
 
   void setNumberOfGroups(int count) {
-    if (count > 0 && count <= 8) {
+    if (count >= 2 && count <= 10) {
       _numberOfGroups = count;
+      if (_tournamentStyle == TournamentStyle.groupsAndKnockouts) {
+        _targetTeamCount = count * 4;
+      }
+      // Clear stale group assignments since they don't match the new count
+      if (_groupsAssigned && _groups.groups.length != count) {
+        _groups = Groups();
+        _groupsAssigned = false;
+      }
       notifyListeners();
     }
   }
@@ -583,11 +606,19 @@ class AdminPanelState extends ChangeNotifier {
 
   bool _validateGroupAssignment() {
     if (_groups.groups.isEmpty) return false;
-    final assignedTeamIds = <String>{};
+    if (_groups.groups.length != _numberOfGroups) return false;
+    // Each group must have exactly 4 teams
     for (final group in _groups.groups) {
-      assignedTeamIds.addAll(group);
+      if (group.length != 4) return false;
     }
-    return _teams.every((team) => assignedTeamIds.contains(team.id));
+    // All assigned teams must be registered
+    final teamIds = _teams.map((t) => t.id).toSet();
+    for (final group in _groups.groups) {
+      for (final id in group) {
+        if (!teamIds.contains(id)) return false;
+      }
+    }
+    return true;
   }
 
   void setPhase(TournamentPhase phase) {
@@ -607,7 +638,7 @@ class AdminPanelState extends ChangeNotifier {
       }
       // Restore appropriate target count
       if (style == TournamentStyle.groupsAndKnockouts) {
-        _targetTeamCount = 24;
+        _targetTeamCount = _numberOfGroups * 4;
       } else if (style == TournamentStyle.knockoutsOnly) {
         _targetTeamCount = _koTargetTeamCount;
       }

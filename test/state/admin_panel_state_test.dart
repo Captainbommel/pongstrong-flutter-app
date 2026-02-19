@@ -391,10 +391,10 @@ void main() {
 
     test('GroupsAndKnockouts: true when all teams assigned', () async {
       final state = makeState();
-      final ids = await addTeams(state, 4);
+      final ids = await addTeams(state, 8);
       state.setNumberOfGroups(2);
-      for (int i = 0; i < 4; i++) {
-        await state.assignTeamToGroup(ids[i], i < 2 ? 0 : 1);
+      for (int i = 0; i < 8; i++) {
+        await state.assignTeamToGroup(ids[i], i < 4 ? 0 : 1);
       }
       expect(state.canStartTournament, isTrue);
       expect(state.startValidationMessage, isNull);
@@ -483,25 +483,28 @@ void main() {
 
   // =========================================================================
   group('setNumberOfGroups / setNumberOfTables', () {
-    test('setNumberOfGroups clamps to 1..8', () {
+    test('setNumberOfGroups clamps to 2..10', () {
       final state = makeState();
       state.setNumberOfGroups(0);
       expect(state.numberOfGroups, 6); // unchanged – 0 is invalid
 
-      state.setNumberOfGroups(9);
-      expect(state.numberOfGroups, 6); // unchanged – 9 is invalid
+      state.setNumberOfGroups(1);
+      expect(state.numberOfGroups, 6); // unchanged – 1 is invalid
+
+      state.setNumberOfGroups(11);
+      expect(state.numberOfGroups, 6); // unchanged – 11 is invalid
 
       state.setNumberOfGroups(4);
       expect(state.numberOfGroups, 4);
     });
 
-    test('setNumberOfGroups accepts boundary values 1 and 8', () {
+    test('setNumberOfGroups accepts boundary values 2 and 10', () {
       final state = makeState();
-      state.setNumberOfGroups(1);
-      expect(state.numberOfGroups, 1);
+      state.setNumberOfGroups(2);
+      expect(state.numberOfGroups, 2);
 
-      state.setNumberOfGroups(8);
-      expect(state.numberOfGroups, 8);
+      state.setNumberOfGroups(10);
+      expect(state.numberOfGroups, 10);
     });
 
     test('setNumberOfTables ignored when tournament started', () {
@@ -582,19 +585,19 @@ void main() {
       expect(state.remainingMatches, 12);
     });
 
-    test('calculates correct match count for larger groups', () async {
+    test('calculates correct match count for more groups', () async {
       final state = makeState();
-      final ids = await addTeams(state, 12); // 2 groups of 6
-      state.setNumberOfGroups(2);
+      final ids = await addTeams(state, 12); // 3 groups of 4
+      state.setNumberOfGroups(3);
       state.setNumberOfTables(3);
       for (int i = 0; i < 12; i++) {
-        await state.assignTeamToGroup(ids[i], i < 6 ? 0 : 1);
+        await state.assignTeamToGroup(ids[i], i ~/ 4);
       }
 
       final ok = await state.startTournament();
       expect(ok, isTrue);
-      // 2 groups × C(6,2) = 2 × 15 = 30 matches
-      expect(state.totalMatches, 30);
+      // 3 groups × C(4,2) = 3 × 6 = 18 matches
+      expect(state.totalMatches, 18);
     });
 
     test('fails gracefully when canStart is false', () async {

@@ -160,7 +160,6 @@ class TournamentControlCard extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: onRevertToGroupPhase,
-                    icon: const Icon(Icons.undo),
                     label: const Text('Zurück zur Gruppenphase'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: GroupPhaseColors.cupred,

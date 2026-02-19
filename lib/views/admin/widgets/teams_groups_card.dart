@@ -43,8 +43,9 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
     if (!groupsAssigned || teamsInGroups == 0) {
       return 'Gruppen nicht zugewiesen';
     }
-    if (teamsInGroups < totalTeams) {
-      return '$teamsInGroups/$totalTeams Teams zugewiesen';
+    final needed = numberOfGroups * 4;
+    if (teamsInGroups < needed) {
+      return '$teamsInGroups/$needed Teams zugewiesen';
     }
     return 'Alle Teams zugewiesen';
   }
@@ -53,7 +54,7 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
     if (_isRoundRobin || _isKOOnly) return Colors.grey;
     if (totalTeams == 0) return Colors.grey;
     if (!groupsAssigned || teamsInGroups == 0) return GroupPhaseColors.cupred;
-    if (teamsInGroups < totalTeams) return Colors.orange;
+    if (teamsInGroups < numberOfGroups * 4) return Colors.orange;
     return FieldColors.springgreen;
   }
 
@@ -62,12 +63,12 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
     if (_isKOOnly) return Icons.account_tree;
     if (totalTeams == 0) return Icons.group_off;
     if (!groupsAssigned || teamsInGroups == 0) return Icons.warning_amber;
-    if (teamsInGroups < totalTeams) return Icons.pending;
+    if (teamsInGroups < numberOfGroups * 4) return Icons.pending;
     return Icons.check_circle;
   }
 
   String get _teamCountLabel {
-    if (_isGroupPhase) return '$totalTeams / 24 Teams';
+    if (_isGroupPhase) return '$totalTeams / ${numberOfGroups * 4} Teams';
     if (_isKOOnly) {
       final validCounts = [8, 16, 32, 64];
       final isValid = validCounts.contains(targetTeamCount);

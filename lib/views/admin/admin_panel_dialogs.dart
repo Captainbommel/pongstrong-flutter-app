@@ -231,9 +231,7 @@ class AdminPanelDialogs {
     final confirmed = await showConfirmationDialog(
       context,
       title: 'Zurück zur Gruppenphase?',
-      titleIcon: Icons.undo,
       confirmText: 'Zurücksetzen',
-      confirmIcon: Icons.undo,
       content: const Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

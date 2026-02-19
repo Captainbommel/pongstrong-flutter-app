@@ -32,7 +32,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   List<int> get _allowedTeamCounts {
     switch (_style) {
       case TournamentStyle.groupsAndKnockouts:
-        return [24]; // locked
+        return [widget.adminState.numberOfGroups * 4];
       case TournamentStyle.knockoutsOnly:
         return [8, 16, 32, 64]; // powers of 2
       case TournamentStyle.everyoneVsEveryone:
@@ -106,7 +106,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       // No registered teams yet — seed with admin state count or mode default
       final stateCount = widget.adminState.targetTeamCount;
       if (_isGroupPhase) {
-        _targetTeamCount = 24;
+        _targetTeamCount = widget.adminState.numberOfGroups * 4;
       } else if (_isKOOnly) {
         _targetTeamCount =
             [8, 16, 32, 64].contains(stateCount) ? stateCount : 8;
@@ -247,8 +247,14 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
       _teamControllers.removeWhere((c) => c.markedForRemoval);
 
+      // Preserve group count before reload (loadGroups may override from Firebase)
+      final preservedGroupCount = state.numberOfGroups;
       await state.loadTeams();
       await state.loadGroups();
+      // Restore the user's group count selection after reload
+      if (state.numberOfGroups != preservedGroupCount) {
+        state.setNumberOfGroups(preservedGroupCount);
+      }
       _initializeControllers(preserveTargetCount: _targetTeamCount);
 
       if (mounted) {
@@ -285,8 +291,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     if (success) {
       for (final controller in _teamControllers) {
         if (controller.id != null) {
-          controller.groupIndex =
-              widget.adminState.getTeamGroupIndex(controller.id!);
+          final idx = widget.adminState.getTeamGroupIndex(controller.id!);
+          controller.groupIndex = idx == -1 ? null : idx;
         }
       }
       setState(() {});
@@ -299,39 +305,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           ),
         );
       }
-    }
-  }
-
-  Future<void> _clearGroups() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Gruppen zurücksetzen?'),
-        content: const Text('Alle Gruppenzuweisungen werden gelöscht.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Abbrechen',
-                style: TextStyle(color: GroupPhaseColors.cupred)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: GroupPhaseColors.cupred,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Zurücksetzen'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await widget.adminState.clearGroupAssignments();
-      for (final controller in _teamControllers) {
-        controller.groupIndex = null;
-      }
-      setState(() {});
     }
   }
 
@@ -356,7 +329,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+              backgroundColor: TreeColors.rebeccapurple,
               foregroundColor: Colors.white,
             ),
             child: const Text('Verwerfen'),
@@ -371,7 +344,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+              backgroundColor: TreeColors.rebeccapurple,
               foregroundColor: Colors.white,
             ),
             child: const Text('Speichern & Schließen'),
@@ -535,8 +508,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           ),
           const SizedBox(height: 12),
 
-          if (!isLocked) ...[
-            // Teams count row
+          if (!isLocked && !showGroups) ...[
+            // Teams count row (hidden for group+KO since team count is derived from groups)
             Row(
               children: [
                 Icon(Icons.groups,
@@ -631,34 +604,37 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                 ),
                 SizedBox(width: isMobile ? 8 : 12),
                 SizedBox(
-                  width: isMobile ? 55 : 60,
+                  width: isMobile ? 65 : 70,
                   child: DropdownButtonFormField<int>(
-                    value: 6,
+                    value: widget.adminState.numberOfGroups,
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.symmetric(
                           horizontal: isMobile ? 8 : 12,
                           vertical: isMobile ? 6 : 8),
                       border: const OutlineInputBorder(),
                     ),
-                    items: List.generate(8, (i) => i + 1).map((count) {
-                      final isEnabled = count == 6;
+                    items: List.generate(9, (i) => i + 2).map((count) {
                       return DropdownMenuItem(
                         value: count,
-                        enabled: isEnabled,
                         child: Text(
                           '$count',
                           style: TextStyle(
                             fontSize: isMobile ? 14 : null,
-                            color: isEnabled ? null : Colors.grey,
                           ),
                         ),
                       );
                     }).toList(),
-                    onChanged: null,
+                    onChanged: isLocked
+                        ? null
+                        : (val) {
+                            if (val != null) {
+                              widget.adminState.setNumberOfGroups(val);
+                              _updateTargetTeamCount(val * 4);
+                            }
+                          },
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Show locked 24 teams badge for group+KO
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -669,15 +645,15 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                         color:
                             GroupPhaseColors.steelblue.withValues(alpha: 0.3)),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.lock,
+                      const Icon(Icons.people,
                           size: 12, color: GroupPhaseColors.steelblue),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       Text(
-                        '24 Teams',
-                        style: TextStyle(
+                        '${widget.adminState.numberOfGroups * 4} Teams',
+                        style: const TextStyle(
                           color: GroupPhaseColors.steelblue,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -689,53 +665,24 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                 const Spacer(),
                 if (!isLocked) ...[
                   if (isMobile)
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: _clearGroups,
-                          icon: const Icon(Icons.clear, size: 20),
-                          color: GroupPhaseColors.cupred,
-                          tooltip: 'Gruppen leeren',
-                          padding: EdgeInsets.zero,
-                          constraints:
-                              const BoxConstraints(minWidth: 36, minHeight: 36),
-                        ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          onPressed: _assignGroupsRandomly,
-                          icon: const Icon(Icons.casino, size: 20),
-                          color: GroupPhaseColors.steelblue,
-                          tooltip: 'Zufällig zuweisen',
-                          padding: EdgeInsets.zero,
-                          constraints:
-                              const BoxConstraints(minWidth: 36, minHeight: 36),
-                        ),
-                      ],
+                    IconButton(
+                      onPressed: _assignGroupsRandomly,
+                      icon: const Icon(Icons.casino, size: 20),
+                      color: GroupPhaseColors.steelblue,
+                      tooltip: 'Gruppen würfeln',
+                      padding: EdgeInsets.zero,
+                      constraints:
+                          const BoxConstraints(minWidth: 36, minHeight: 36),
                     )
                   else
-                    Row(
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: _clearGroups,
-                          icon: const Icon(Icons.clear, size: 18),
-                          label: const Text('Leeren'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: GroupPhaseColors.cupred,
-                            side: const BorderSide(
-                                color: GroupPhaseColors.cupred),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton.icon(
-                          onPressed: _assignGroupsRandomly,
-                          icon: const Icon(Icons.casino, size: 18),
-                          label: const Text('Zufällig'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: GroupPhaseColors.steelblue,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ],
+                    ElevatedButton.icon(
+                      onPressed: _assignGroupsRandomly,
+                      icon: const Icon(Icons.casino, size: 18),
+                      label: const Text('Gruppen würfeln'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: GroupPhaseColors.steelblue,
+                        foregroundColor: Colors.white,
+                      ),
                     ),
                 ],
               ],
@@ -946,17 +893,20 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         ],
         if (!isLocked) ...[
           const SizedBox(width: 8),
-          if (_isRoundRobin) IconButton(
-                  onPressed: () => _removeTeamEntry(index),
-                  icon: const Icon(Icons.delete_outline),
-                  color: GroupPhaseColors.cupred,
-                  tooltip: 'Team löschen',
-                ) else IconButton(
-                  onPressed: () => _clearTeamFields(index),
-                  icon: const Icon(Icons.backspace_outlined),
-                  color: Colors.orange,
-                  tooltip: 'Felder leeren',
-                ),
+          if (_isRoundRobin)
+            IconButton(
+              onPressed: () => _removeTeamEntry(index),
+              icon: const Icon(Icons.delete_outline),
+              color: GroupPhaseColors.cupred,
+              tooltip: 'Team löschen',
+            )
+          else
+            IconButton(
+              onPressed: () => _clearTeamFields(index),
+              icon: const Icon(Icons.backspace_outlined),
+              color: Colors.orange,
+              tooltip: 'Felder leeren',
+            ),
         ],
       ],
     );

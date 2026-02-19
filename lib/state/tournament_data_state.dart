@@ -616,9 +616,7 @@ class TournamentDataState extends ChangeNotifier {
       final tabellen = evalGruppen(groupPhase);
 
       // Evaluate and create knockouts based on number of groups
-      final knockouts = groupCount == 8
-          ? evaluateGroups8(tabellen)
-          : evaluateGroups6(tabellen);
+      final knockouts = evaluateGroups(tabellen);
 
       // Store previous state for rollback
       final previousKnockouts = _knockouts.clone();
