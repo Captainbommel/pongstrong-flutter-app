@@ -11,6 +11,7 @@ import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
 import 'package:provider/provider.dart';
 
+import 'impressum_dialog.dart';
 import 'tournament_password_dialog.dart';
 import 'create_tournament_dialog.dart';
 import 'login_dialog.dart';
@@ -274,13 +275,7 @@ class _LandingPageState extends State<LandingPage> {
       child: Center(
         child: TextButton(
           onPressed: () {
-            // TODO: Navigate to impressum/legal page
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Impressum - Pongstrong Tournament Manager'),
-                duration: Duration(seconds: 2),
-              ),
-            );
+            ImpressumDialog.show(context);
           },
           child: Text(
             'Impressum & Datenschutz',

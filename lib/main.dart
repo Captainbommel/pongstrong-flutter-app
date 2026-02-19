@@ -51,8 +51,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: App rebuilds when screen size changes, causing unnecessary provider recreations.
-    // Consider determining layout mode once and caching it, or using LayoutBuilder deeper in tree.
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthState()),

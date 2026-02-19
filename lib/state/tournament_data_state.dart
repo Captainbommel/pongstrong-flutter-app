@@ -26,6 +26,11 @@ class TournamentDataState extends ChangeNotifier {
   String _tournamentStyle = 'groupsAndKnockouts';
   String? _selectedRuleset = 'bmt-cup';
 
+  // Async lock to serialise match operations and prevent interleaved
+  // read-modify-write on the local match queue.
+  // Note: Multi-client safety would additionally require Firestore transactions.
+  Future<void>? _matchOperationLock;
+
   // Performance optimization: Team lookup cache (O(1) instead of O(n))
   Map<String, Team> _teamCache = {};
 
@@ -300,11 +305,35 @@ class TournamentDataState extends ChangeNotifier {
     return _matchQueue.playing;
   }
 
+  /// Serialises [operation] so that only one match mutation runs at a time.
+  /// This prevents interleaved async reads/writes on the local match queue.
+  Future<T> _withMatchLock<T>(Future<T> Function() operation) async {
+    // Wait for any previous operation to complete
+    while (_matchOperationLock != null) {
+      try {
+        await _matchOperationLock;
+      } catch (_) {
+        // Previous operation failed – safe to proceed
+      }
+    }
+
+    final completer = Completer<void>();
+    _matchOperationLock = completer.future;
+    try {
+      final result = await operation();
+      return result;
+    } finally {
+      _matchOperationLock = null;
+      completer.complete();
+    }
+  }
+
   /// Move a match from waiting to playing queue
-  // TODO: Potential race condition - if two matches start/finish simultaneously,
-  // both read the same initial state and may overwrite each other's changes.
-  // Consider using Firestore transactions for atomic updates.
-  Future<bool> startMatch(String matchId) async {
+  Future<bool> startMatch(String matchId) {
+    return _withMatchLock(() => _startMatchUnsafe(matchId));
+  }
+
+  Future<bool> _startMatchUnsafe(String matchId) async {
     Logger.info('Starting match: $matchId', tag: 'TournamentData');
     // Store previous state for rollback
     final previousMatchQueue = _matchQueue.clone();
@@ -336,7 +365,13 @@ class TournamentDataState extends ChangeNotifier {
   }
 
   /// Remove a match from playing queue and update standings
-  Future<bool> finishMatch(String matchId, {int? score1, int? score2}) async {
+  Future<bool> finishMatch(String matchId, {int? score1, int? score2}) {
+    return _withMatchLock(
+        () => _finishMatchUnsafe(matchId, score1: score1, score2: score2));
+  }
+
+  Future<bool> _finishMatchUnsafe(String matchId,
+      {int? score1, int? score2}) async {
     Logger.info('Finishing match: $matchId', tag: 'TournamentData');
     // find the match in playing
     final match = _matchQueue.playing.firstWhere(

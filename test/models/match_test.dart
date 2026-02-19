@@ -35,7 +35,6 @@ void main() {
   });
 
   group('getWinnerId', () {
-    //TODO: remove since getWinnerId mostly gets covered by evaluation tests?
     test('returns team1 ID when team1 wins by deathcup', () {
       final match = Match(
         teamId1: 'team1',

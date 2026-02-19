@@ -50,8 +50,6 @@ import 'knockouts.dart';
 // determineWinner determines which team won based on the scores
 // Returns 1 for team1, 2 for team2, or null for tie/invalid
 int? determineWinner(int score1, int score2) {
-  //TODO: would it be better to use a match as input and teamid as output?
-
   if (!isValid(score1, score2)) {
     return null;
   }
