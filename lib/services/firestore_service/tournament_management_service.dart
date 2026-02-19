@@ -403,9 +403,17 @@ mixin TournamentManagementService
     final gruppenphase = await loadGruppenphase(tournamentId: tournamentId);
     if (gruppenphase == null) return;
 
+    // Derive table count from existing matches
+    int maxTable = 6;
+    for (var group in gruppenphase.groups) {
+      for (var match in group) {
+        if (match.tischNr > maxTable) maxTable = match.tischNr;
+      }
+    }
+
     // Rebuild match queue with only unfinished group matches
     final queue = MatchQueue(
-      waiting: List.generate(6, (_) => <Match>[]),
+      waiting: List.generate(maxTable, (_) => <Match>[]),
       playing: [],
     );
     for (var group in gruppenphase.groups) {
@@ -481,7 +489,8 @@ mixin TournamentManagementService
 
     // Delete all sub-collections
     batch.delete(getDoc(tournamentId, 'teams'));
-    batch.delete(getDoc(tournamentId, 'gruppen'));
+    batch.delete(getDoc(tournamentId, 'groups'));
+    batch.delete(getDoc(tournamentId, 'gruppenphase'));
     batch.delete(getDoc(tournamentId, 'tabellen'));
     batch.delete(getDoc(tournamentId, 'knockouts'));
     batch.delete(getDoc(tournamentId, 'matchQueue'));
@@ -593,7 +602,7 @@ mixin TournamentManagementService
       });
 
       // Groups placeholder
-      batch.set(getDoc(tournamentId, 'gruppen'), {
+      batch.set(getDoc(tournamentId, 'groups'), {
         'groups': [],
         'initialized': true,
         'createdAt': FieldValue.serverTimestamp(),

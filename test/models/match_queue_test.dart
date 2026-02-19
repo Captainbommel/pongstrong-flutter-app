@@ -341,7 +341,9 @@ void main() {
       final gruppenphase = Gruppenphase.create(groups);
       final queue = MatchQueue.create(gruppenphase);
 
-      expect(queue.waiting.length, 6);
+      // MatchQueue.create produces one waiting slot per group (keyed by group
+      // index, not by table number). With 2 groups → 2 slots.
+      expect(queue.waiting.length, 2);
       expect(queue.playing, isEmpty);
     });
 

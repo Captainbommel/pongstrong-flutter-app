@@ -98,7 +98,40 @@ void main() {
   });
 
   group('getPoints', () {
-    //TODO: remove since getPoints completely gets covered by evaluation tests?
+    test('returns correct points for normal win', () {
+      final match = Match(score1: 10, score2: 5);
+      final points = match.getPoints();
+      expect(points, isNotNull);
+      expect(points!.$1, 3); // winner gets 3
+      expect(points.$2, 0); // loser gets 0
+    });
+
+    test('returns correct points for overtime win', () {
+      final match = Match(score1: 16, score2: 12);
+      final points = match.getPoints();
+      expect(points, isNotNull);
+      expect(points!.$1, 2); // overtime winner
+      expect(points.$2, 1); // overtime loser
+    });
+
+    test('returns correct points for deathcup', () {
+      final match = Match(score1: -1, score2: 5);
+      final points = match.getPoints();
+      expect(points, isNotNull);
+      expect(points!.$1, 4); // deathcup winner
+      expect(points.$2, 0); // deathcup loser
+    });
+
+    test('returns null for invalid scores', () {
+      final match = Match(score1: 5, score2: 5);
+      expect(match.getPoints(), isNull);
+    });
+
+    test('delegates to calculatePoints from evaluation', () {
+      // Verify it matches the standalone function
+      final match = Match(score1: 19, score2: 17);
+      expect(match.getPoints(), (2, 1));
+    });
   });
 
   group('JSON serialization', () {

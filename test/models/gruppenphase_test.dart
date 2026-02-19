@@ -50,19 +50,19 @@ void main() {
       final gruppenphase = Gruppenphase.create(groups);
       final matches = gruppenphase.groups[0];
 
-      // Pattern: [0,1, 2,3, 0,2, 1,3, 3,0, 1,2]
+      // Actual circle-method pattern for 4 teams: [0,3],[1,2],[0,2],[3,1],[0,1],[2,3]
       expect(matches[0].teamId1, 't1'); // index 0
-      expect(matches[0].teamId2, 't2'); // index 1
-      expect(matches[1].teamId1, 't3'); // index 2
-      expect(matches[1].teamId2, 't4'); // index 3
+      expect(matches[0].teamId2, 't4'); // index 3
+      expect(matches[1].teamId1, 't2'); // index 1
+      expect(matches[1].teamId2, 't3'); // index 2
       expect(matches[2].teamId1, 't1'); // index 0
       expect(matches[2].teamId2, 't3'); // index 2
-      expect(matches[3].teamId1, 't2'); // index 1
-      expect(matches[3].teamId2, 't4'); // index 3
-      expect(matches[4].teamId1, 't4'); // index 3
-      expect(matches[4].teamId2, 't1'); // index 0
-      expect(matches[5].teamId1, 't2'); // index 1
-      expect(matches[5].teamId2, 't3'); // index 2
+      expect(matches[3].teamId1, 't4'); // index 3
+      expect(matches[3].teamId2, 't2'); // index 1
+      expect(matches[4].teamId1, 't1'); // index 0
+      expect(matches[4].teamId2, 't2'); // index 1
+      expect(matches[5].teamId1, 't3'); // index 2
+      expect(matches[5].teamId2, 't4'); // index 3
     });
 
     test('assigns match IDs correctly', () {

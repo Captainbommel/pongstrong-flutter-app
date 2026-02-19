@@ -189,8 +189,8 @@ void main() {
   group('evaluate', () {
     test('returns empty table for no matches', () {
       final table = evaluate([]);
-      expect(table.length, 4);
-      expect(table.every((row) => row.teamId.isEmpty), true);
+      // evaluate() sizes the table dynamically from unique teams in matches
+      expect(table.length, 0);
     });
 
     test('evaluates single finished match correctly', () {
@@ -205,7 +205,8 @@ void main() {
       ];
 
       final table = evaluate(matches);
-      expect(table.length, 4);
+      // Only 2 unique teams in these matches
+      expect(table.length, 2);
 
       // Find teams in table
       final team1Row = table.firstWhere((row) => row.teamId == 'team1');
@@ -352,8 +353,129 @@ void main() {
   });
 
   group('evaluateGroups8', () {
-    // evaluateGroups8 ist used yet and probably has some issues still
-    //TODO: add tests for evaluateGroups8
+    test('creates knockout structure from 8 groups of 4 teams', () {
+      final groups = Groups(
+        groups: List.generate(
+          8,
+          (i) => ['t${i}1', 't${i}2', 't${i}3', 't${i}4'],
+        ),
+      );
+      final gruppenphase = Gruppenphase.create(groups);
+
+      // Simulate group results: first team wins all, second team wins 2, etc.
+      for (int g = 0; g < gruppenphase.groups.length; g++) {
+        for (int m = 0; m < gruppenphase.groups[g].length; m++) {
+          gruppenphase.groups[g][m].done = true;
+          gruppenphase.groups[g][m].score1 = 10;
+          gruppenphase.groups[g][m].score2 = 5 + (m % 3);
+        }
+      }
+
+      final tabellen = evalGruppen(gruppenphase);
+      final knockouts = evaluateGroups8(tabellen);
+
+      // Champions bracket: 4 rounds (8, 4, 2, 1)
+      expect(knockouts.champions.rounds.length, 4);
+      expect(knockouts.champions.rounds[0].length, 8);
+
+      // All 8 first-round champions matches should have both teams assigned
+      for (var match in knockouts.champions.rounds[0]) {
+        expect(match.teamId1, isNotEmpty,
+            reason: 'Champions round 1 match ${match.id} teamId1 is empty');
+        expect(match.teamId2, isNotEmpty,
+            reason: 'Champions round 1 match ${match.id} teamId2 is empty');
+      }
+
+      // Europa first round should have teams assigned
+      for (var match in knockouts.europa.rounds[0]) {
+        expect(match.teamId1, isNotEmpty);
+        expect(match.teamId2, isNotEmpty);
+      }
+
+      // Conference first round should have teams assigned
+      for (var match in knockouts.conference.rounds[0]) {
+        expect(match.teamId1, isNotEmpty);
+        expect(match.teamId2, isNotEmpty);
+      }
+
+      // Super cup should be instantiated with 2 matches
+      expect(knockouts.superCup.matches.length, 2);
+    });
+
+    test('places group firsts vs group seconds in champions', () {
+      final groups = Groups(
+        groups: List.generate(
+          8,
+          (i) => ['t${i}1', 't${i}2', 't${i}3', 't${i}4'],
+        ),
+      );
+      final gruppenphase = Gruppenphase.create(groups);
+
+      for (int g = 0; g < gruppenphase.groups.length; g++) {
+        for (int m = 0; m < gruppenphase.groups[g].length; m++) {
+          gruppenphase.groups[g][m].done = true;
+          gruppenphase.groups[g][m].score1 = 10;
+          gruppenphase.groups[g][m].score2 = 5;
+        }
+      }
+
+      final tabellen = evalGruppen(gruppenphase);
+      final knockouts = evaluateGroups8(tabellen);
+
+      // Collect all team IDs placed in champions round 1
+      final allTeam1s =
+          knockouts.champions.rounds[0].map((m) => m.teamId1).toSet();
+      final allTeam2s =
+          knockouts.champions.rounds[0].map((m) => m.teamId2).toSet();
+
+      // Team 1s should be group firsts (index 0 in each table)
+      for (var table in tabellen.tables) {
+        expect(
+          allTeam1s.contains(table[0].teamId),
+          isTrue,
+          reason:
+              '${table[0].teamId} should be in champions round 1 as teamId1',
+        );
+      }
+
+      // Team 2s should be group seconds (index 1 in each table)
+      for (var table in tabellen.tables) {
+        expect(
+          allTeam2s.contains(table[1].teamId),
+          isTrue,
+          reason:
+              '${table[1].teamId} should be in champions round 1 as teamId2',
+        );
+      }
+    });
+
+    test('tables are mapped after evaluation', () {
+      final groups = Groups(
+        groups: List.generate(
+          8,
+          (i) => ['t${i}1', 't${i}2', 't${i}3', 't${i}4'],
+        ),
+      );
+      final gruppenphase = Gruppenphase.create(groups);
+
+      for (int g = 0; g < gruppenphase.groups.length; g++) {
+        for (int m = 0; m < gruppenphase.groups[g].length; m++) {
+          gruppenphase.groups[g][m].done = true;
+          gruppenphase.groups[g][m].score1 = 10;
+          gruppenphase.groups[g][m].score2 = 5;
+        }
+      }
+
+      final tabellen = evalGruppen(gruppenphase);
+      final knockouts = evaluateGroups8(tabellen);
+
+      // All matches should have table numbers assigned
+      for (var round in knockouts.champions.rounds) {
+        for (var match in round) {
+          expect(match.tischNr, greaterThan(0));
+        }
+      }
+    });
   });
 
   group('evaluateGroups6', () {

@@ -187,26 +187,19 @@ Knockouts evaluateGroups8(Tabellen tabellen) {
   }
 
   // euro & conf
-  int i = 0, j = 0;
-  while (j < 8) {
+  for (int i = 0; i < 8; i++) {
     if (i % 2 == 0) {
-      knock.europa.rounds[0][j ~/ 2].teamId1 = teamIds[i][2];
+      knock.europa.rounds[0][i ~/ 2].teamId1 = teamIds[i][2];
     } else {
-      knock.europa.rounds[0][j ~/ 2].teamId2 = teamIds[i][2];
-      j++;
+      knock.europa.rounds[0][i ~/ 2].teamId2 = teamIds[i][2];
     }
-    i++;
   }
-  i = 0;
-  j = 0;
-  while (j < 8) {
+  for (int i = 0; i < 8; i++) {
     if (i % 2 == 0) {
-      knock.conference.rounds[0][j ~/ 2].teamId1 = teamIds[i][3];
+      knock.conference.rounds[0][i ~/ 2].teamId1 = teamIds[i][3];
     } else {
-      knock.conference.rounds[0][j ~/ 2].teamId2 = teamIds[i][3];
-      j++;
+      knock.conference.rounds[0][i ~/ 2].teamId2 = teamIds[i][3];
     }
-    i++;
   }
 
   mapTables(knock);

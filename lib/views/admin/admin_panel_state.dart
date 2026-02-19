@@ -22,8 +22,15 @@ enum TournamentStyle {
 
 /// Admin panel state management with Firebase integration
 class AdminPanelState extends ChangeNotifier {
-  final FirestoreService _firestoreService = FirestoreService();
+  final FirestoreService _firestoreService;
   bool _disposed = false;
+
+  /// Creates an [AdminPanelState].
+  ///
+  /// [firestoreService] is optional – production code omits it and the shared
+  /// singleton is used.  Pass [FirestoreService.forTesting] in unit tests.
+  AdminPanelState({FirestoreService? firestoreService})
+      : _firestoreService = firestoreService ?? FirestoreService();
 
   // Tournament info
   String _currentTournamentId = FirestoreBase.defaultTournamentId;
@@ -731,7 +738,12 @@ class AdminPanelState extends ChangeNotifier {
             tournamentId: _currentTournamentId,
             tableCount: _numberOfTables,
           );
-          _totalMatches = _numberOfGroups * 6;
+          // Compute total group matches dynamically: C(n,2) per group
+          _totalMatches = 0;
+          for (var group in _groups.groups) {
+            final n = group.length;
+            _totalMatches += (n * (n - 1)) ~/ 2;
+          }
           _completedMatches = 0;
           _remainingMatches = _totalMatches;
           _currentPhase = TournamentPhase.groupPhase;
