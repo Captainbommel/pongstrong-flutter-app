@@ -9,6 +9,9 @@ class TournamentStyleCard extends StatelessWidget {
   final ValueChanged<TournamentStyle>? onStyleChanged;
   final String? selectedRuleset;
   final ValueChanged<String?>? onRulesetChanged;
+  final int numberOfTables;
+  final ValueChanged<int>? onTablesChanged;
+  final int totalTeams;
   final bool isCompact;
 
   const TournamentStyleCard({
@@ -18,6 +21,9 @@ class TournamentStyleCard extends StatelessWidget {
     this.onStyleChanged,
     this.selectedRuleset,
     this.onRulesetChanged,
+    this.numberOfTables = 6,
+    this.onTablesChanged,
+    this.totalTeams = 0,
     this.isCompact = false,
   });
 
@@ -67,6 +73,90 @@ class TournamentStyleCard extends StatelessWidget {
               'Alle Teams spielen gegeneinander',
               Icons.sync_alt,
             ),
+            const Divider(),
+            // Table count selector
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.table_restaurant,
+                      color: GroupPhaseColors.steelblue),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Tische',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: GroupPhaseColors.steelblue,
+                      ),
+                    ),
+                  ),
+                  if (!isTournamentStarted)
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: numberOfTables > 1
+                          ? () => onTablesChanged?.call(numberOfTables - 1)
+                          : null,
+                      color: GroupPhaseColors.steelblue,
+                      tooltip: 'Weniger Tische',
+                    ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: GroupPhaseColors.steelblue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: GroupPhaseColors.steelblue
+                              .withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      '$numberOfTables',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: GroupPhaseColors.steelblue,
+                      ),
+                    ),
+                  ),
+                  if (!isTournamentStarted)
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: () =>
+                          onTablesChanged?.call(numberOfTables + 1),
+                      color: GroupPhaseColors.steelblue,
+                      tooltip: 'Mehr Tische',
+                    )
+                  else
+                    const SizedBox(width: 8),
+                ],
+              ),
+            ),
+            // Warning: more tables than concurrent matches
+            if (!isTournamentStarted &&
+                totalTeams > 0 &&
+                numberOfTables > totalTeams ~/ 2)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber,
+                        color: Colors.orange, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Einige Tische werden leer bleiben (max. ${totalTeams ~/ 2}).',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const Divider(),
             const SizedBox(height: 8),
             Padding(

@@ -46,7 +46,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     _initializeControllers();
   }
 
-  void _initializeControllers() {
+  void _initializeControllers({int? preserveTargetCount}) {
     for (var controller in _teamControllers) {
       controller.dispose();
     }
@@ -65,15 +65,35 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     }
 
     if (_teamControllers.isNotEmpty) {
-      _targetTeamCount = _teamControllers.length;
-      // Snap KO-only count to nearest valid power of 2
-      if (_isKOOnly && ![8, 16, 32, 64].contains(_targetTeamCount)) {
-        // Pick the largest power of 2 that fits, or default to 8
-        final valid = [64, 32, 16, 8];
-        _targetTeamCount = valid.firstWhere(
-          (v) => v <= _teamControllers.length,
-          orElse: () => 8,
-        );
+      // Priority: explicit caller value > admin state value > derive from team count
+      final stateCount = widget.adminState.targetTeamCount;
+      final validKo = [8, 16, 32, 64];
+      if (preserveTargetCount != null &&
+          (_isKOOnly
+              ? validKo.contains(preserveTargetCount)
+              : preserveTargetCount >= 2)) {
+        // Post-save: restore the user's in-page selection
+        _targetTeamCount = preserveTargetCount;
+      } else if (_isKOOnly && validKo.contains(stateCount)) {
+        // First open in KO-only: use the value already chosen in the admin panel
+        _targetTeamCount = stateCount;
+      } else if (_isRoundRobin && stateCount >= 2) {
+        // First open in round-robin: same
+        _targetTeamCount = stateCount;
+      } else {
+        _targetTeamCount = _teamControllers.length;
+        // Snap KO-only count to nearest valid power of 2
+        if (_isKOOnly && !validKo.contains(_targetTeamCount)) {
+          final valid = [64, 32, 16, 8];
+          _targetTeamCount = valid.firstWhere(
+            (v) => v <= _teamControllers.length,
+            orElse: () => 8,
+          );
+        }
+      }
+      // Grow controller list to fill selected slots
+      while (_teamControllers.length < _targetTeamCount) {
+        _teamControllers.add(TeamEditController(isNew: true));
       }
       // For KO-only: trim the visible list to targetTeamCount
       if (_isKOOnly && _teamControllers.length > _targetTeamCount) {
@@ -83,11 +103,16 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         }
       }
     } else {
-      _targetTeamCount = _isGroupPhase
-          ? 24
-          : _isKOOnly
-              ? 8
-              : 8;
+      // No registered teams yet — seed with admin state count or mode default
+      final stateCount = widget.adminState.targetTeamCount;
+      if (_isGroupPhase) {
+        _targetTeamCount = 24;
+      } else if (_isKOOnly) {
+        _targetTeamCount =
+            [8, 16, 32, 64].contains(stateCount) ? stateCount : 8;
+      } else {
+        _targetTeamCount = 8;
+      }
       // In round-robin mode, don't pre-create empty slots
       if (!_isRoundRobin) {
         for (int i = 0; i < _targetTeamCount; i++) {
@@ -224,7 +249,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
       await state.loadTeams();
       await state.loadGroups();
-      _initializeControllers();
+      _initializeControllers(preserveTargetCount: _targetTeamCount);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

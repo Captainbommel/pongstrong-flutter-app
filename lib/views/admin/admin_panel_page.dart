@@ -318,6 +318,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       totalTeams: state.totalTeams,
       teamsInGroups: state.teamsInGroupsCount,
       numberOfGroups: state.numberOfGroups,
+      targetTeamCount: state.targetTeamCount,
       groupsAssigned: state.groupsAssigned,
       tournamentStyle: state.tournamentStyle,
       isLocked: state.isTournamentStarted,
@@ -336,6 +337,9 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         Provider.of<TournamentDataState>(context, listen: false)
             .updateSelectedRuleset(ruleset);
       },
+      numberOfTables: state.numberOfTables,
+      onTablesChanged: (count) => state.setNumberOfTables(count),
+      totalTeams: state.targetTeamCount,
       isCompact: isCompact,
     );
 

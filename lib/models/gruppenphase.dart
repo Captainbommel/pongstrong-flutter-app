@@ -8,13 +8,15 @@ class Gruppenphase {
 
   Gruppenphase({List<List<Match>>? groups}) : groups = groups ?? [];
 
-  // create expects 6 Groups of 4 teams each at the moment
-  static Gruppenphase create(Groups teamGroups) {
-    final length = teamGroups.groups.length;
-    final groups = List<List<Match>>.generate(length, (_) => []);
+  // create expects groups with equal team counts
+  static Gruppenphase create(Groups teamGroups, {int tableCount = 6}) {
+    final groupCount = teamGroups.groups.length;
+    final groups = List<List<Match>>.generate(groupCount, (_) => []);
 
-    final matchPattern = Configurations.generateMatchPairings(4);
-    for (int i = 0; i < length; i++) {
+    final teamsPerGroup =
+        teamGroups.groups.isNotEmpty ? teamGroups.groups[0].length : 4;
+    final matchPattern = Configurations.generateMatchPairings(teamsPerGroup);
+    for (int i = 0; i < groupCount; i++) {
       for (int j = 0; j < matchPattern.length; j++) {
         groups[i].add(Match(
           teamId1: teamGroups.groups[i][matchPattern[j][0]],
@@ -24,9 +26,11 @@ class Gruppenphase {
       }
     }
 
-    final tablePattern = Configurations.generateTableConfiguration(6, 24, 6)!;
+    final teamCount = groupCount * teamsPerGroup;
+    final tablePattern = Configurations.generateTableConfiguration(
+        groupCount, teamCount, tableCount)!;
     for (int i = 0; i < tablePattern[0].length; i++) {
-      for (int j = 0; j < length; j++) {
+      for (int j = 0; j < groupCount; j++) {
         groups[j][i].tischNr = tablePattern[j][i];
       }
     }

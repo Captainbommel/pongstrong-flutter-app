@@ -8,6 +8,7 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
   final int totalTeams;
   final int teamsInGroups;
   final int numberOfGroups;
+  final int targetTeamCount;
   final bool groupsAssigned;
   final TournamentStyle tournamentStyle;
   final bool isLocked;
@@ -19,6 +20,7 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
     required this.totalTeams,
     required this.teamsInGroups,
     required this.numberOfGroups,
+    required this.targetTeamCount,
     required this.groupsAssigned,
     required this.tournamentStyle,
     this.isLocked = false,
@@ -68,8 +70,8 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
     if (_isGroupPhase) return '$totalTeams / 24 Teams';
     if (_isKOOnly) {
       final validCounts = [8, 16, 32, 64];
-      final isValid = validCounts.contains(totalTeams);
-      return '$totalTeams Teams${isValid ? '' : ' (benötigt: 8/16/32/64)'}';
+      final isValid = validCounts.contains(targetTeamCount);
+      return '$targetTeamCount Teams${isValid ? '' : ' (benötigt: 8/16/32/64)'}';
     }
     return '$totalTeams Teams';
   }
@@ -144,6 +146,33 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
               ],
             ),
 
+            // Groups count chip (group phase only)
+            if (_isGroupPhase && numberOfGroups > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: TreeColors.rebeccapurple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.grid_view,
+                        color: TreeColors.rebeccapurple, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '$numberOfGroups Gruppen',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: TreeColors.rebeccapurple,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
             // Group status (only if group phase)
             if (_isGroupPhase) ...[
               const SizedBox(height: 12),
@@ -170,26 +199,6 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (groupsAssigned && numberOfGroups > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color:
-                              TreeColors.rebeccapurple.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '$numberOfGroups Gruppen',
-                          style: const TextStyle(
-                            color: TreeColors.rebeccapurple,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),

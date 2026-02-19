@@ -39,10 +39,13 @@ class AdminPanelState extends ChangeNotifier {
   Groups _groups = Groups();
   bool _groupsAssigned = false;
   int _numberOfGroups = 6;
+  int _numberOfTables = 6;
 
   // Selected team count for KO-only and round-robin modes
   // (controls how many of the saved teams are used when starting)
   int _targetTeamCount = 8;
+  // Remembers the last KO bracket size so it survives mode switches
+  int _koTargetTeamCount = 8;
 
   // Rules configuration
   String? _selectedRuleset = 'bmt-cup';
@@ -64,6 +67,7 @@ class AdminPanelState extends ChangeNotifier {
   Groups get groups => _groups;
   bool get groupsAssigned => _groupsAssigned;
   int get numberOfGroups => _numberOfGroups;
+  int get numberOfTables => _numberOfTables;
   int get totalTeams => _teams.length;
   int get targetTeamCount => _targetTeamCount;
   int get totalMatches => _totalMatches;
@@ -282,33 +286,25 @@ class AdminPanelState extends ChangeNotifier {
         if (knockouts != null) {
           for (var round in knockouts.champions.rounds) {
             for (var match in round) {
-              if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
-                totalMatches++;
-                if (match.done) completedMatches++;
-              }
+              totalMatches++;
+              if (match.done) completedMatches++;
             }
           }
           for (var round in knockouts.europa.rounds) {
             for (var match in round) {
-              if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
-                totalMatches++;
-                if (match.done) completedMatches++;
-              }
+              totalMatches++;
+              if (match.done) completedMatches++;
             }
           }
           for (var round in knockouts.conference.rounds) {
             for (var match in round) {
-              if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
-                totalMatches++;
-                if (match.done) completedMatches++;
-              }
-            }
-          }
-          for (var match in knockouts.superCup.matches) {
-            if (match.teamId1.isNotEmpty || match.teamId2.isNotEmpty) {
               totalMatches++;
               if (match.done) completedMatches++;
             }
+          }
+          for (var match in knockouts.superCup.matches) {
+            totalMatches++;
+            if (match.done) completedMatches++;
           }
         }
       } else {
@@ -543,6 +539,13 @@ class AdminPanelState extends ChangeNotifier {
     return -1;
   }
 
+  void setNumberOfTables(int count) {
+    if (!isTournamentStarted && count >= 1) {
+      _numberOfTables = count;
+      notifyListeners();
+    }
+  }
+
   void setNumberOfGroups(int count) {
     if (count > 0 && count <= 8) {
       _numberOfGroups = count;
@@ -591,15 +594,19 @@ class AdminPanelState extends ChangeNotifier {
 
   void setTournamentStyle(TournamentStyle style) {
     if (!isTournamentStarted) {
+      // Save current KO count before switching away from KO-only
+      if (_tournamentStyle == TournamentStyle.knockoutsOnly) {
+        _koTargetTeamCount = _targetTeamCount;
+      }
       _tournamentStyle = style;
       if (style != TournamentStyle.groupsAndKnockouts) {
         _groupsAssigned = false;
       }
-      // Set sensible default target counts
+      // Restore appropriate target count
       if (style == TournamentStyle.groupsAndKnockouts) {
         _targetTeamCount = 24;
       } else if (style == TournamentStyle.knockoutsOnly) {
-        _targetTeamCount = 8;
+        _targetTeamCount = _koTargetTeamCount;
       }
       // Persist style to Firebase
       _saveTournamentStyle(style);
@@ -611,6 +618,9 @@ class AdminPanelState extends ChangeNotifier {
   void setTargetTeamCount(int count) {
     if (_targetTeamCount != count) {
       _targetTeamCount = count;
+      if (_tournamentStyle == TournamentStyle.knockoutsOnly) {
+        _koTargetTeamCount = count;
+      }
       notifyListeners();
     }
   }
@@ -719,6 +729,7 @@ class AdminPanelState extends ChangeNotifier {
             _teams,
             _groups,
             tournamentId: _currentTournamentId,
+            tableCount: _numberOfTables,
           );
           _totalMatches = _numberOfGroups * 6;
           _completedMatches = 0;
@@ -734,6 +745,7 @@ class AdminPanelState extends ChangeNotifier {
           await _firestoreService.initializeKOOnlyTournament(
             selectedTeams,
             tournamentId: _currentTournamentId,
+            tableCount: _numberOfTables,
           );
           // Calculate total matches for single-elimination: n-1 matches
           _totalMatches = selectedTeams.length - 1;
@@ -749,6 +761,7 @@ class AdminPanelState extends ChangeNotifier {
           await _firestoreService.initializeRoundRobinTournament(
             _teams,
             tournamentId: _currentTournamentId,
+            tableCount: _numberOfTables,
           );
           // Round robin: n*(n-1)/2 matches
           _totalMatches = (_teams.length * (_teams.length - 1)) ~/ 2;

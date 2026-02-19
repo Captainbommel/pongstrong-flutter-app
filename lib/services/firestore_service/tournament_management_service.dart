@@ -22,12 +22,13 @@ mixin TournamentManagementService
         MatchQueueService {
   // ==================== TOURNAMENT INITIALIZATION ====================
 
-  /// Initializes a new tournament from teams and groups
+  /// Initializes a new tournament from teams, groups, and tables
   /// This creates all necessary data structures
   Future<void> initializeTournament(
     List<Team> teams,
     Groups groups, {
     String tournamentId = FirestoreBase.defaultTournamentId,
+    int tableCount = 6,
   }) async {
     // Save flat list of teams
     await saveTeams(teams, tournamentId: tournamentId);
@@ -36,7 +37,7 @@ mixin TournamentManagementService
     await saveGroups(groups, tournamentId: tournamentId);
 
     // Create and save group phase matches
-    final gruppenphase = Gruppenphase.create(groups);
+    final gruppenphase = Gruppenphase.create(groups, tableCount: tableCount);
     await saveGruppenphase(gruppenphase, tournamentId: tournamentId);
 
     // Create and save match queue
@@ -166,6 +167,7 @@ mixin TournamentManagementService
   Future<void> initializeKOOnlyTournament(
     List<Team> teams, {
     String tournamentId = FirestoreBase.defaultTournamentId,
+    int tableCount = 6,
   }) async {
     // Save teams
     await saveTeams(teams, tournamentId: tournamentId);
@@ -183,7 +185,7 @@ mixin TournamentManagementService
         teamId1: teams[i * 2].id,
         teamId2: teams[i * 2 + 1].id,
         id: 'ko_r1_${i + 1}',
-        tischNr: (i % 6) + 1,
+        tischNr: (i % tableCount) + 1,
       ));
     }
     rounds.add(firstRound);
@@ -195,7 +197,7 @@ mixin TournamentManagementService
       for (int i = 0; i < matchesInRound; i++) {
         round.add(Match(
           id: 'ko_r${r}_${i + 1}',
-          tischNr: (i % 6) + 1,
+          tischNr: (i % tableCount) + 1,
         ));
       }
       rounds.add(round);
@@ -210,7 +212,7 @@ mixin TournamentManagementService
 
     // Create match queue with first-round matches
     final queue = MatchQueue(
-      waiting: List.generate(6, (_) => <Match>[]),
+      waiting: List.generate(tableCount, (_) => <Match>[]),
       playing: [],
     );
     for (var match in firstRound) {
@@ -251,6 +253,7 @@ mixin TournamentManagementService
   Future<void> initializeRoundRobinTournament(
     List<Team> teams, {
     String tournamentId = FirestoreBase.defaultTournamentId,
+    int tableCount = 6,
   }) async {
     // Save teams
     await saveTeams(teams, tournamentId: tournamentId);
@@ -284,7 +287,7 @@ mixin TournamentManagementService
           teamId1: teams[home].id,
           teamId2: teams[away].id,
           id: 'rr_$matchId',
-          tischNr: (tableSlot % 6) + 1,
+          tischNr: (tableSlot % tableCount) + 1,
         ));
         matchId++;
         tableSlot++;
@@ -303,7 +306,7 @@ mixin TournamentManagementService
     // order, so matches from the same round land on different tables and can
     // be started concurrently.
     final queue = MatchQueue(
-      waiting: List.generate(6, (_) => <Match>[]),
+      waiting: List.generate(tableCount, (_) => <Match>[]),
       playing: [],
     );
     for (var match in matches) {
