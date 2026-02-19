@@ -2,8 +2,12 @@ import 'package:pongstrong/models/gruppenphase.dart';
 import 'package:pongstrong/models/knockouts.dart';
 import 'package:pongstrong/models/match.dart';
 
+/// Manages the match scheduling queue with waiting and currently playing matches.
 class MatchQueue {
+  /// Matches waiting to be played, grouped by table assignment.
   List<List<Match>> waiting;
+
+  /// Matches currently being played.
   List<Match> playing;
 
   MatchQueue({
@@ -12,7 +16,7 @@ class MatchQueue {
   })  : waiting = waiting ?? [],
         playing = playing ?? [];
 
-  // switchPlaying moves the match from Waiting to Playing
+  /// Moves a match from the waiting queue to the playing list.
   bool switchPlaying(String matchId) {
     Match? match;
     int groupIndex = -1;
@@ -32,14 +36,14 @@ class MatchQueue {
     }
 
     if (match == null) return false;
-    if (!isFree(match.tischNr)) return false;
+    if (!isFree(match.tableNumber)) return false;
 
     waiting[groupIndex].removeAt(matchIndex);
     playing.add(match);
     return true;
   }
 
-  // removeFromPlaying removes the Match from the MatchQueue
+  /// Removes a finished match from the playing list.
   bool removeFromPlaying(String id) {
     final index = playing.indexWhere((match) => match.id == id);
 
@@ -51,9 +55,10 @@ class MatchQueue {
     return false;
   }
 
-  // nextMatches returns all Matches with unoccupied table that are next in line.
-  // When there are more tables than groups, this looks deeper into each
-  // group's queue so that extra tables are utilised immediately.
+  /// Returns all waiting matches whose table is free and are next in line.
+  ///
+  /// When there are more tables than groups, this looks deeper into each
+  /// group's queue so that extra tables are utilised immediately.
   List<Match> nextMatches() {
     final matches = <Match>[];
     final tables = <int>{};
@@ -72,8 +77,8 @@ class MatchQueue {
         while (positions[i] < waiting[i].length) {
           final match = waiting[i][positions[i]];
           positions[i]++;
-          if (isFree(match.tischNr) && !tables.contains(match.tischNr)) {
-            tables.add(match.tischNr);
+          if (isFree(match.tableNumber) && !tables.contains(match.tableNumber)) {
+            tables.add(match.tableNumber);
             matches.add(match);
             added = true;
             break; // one match per group per pass
@@ -85,8 +90,7 @@ class MatchQueue {
     return matches;
   }
 
-  // nextNextMatches returns the first blocked match per group (table occupied
-  // or claimed by a ready match) that is not already returned by nextMatches.
+  /// Returns the first blocked match per group (table occupied or claimed).
   List<Match> nextNextMatches() {
     final readyIds = nextMatches().map((m) => m.id).toSet();
     final matches = <Match>[];
@@ -98,9 +102,9 @@ class MatchQueue {
 
     for (final i in rankedIndices) {
       for (final match in waiting[i]) {
-        if (!readyIds.contains(match.id) && !tables.contains(match.tischNr)) {
+        if (!readyIds.contains(match.id) && !tables.contains(match.tableNumber)) {
           matches.add(match);
-          tables.add(match.tischNr);
+          tables.add(match.tableNumber);
           break;
         }
       }
@@ -108,17 +112,17 @@ class MatchQueue {
     return matches;
   }
 
-  // isFree checks if table tischNr is free
-  bool isFree(int tischNr) {
+  /// Checks if the given table number is free (not currently in use).
+  bool isFree(int tableNumber) {
     for (final match in playing) {
-      if (match.tischNr == tischNr) {
+      if (match.tableNumber == tableNumber) {
         return false;
       }
     }
     return true;
   }
 
-  // contains checks if a Match is already in the MatchQueue
+  /// Returns `true` if [match] is already in the queue (waiting or playing).
   bool contains(Match match) {
     for (final line in waiting) {
       for (final m in line) {
@@ -131,7 +135,7 @@ class MatchQueue {
     return false;
   }
 
-  // isEmpty returns true if q is completely empty
+  /// Returns `true` if no matches remain in waiting or playing.
   bool isEmpty() {
     for (final group in waiting) {
       if (group.isNotEmpty) return false;
@@ -139,7 +143,7 @@ class MatchQueue {
     return playing.isEmpty;
   }
 
-  // clearQueue removes all matches from waiting and playing
+  /// Removes all matches from waiting and playing lists.
   void clearQueue() {
     for (final line in waiting) {
       line.clear();
@@ -147,7 +151,7 @@ class MatchQueue {
     playing.clear();
   }
 
-  // updateKnockQueue adds new ready Matches to the matchQueue
+  /// Adds ready knockout matches to the waiting queue.
   void updateKnockQueue(Knockouts knock) {
     if (knock.champions.rounds.isEmpty || knock.champions.rounds[0].isEmpty) {
       return;
@@ -162,7 +166,7 @@ class MatchQueue {
 
     void enqueue(Match match) {
       if (matchReady(match) && !contains(match)) {
-        final idx = match.tischNr - 1;
+        final idx = match.tableNumber - 1;
         if (idx < 0) return;
         // Auto-expand waiting lists if tischNr exceeds current size
         while (idx >= waiting.length) {
@@ -193,7 +197,7 @@ class MatchQueue {
     }
   }
 
-  // formMatchQueue creates a MatchQueue out of Gruppenphase
+  /// Creates a [MatchQueue] from a [Gruppenphase].
   static MatchQueue create(Gruppenphase gruppenphase) {
     final queue = MatchQueue(
       waiting: List.generate(gruppenphase.groups.length, (_) => <Match>[]),
@@ -209,6 +213,7 @@ class MatchQueue {
     return queue;
   }
 
+  /// Serialises this queue to a JSON-compatible map.
   Map<String, dynamic> toJson() => {
         'waiting': waiting
             .map((line) => line.map((m) => m.toJson()).toList())
@@ -216,6 +221,7 @@ class MatchQueue {
         'playing': playing.map((m) => m.toJson()).toList(),
       };
 
+  /// Creates a [MatchQueue] from a Firestore JSON map.
   factory MatchQueue.fromJson(Map<String, dynamic> json) => MatchQueue(
         waiting: (json['waiting'] as List?)
                 ?.map((line) => (line as List)
@@ -232,4 +238,28 @@ class MatchQueue {
   /// Creates a deep copy of this MatchQueue.
   /// Note: This uses JSON serialization and should be used sparingly for performance reasons.
   MatchQueue clone() => MatchQueue.fromJson(toJson());
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! MatchQueue) return false;
+    if (playing.length != other.playing.length) return false;
+    for (int i = 0; i < playing.length; i++) {
+      if (playing[i] != other.playing[i]) return false;
+    }
+    if (waiting.length != other.waiting.length) return false;
+    for (int i = 0; i < waiting.length; i++) {
+      if (waiting[i].length != other.waiting[i].length) return false;
+      for (int j = 0; j < waiting[i].length; j++) {
+        if (waiting[i][j] != other.waiting[i][j]) return false;
+      }
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        Object.hashAll(playing),
+        Object.hashAll(waiting.map((w) => Object.hashAll(w))),
+      );
 }

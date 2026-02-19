@@ -10,12 +10,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// - tournaments/{tournamentId}/knockouts - Knockout phase data
 /// - tournaments/{tournamentId}/matchQueue - Queue of matches
 mixin FirestoreBase {
+  /// The Firestore instance used by all service mixins.
   FirebaseFirestore get firestore => FirebaseFirestore.instance;
 
-  // Default tournament ID (can be modified to support multiple tournaments)
+  /// Default tournament ID for single-tournament mode.
   static const String defaultTournamentId = 'current';
 
-  // Collection name
+  /// Top-level Firestore collection name.
   static const String tournamentsCollection = 'tournaments';
 
   /// Gets a document reference within a tournament

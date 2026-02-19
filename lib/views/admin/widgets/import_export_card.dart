@@ -1,58 +1,42 @@
 import 'dart:convert';
-import 'dart:js_interop';
 
 import 'package:flutter/material.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/file_download.dart' as file_download;
 import 'package:provider/provider.dart';
-import 'package:web/web.dart' as web;
 
-/// Card widget for import/export functionality
+/// Card widget for import/export functionality.
+///
+/// Export uses a conditional import so that `dart:js_interop` / `package:web`
+/// are only loaded on the web — native platforms get a safe stub.
 class ImportExportCard extends StatelessWidget {
   final VoidCallback? onImportJson;
-  final VoidCallback? onExportJson;
   final bool isCompact;
 
   const ImportExportCard({
     super.key,
     this.onImportJson,
-    this.onExportJson,
     this.isCompact = false,
   });
 
   Future<void> _exportTournamentState(BuildContext context) async {
     try {
-      // Retrieve the tournament state using Provider
       final tournamentState =
           Provider.of<TournamentDataState>(context, listen: false).toJson();
-
-      // Convert the state to JSON
       final jsonString = jsonEncode(tournamentState);
 
-      // TODO: Ensure compatibility with the import function in the future
+      await file_download.downloadFile(jsonString, 'tournament_state.json');
 
-      // Create a Blob and trigger a download
-      final blob = web.Blob(
-        [jsonString.toJS].toJS,
-        web.BlobPropertyBag(type: 'application/json'),
-      );
-      final url = web.URL.createObjectURL(blob);
-      final anchor = web.document.createElement('a') as web.HTMLAnchorElement
-        ..href = url
-        ..target = 'blank'
-        ..download = 'tournament_state.json';
-      anchor.click();
-      web.URL.revokeObjectURL(url);
-
-      // Show success message
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Tournament state downloaded as JSON file!')),
+            content: Text('Turnierstatus als JSON-Datei heruntergeladen!')),
       );
     } catch (e) {
-      // Show error message
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to export tournament state: $e')),
+        SnackBar(content: Text('Fehler beim Export: $e')),
       );
     }
   }

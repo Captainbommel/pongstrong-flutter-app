@@ -10,7 +10,7 @@ void main() {
 
     test('instantiate creates correct structure', () {
       final champions = Champions();
-      champions.instantiate();
+      champions.instantiate('c', [8, 4, 2, 1]);
 
       expect(champions.rounds.length, 4);
       expect(champions.rounds[0].length, 8); // Round of 16
@@ -21,7 +21,7 @@ void main() {
 
     test('instantiate assigns correct match IDs', () {
       final champions = Champions();
-      champions.instantiate();
+      champions.instantiate('c', [8, 4, 2, 1]);
 
       expect(champions.rounds[0][0].id, 'c11');
       expect(champions.rounds[0][7].id, 'c18');
@@ -33,7 +33,7 @@ void main() {
   group('Europa', () {
     test('instantiate creates correct structure', () {
       final europa = Europa();
-      europa.instantiate();
+      europa.instantiate('e', [4, 2, 1]);
 
       expect(europa.rounds.length, 3);
       expect(europa.rounds[0].length, 4);
@@ -43,7 +43,7 @@ void main() {
 
     test('instantiate assigns correct match IDs', () {
       final europa = Europa();
-      europa.instantiate();
+      europa.instantiate('e', [4, 2, 1]);
 
       expect(europa.rounds[0][0].id, 'e11');
       expect(europa.rounds[2][0].id, 'e31');
@@ -53,7 +53,7 @@ void main() {
   group('Conference', () {
     test('instantiate creates correct structure', () {
       final conference = Conference();
-      conference.instantiate();
+      conference.instantiate('f', [4, 2, 1]);
 
       expect(conference.rounds.length, 3);
       expect(conference.rounds[0].length, 4);
@@ -63,7 +63,7 @@ void main() {
 
     test('instantiate assigns correct match IDs', () {
       final conference = Conference();
-      conference.instantiate();
+      conference.instantiate('f', [4, 2, 1]);
 
       expect(conference.rounds[0][0].id, 'f11');
       expect(conference.rounds[2][0].id, 'f31');
@@ -479,31 +479,31 @@ void main() {
       // Check champions league tables
       for (final round in knockouts.champions.rounds) {
         for (final match in round) {
-          expect(match.tischNr, greaterThan(0));
-          expect(match.tischNr, lessThanOrEqualTo(6));
+          expect(match.tableNumber, greaterThan(0));
+          expect(match.tableNumber, lessThanOrEqualTo(6));
         }
       }
 
       // Check europa league tables
       for (final round in knockouts.europa.rounds) {
         for (final match in round) {
-          expect(match.tischNr, greaterThan(0));
-          expect(match.tischNr, lessThanOrEqualTo(6));
+          expect(match.tableNumber, greaterThan(0));
+          expect(match.tableNumber, lessThanOrEqualTo(6));
         }
       }
 
       // Check conference league tables
       for (final round in knockouts.conference.rounds) {
         for (final match in round) {
-          expect(match.tischNr, greaterThan(0));
-          expect(match.tischNr, lessThanOrEqualTo(6));
+          expect(match.tableNumber, greaterThan(0));
+          expect(match.tableNumber, lessThanOrEqualTo(6));
         }
       }
 
       // Check super cup tables
       for (final match in knockouts.superCup.matches) {
-        expect(match.tischNr, greaterThan(0));
-        expect(match.tischNr, lessThanOrEqualTo(6));
+        expect(match.tableNumber, greaterThan(0));
+        expect(match.tableNumber, lessThanOrEqualTo(6));
       }
     });
   });
@@ -529,6 +529,45 @@ void main() {
       expect(restored.champions.rounds[0][0].score1, 10);
       expect(restored.champions.rounds[0][0].score2, 5);
       expect(restored.champions.rounds[0][0].done, true);
+    });
+  });
+
+  group('clone', () {
+    test('creates an independent deep copy', () {
+      final original = Knockouts();
+      original.instantiate();
+      mapTables(original);
+
+      original.champions.rounds[0][0].teamId1 = 'a';
+      original.champions.rounds[0][0].teamId2 = 'b';
+
+      final copy = original.clone();
+
+      // Verify data is equal
+      expect(copy.champions.rounds[0][0].teamId1, 'a');
+      expect(copy.champions.rounds[0][0].teamId2, 'b');
+
+      // Mutate copy and verify original is unchanged
+      copy.champions.rounds[0][0].teamId1 = 'changed';
+      expect(original.champions.rounds[0][0].teamId1, 'a');
+    });
+  });
+
+  group('update edge cases', () {
+    test('update on empty knockouts does nothing', () {
+      final knockouts = Knockouts();
+      // Should not throw
+      knockouts.update();
+      expect(knockouts.champions.rounds, isEmpty);
+    });
+
+    test('update on uninitialised first match does nothing', () {
+      final knockouts = Knockouts();
+      knockouts.instantiate();
+      // All team IDs are empty — should return early
+      knockouts.update();
+      // Structure unchanged
+      expect(knockouts.champions.rounds[0][0].teamId1, isEmpty);
     });
   });
 }

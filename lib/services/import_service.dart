@@ -10,6 +10,7 @@ import 'package:pongstrong/utils/app_logger.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
 import 'package:provider/provider.dart';
 
+/// Handles importing and exporting tournament data via JSON files.
 class ImportService {
   /// Parse teams from JSON data
   /// Expected JSON format (nested array of groups):
@@ -44,8 +45,8 @@ class ImportService {
           final team = Team(
             id: teamId,
             name: teamJson['name'] as String,
-            mem1: teamJson['mem1'] as String? ?? '',
-            mem2: teamJson['mem2'] as String? ?? '',
+            member1: teamJson['mem1'] as String? ?? '',
+            member2: teamJson['mem2'] as String? ?? '',
           );
           allTeams.add(team);
           groupIds.add(teamId);
@@ -61,8 +62,8 @@ class ImportService {
         final team = Team(
           id: teamMap['id'] as String,
           name: teamMap['name'] as String,
-          mem1: teamMap['mem1'] as String? ?? '',
-          mem2: teamMap['mem2'] as String? ?? '',
+          member1: teamMap['mem1'] as String? ?? '',
+          member2: teamMap['mem2'] as String? ?? '',
         );
         allTeams.add(team);
       }
@@ -98,8 +99,8 @@ class ImportService {
             allTeams.add(Team(
               id: 'team_$idx',
               name: map['name'] as String,
-              mem1: map['mem1'] as String? ?? '',
-              mem2: map['mem2'] as String? ?? '',
+              member1: map['mem1'] as String? ?? '',
+              member2: map['mem2'] as String? ?? '',
             ));
             idx++;
           }
@@ -111,8 +112,8 @@ class ImportService {
           allTeams.add(Team(
             id: teamJson['id'] as String? ?? 'team_$i',
             name: teamJson['name'] as String,
-            mem1: teamJson['mem1'] as String? ?? '',
-            mem2: teamJson['mem2'] as String? ?? '',
+            member1: teamJson['mem1'] as String? ?? '',
+            member2: teamJson['mem2'] as String? ?? '',
           ));
         }
       }
@@ -123,8 +124,8 @@ class ImportService {
         allTeams.add(Team(
           id: teamJson['id'] as String? ?? 'team_$i',
           name: teamJson['name'] as String,
-          mem1: teamJson['mem1'] as String? ?? '',
-          mem2: teamJson['mem2'] as String? ?? '',
+          member1: teamJson['mem1'] as String? ?? '',
+          member2: teamJson['mem2'] as String? ?? '',
         ));
       }
     }

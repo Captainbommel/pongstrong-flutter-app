@@ -27,6 +27,7 @@ class _LandingPageState extends State<LandingPage> {
   late Future<List<String>> _tournamentsFuture;
   final FirestoreService _firestoreService = FirestoreService();
   bool _isLoadingTournament = false;
+  final Map<String, Future<List<bool>>> _tournamentMetaCache = {};
 
   @override
   void initState() {
@@ -36,6 +37,7 @@ class _LandingPageState extends State<LandingPage> {
 
   void _refreshTournaments() {
     setState(() {
+      _tournamentMetaCache.clear();
       _tournamentsFuture = _firestoreService.listTournaments();
     });
   }
@@ -64,7 +66,6 @@ class _LandingPageState extends State<LandingPage> {
           _showPasswordDialog(tournamentId);
         }
       } else {
-        // No password set - allow direct access (legacy tournaments)
         await _joinTournament(tournamentId);
       }
     }
@@ -582,7 +583,7 @@ class _LandingPageState extends State<LandingPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Error loading tournaments: ${snapshot.error}',
+                    'Fehler beim Laden der Turniere: ${snapshot.error}',
                     style: const TextStyle(color: Colors.red),
                   ),
                 ),
@@ -643,14 +644,22 @@ class _LandingPageState extends State<LandingPage> {
     );
   }
 
+  Future<List<bool>> _getTournamentMeta(String tournamentId, AuthState authState) {
+    final key = '${tournamentId}_${authState.userId ?? "anon"}';
+    return _tournamentMetaCache.putIfAbsent(key, () => Future.wait([
+      if (authState.isEmailUser && authState.userId != null)
+        _firestoreService.isCreator(tournamentId, authState.userId!)
+      else
+        Future.value(false),
+      _firestoreService.tournamentHasPassword(tournamentId),
+    ]));
+  }
+
   Widget _buildTournamentListItem(String tournamentId) {
     return Consumer<AuthState>(
       builder: (context, authState, _) {
         return FutureBuilder<List<bool>>(
-          future: Future.wait([
-            if (authState.isEmailUser && authState.userId != null) _firestoreService.isCreator(tournamentId, authState.userId!) else Future.value(false),
-            _firestoreService.tournamentHasPassword(tournamentId),
-          ]),
+          future: _getTournamentMeta(tournamentId, authState),
           builder: (context, snapshot) {
             final isCreator = snapshot.data?[0] ?? false;
             final hasPassword = snapshot.data?[1] ?? true;

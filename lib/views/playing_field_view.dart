@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pongstrong/models/match.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/widgets/field_view.dart';
@@ -31,13 +32,114 @@ class PlayingFieldView extends StatelessWidget {
   }
 }
 
-/// Desktop: side-by-side layout with running, upcoming, and tables
+// ---------------------------------------------------------------------------
+// Shared match-card builders (used by both desktop and mobile layouts)
+// ---------------------------------------------------------------------------
+
+/// Builds a single [MatchView] for a running (playing) match.
+Widget _buildPlayingMatchCard(
+  BuildContext context,
+  TournamentDataState data,
+  Match match,
+) {
+  final team1 = data.getTeam(match.teamId1);
+  final team2 = data.getTeam(match.teamId2);
+
+  return Padding(
+    padding: const EdgeInsets.all(4.0),
+    child: MatchView(
+      team1: team1?.name ?? 'Team 1',
+      team2: team2?.name ?? 'Team 2',
+      table: match.tableNumber.toString(),
+      tableColor: TableColors.forIndex(match.tableNumber - 1),
+      clickable: true,
+      onTap: () {
+        finishMatchDialog(
+          context,
+          team1: team1?.name ?? 'Team 1',
+          team2: team2?.name ?? 'Team 2',
+          match: match,
+        );
+      },
+      key: Key('playing_${match.id}'),
+    ),
+  );
+}
+
+/// Builds a single [MatchView] for an upcoming (queued) match.
+Widget _buildUpcomingMatchCard(
+  BuildContext context,
+  TournamentDataState data,
+  Match match, {
+  required bool isReady,
+}) {
+  final team1 = data.getTeam(match.teamId1);
+  final team2 = data.getTeam(match.teamId2);
+
+  return Padding(
+    padding: const EdgeInsets.all(4.0),
+    child: MatchView(
+      team1: team1?.name ?? 'Team 1',
+      team2: team2?.name ?? 'Team 2',
+      table: match.tableNumber.toString(),
+      tableColor: TableColors.forIndex(match.tableNumber - 1),
+      clickable: isReady,
+      onTap: isReady
+          ? () {
+              startMatchDialog(
+                context,
+                team1: team1?.name ?? 'Team 1',
+                team2: team2?.name ?? 'Team 2',
+                members1: [team1?.member1 ?? '', team1?.member2 ?? ''],
+                members2: [team2?.member1 ?? '', team2?.member2 ?? ''],
+                match: match,
+              );
+            }
+          : null,
+      key: Key('next_${match.id}'),
+    ),
+  );
+}
+
+/// Builds the list of [StandingsTable] widgets from current standings data.
+List<Widget> _buildStandingsTables(TournamentDataState data) {
+  if (!data.hasData || data.tabellen.tables.isEmpty) return [];
+
+  return data.tabellen.tables.asMap().entries.map((entry) {
+    final groupIndex = entry.key;
+    final table = entry.value;
+
+    return StandingsTable(
+      key: Key('table_$groupIndex'),
+      groupIndex: groupIndex,
+      rows: table.map((row) {
+        final team = data.getTeam(row.teamId);
+        return StandingsRow(
+          teamName: team?.name ?? 'Team',
+          points: row.points,
+          difference: row.difference,
+          cups: row.cups,
+        );
+      }).toList(),
+    );
+  }).toList();
+}
+
+// ---------------------------------------------------------------------------
+// Desktop layout
+// ---------------------------------------------------------------------------
+
+/// Desktop: side-by-side layout with running, upcoming, and tables.
 class _DesktopLayout extends StatelessWidget {
   final TournamentDataState data;
   const _DesktopLayout({required this.data});
 
   @override
   Widget build(BuildContext context) {
+    final playing = data.hasData ? data.getPlayingMatches() : <Match>[];
+    final next = data.hasData ? data.getNextMatches() : <Match>[];
+    final nextNext = data.hasData ? data.getNextNextMatches() : <Match>[];
+
     return SizedBox(
       height: MediaQuery.sizeOf(context).height,
       child: Padding(
@@ -51,27 +153,37 @@ class _DesktopLayout extends StatelessWidget {
                 children: [
                   Expanded(
                     child: FieldView(
-                      'Laufende Spiele',
-                      FieldColors.tomato,
-                      FieldColors.tomato.withAlpha(128),
-                      false,
-                      Wrap(
+                      title: 'Laufende Spiele',
+                      primaryColor: FieldColors.tomato,
+                      secondaryColor: FieldColors.tomato.withAlpha(128),
+                      smallScreen: false,
+                      child: Wrap(
                         alignment: WrapAlignment.center,
                         clipBehavior: Clip.antiAliasWithSaveLayer,
-                        children: _buildRunningMatches(context, data),
+                        children: playing
+                            .map((m) =>
+                                _buildPlayingMatchCard(context, data, m))
+                            .toList(),
                       ),
                     ),
                   ),
                   Expanded(
                     child: FieldView(
-                      'Nächste Spiele',
-                      FieldColors.springgreen,
-                      FieldColors.springgreen.withAlpha(128),
-                      false,
-                      Wrap(
+                      title: 'Nächste Spiele',
+                      primaryColor: FieldColors.springgreen,
+                      secondaryColor: FieldColors.springgreen.withAlpha(128),
+                      smallScreen: false,
+                      child: Wrap(
                         alignment: WrapAlignment.center,
                         clipBehavior: Clip.antiAliasWithSaveLayer,
-                        children: _buildUpcomingMatches(context, data),
+                        children: [
+                          ...next.map((m) => _buildUpcomingMatchCard(
+                              context, data, m,
+                              isReady: true)),
+                          ...nextNext.map((m) => _buildUpcomingMatchCard(
+                              context, data, m,
+                              isReady: false)),
+                        ],
                       ),
                     ),
                   ),
@@ -80,11 +192,11 @@ class _DesktopLayout extends StatelessWidget {
             ),
             Expanded(
               child: FieldView(
-                'Aktuelle Tabelle',
-                FieldColors.skyblue,
-                FieldColors.skyblue.withAlpha(128),
-                false,
-                Padding(
+                title: 'Aktuelle Tabelle',
+                primaryColor: FieldColors.skyblue,
+                secondaryColor: FieldColors.skyblue.withAlpha(128),
+                smallScreen: false,
+                child: Padding(
                   padding: const EdgeInsets.only(top: 4.0, bottom: 4.0),
                   child: Wrap(
                     children: _buildStandingsTables(data),
@@ -99,7 +211,11 @@ class _DesktopLayout extends StatelessWidget {
   }
 }
 
-/// Mobile: scrollable stacked layout
+// ---------------------------------------------------------------------------
+// Mobile layout
+// ---------------------------------------------------------------------------
+
+/// Mobile: scrollable stacked layout.
 class _MobileLayout extends StatelessWidget {
   final TournamentDataState data;
   const _MobileLayout({required this.data});
@@ -125,11 +241,11 @@ class _RunningMatchesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FieldView(
-      'Laufende Spiele',
-      FieldColors.tomato,
-      FieldColors.tomato.withAlpha(128),
-      true,
-      Builder(
+      title: 'Laufende Spiele',
+      primaryColor: FieldColors.tomato,
+      secondaryColor: FieldColors.tomato.withAlpha(128),
+      smallScreen: true,
+      child: Builder(
         builder: (context) {
           if (!data.hasData) {
             return const Center(child: Text('Keine Daten geladen'));
@@ -141,32 +257,9 @@ class _RunningMatchesSection extends StatelessWidget {
           }
 
           return Column(
-            children: playing.map((match) {
-              final team1 = data.getTeam(match.teamId1);
-              final team2 = data.getTeam(match.teamId2);
-
-              return Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: MatchView(
-                  team1?.name ?? 'Team 1',
-                  team2?.name ?? 'Team 2',
-                  match.tischNr.toString(),
-                  TableColors.forIndex(match.tischNr - 1),
-                  true,
-                  onTap: () {
-                    finnishMatchDialog(
-                      context,
-                      team1?.name ?? 'Team 1',
-                      team2?.name ?? 'Team 2',
-                      TextEditingController(),
-                      TextEditingController(),
-                      match,
-                    );
-                  },
-                  key: Key('playing_${match.id}'),
-                ),
-              );
-            }).toList(),
+            children: playing
+                .map((m) => _buildPlayingMatchCard(context, data, m))
+                .toList(),
           );
         },
       ),
@@ -181,11 +274,11 @@ class _UpcomingMatchesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FieldView(
-      'Nächste Spiele',
-      FieldColors.springgreen,
-      FieldColors.springgreen.withAlpha(128),
-      true,
-      Builder(
+      title: 'Nächste Spiele',
+      primaryColor: FieldColors.springgreen,
+      secondaryColor: FieldColors.springgreen.withAlpha(128),
+      smallScreen: true,
+      child: Builder(
         builder: (context) {
           if (!data.hasData) {
             return const Center(child: Text('Keine Daten geladen'));
@@ -201,33 +294,9 @@ class _UpcomingMatchesSection extends StatelessWidget {
 
           return Column(
             children: allNextMatches.map((match) {
-              final team1 = data.getTeam(match.teamId1);
-              final team2 = data.getTeam(match.teamId2);
               final isReady = nextMatches.contains(match);
-
-              return Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: MatchView(
-                  team1?.name ?? 'Team 1',
-                  team2?.name ?? 'Team 2',
-                  match.tischNr.toString(),
-                  TableColors.forIndex(match.tischNr - 1),
-                  isReady,
-                  onTap: isReady
-                      ? () {
-                          startMatchDialog(
-                            context,
-                            team1?.name ?? 'Team 1',
-                            team2?.name ?? 'Team 2',
-                            [team1?.mem1 ?? '', team1?.mem2 ?? ''],
-                            [team2?.mem1 ?? '', team2?.mem2 ?? ''],
-                            match,
-                          );
-                        }
-                      : null,
-                  key: Key('next_${match.id}'),
-                ),
-              );
+              return _buildUpcomingMatchCard(context, data, match,
+                  isReady: isReady);
             }).toList(),
           );
         },
@@ -244,139 +313,22 @@ class _StandingsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!data.hasData || data.tabellen.tables.isEmpty) {
       return FieldView(
-        'Aktuelle Tabelle',
-        FieldColors.skyblue,
-        FieldColors.skyblue.withAlpha(153),
-        true,
-        const Center(child: Text('Keine Daten geladen')),
+        title: 'Aktuelle Tabelle',
+        primaryColor: FieldColors.skyblue,
+        secondaryColor: FieldColors.skyblue.withAlpha(153),
+        smallScreen: true,
+        child: const Center(child: Text('Keine Daten geladen')),
       );
     }
 
     return FieldView(
-      'Aktuelle Tabelle',
-      FieldColors.skyblue,
-      FieldColors.skyblue.withAlpha(153),
-      true,
-      Column(
-        children: data.tabellen.tables.asMap().entries.map((entry) {
-          final groupIndex = entry.key;
-          final table = entry.value;
-          return StandingsTable(
-            key: Key('table_$groupIndex'),
-            groupIndex: groupIndex,
-            rows: table.map((row) {
-              final team = data.getTeam(row.teamId);
-              return StandingsRow(
-                teamName: team?.name ?? 'Team',
-                points: row.punkte,
-                difference: row.differenz,
-                cups: row.becher,
-              );
-            }).toList(),
-          );
-        }).toList(),
+      title: 'Aktuelle Tabelle',
+      primaryColor: FieldColors.skyblue,
+      secondaryColor: FieldColors.skyblue.withAlpha(153),
+      smallScreen: true,
+      child: Column(
+        children: _buildStandingsTables(data),
       ),
     );
   }
-}
-
-// --- Helper methods used by desktop layout ---
-
-List<Widget> _buildRunningMatches(
-    BuildContext context, TournamentDataState data) {
-  if (!data.hasData) return [];
-
-  final playing = data.getPlayingMatches();
-  if (playing.isEmpty) return [];
-
-  return playing.map((match) {
-    final team1 = data.getTeam(match.teamId1);
-    final team2 = data.getTeam(match.teamId2);
-
-    return Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: MatchView(
-        team1?.name ?? 'Team 1',
-        team2?.name ?? 'Team 2',
-        match.tischNr.toString(),
-        TableColors.forIndex(match.tischNr - 1),
-        true,
-        onTap: () {
-          finnishMatchDialog(
-            context,
-            team1?.name ?? 'Team 1',
-            team2?.name ?? 'Team 2',
-            TextEditingController(),
-            TextEditingController(),
-            match,
-          );
-        },
-        key: Key('playing_${match.id}'),
-      ),
-    );
-  }).toList();
-}
-
-List<Widget> _buildUpcomingMatches(
-    BuildContext context, TournamentDataState data) {
-  if (!data.hasData) return [];
-
-  final next = data.getNextMatches();
-  final nextNext = data.getNextNextMatches();
-  final combined = [...next, ...nextNext];
-
-  if (combined.isEmpty) return [];
-
-  return combined.map((match) {
-    final isReady = next.contains(match);
-    final team1 = data.getTeam(match.teamId1);
-    final team2 = data.getTeam(match.teamId2);
-
-    return Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: MatchView(
-        team1?.name ?? 'Team 1',
-        team2?.name ?? 'Team 2',
-        match.tischNr.toString(),
-        TableColors.forIndex(match.tischNr - 1),
-        isReady,
-        onTap: isReady
-            ? () {
-                startMatchDialog(
-                  context,
-                  team1?.name ?? 'Team 1',
-                  team2?.name ?? 'Team 2',
-                  [team1?.mem1 ?? '', team1?.mem2 ?? ''],
-                  [team2?.mem1 ?? '', team2?.mem2 ?? ''],
-                  match,
-                );
-              }
-            : null,
-        key: Key('upcoming_${match.id}'),
-      ),
-    );
-  }).toList();
-}
-
-List<Widget> _buildStandingsTables(TournamentDataState data) {
-  if (!data.hasData || data.tabellen.tables.isEmpty) return [];
-
-  return data.tabellen.tables.asMap().entries.map((entry) {
-    final groupIndex = entry.key;
-    final table = entry.value;
-
-    return StandingsTable(
-      key: Key('table_$groupIndex'),
-      groupIndex: groupIndex,
-      rows: table.map((row) {
-        final team = data.getTeam(row.teamId);
-        return StandingsRow(
-          teamName: team?.name ?? 'Team',
-          points: row.punkte,
-          difference: row.differenz,
-          cups: row.becher,
-        );
-      }).toList(),
-    );
-  }).toList();
 }

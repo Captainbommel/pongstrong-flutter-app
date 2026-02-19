@@ -8,21 +8,21 @@ void main() {
       final team = Team();
       expect(team.id, '');
       expect(team.name, '');
-      expect(team.mem1, '');
-      expect(team.mem2, '');
+      expect(team.member1, '');
+      expect(team.member2, '');
     });
 
     test('creates team with custom values', () {
       final team = Team(
         id: 't1',
         name: 'Team Alpha',
-        mem1: 'Alice',
-        mem2: 'Bob',
+        member1: 'Alice',
+        member2: 'Bob',
       );
       expect(team.id, 't1');
       expect(team.name, 'Team Alpha');
-      expect(team.mem1, 'Alice');
-      expect(team.mem2, 'Bob');
+      expect(team.member1, 'Alice');
+      expect(team.member2, 'Bob');
     });
   });
 
@@ -65,8 +65,8 @@ void main() {
       final team = Team(
         id: 't1',
         name: 'Team Alpha',
-        mem1: 'Alice',
-        mem2: 'Bob',
+        member1: 'Alice',
+        member2: 'Bob',
       );
 
       final json = team.toJson();
@@ -87,8 +87,8 @@ void main() {
       final team = Team.fromJson(json);
       expect(team.id, 't1');
       expect(team.name, 'Team Alpha');
-      expect(team.mem1, 'Alice');
-      expect(team.mem2, 'Bob');
+      expect(team.member1, 'Alice');
+      expect(team.member2, 'Bob');
     });
 
     test('fromJson handles missing fields with defaults', () {
@@ -96,16 +96,16 @@ void main() {
       final team = Team.fromJson(json);
       expect(team.id, '');
       expect(team.name, '');
-      expect(team.mem1, '');
-      expect(team.mem2, '');
+      expect(team.member1, '');
+      expect(team.member2, '');
     });
 
     test('round trip serialization preserves data', () {
       final original = Team(
         id: 't1',
         name: 'Team Alpha',
-        mem1: 'Alice',
-        mem2: 'Bob',
+        member1: 'Alice',
+        member2: 'Bob',
       );
 
       final json = original.toJson();
@@ -113,8 +113,8 @@ void main() {
 
       expect(restored.id, original.id);
       expect(restored.name, original.name);
-      expect(restored.mem1, original.mem1);
-      expect(restored.mem2, original.mem2);
+      expect(restored.member1, original.member1);
+      expect(restored.member2, original.member2);
     });
   });
 
@@ -123,14 +123,14 @@ void main() {
       final team1 = Team(
         id: 't1',
         name: 'Team Alpha',
-        mem1: 'Alice',
-        mem2: 'Bob',
+        member1: 'Alice',
+        member2: 'Bob',
       );
       final team2 = Team(
         id: 't1',
         name: 'Team Alpha',
-        mem1: 'Alice',
-        mem2: 'Bob',
+        member1: 'Alice',
+        member2: 'Bob',
       );
 
       expect(team1 == team2, true);

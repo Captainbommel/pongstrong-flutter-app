@@ -29,7 +29,7 @@ void main() {
 
   group('switchPlaying', () {
     test('moves match from waiting to playing when table is free', () {
-      final match = Match(id: 'g11', tischNr: 1);
+      final match = Match(id: 'g11', tableNumber: 1);
       final queue = MatchQueue(
         waiting: [
           [match],
@@ -46,8 +46,8 @@ void main() {
     });
 
     test('does not move match when table is occupied', () {
-      final match1 = Match(id: 'g11', tischNr: 1);
-      final match2 = Match(id: 'g12', tischNr: 1);
+      final match1 = Match(id: 'g11', tableNumber: 1);
+      final match2 = Match(id: 'g12', tableNumber: 1);
       final queue = MatchQueue(
         waiting: [
           [match2],
@@ -80,12 +80,12 @@ void main() {
       final queue = MatchQueue(
         waiting: [
           [
-            Match(id: 'g11', tischNr: 1),
-            Match(id: 'g12', tischNr: 2),
-            Match(id: 'g13', tischNr: 3),
+            Match(id: 'g11', tableNumber: 1),
+            Match(id: 'g12', tableNumber: 2),
+            Match(id: 'g13', tableNumber: 3),
           ],
         ],
-        playing: [Match(id: 'playing', tischNr: 1)],
+        playing: [Match(id: 'playing', tableNumber: 1)],
       );
 
       // g12 is at index 1, but its table (2) is free
@@ -101,11 +101,11 @@ void main() {
       final queue = MatchQueue(
         waiting: [
           [
-            Match(id: 'g11', tischNr: 1),
-            Match(id: 'g12', tischNr: 1),
+            Match(id: 'g11', tableNumber: 1),
+            Match(id: 'g12', tableNumber: 1),
           ],
         ],
-        playing: [Match(id: 'playing', tischNr: 1)],
+        playing: [Match(id: 'playing', tableNumber: 1)],
       );
 
       final result = queue.switchPlaying('g12');
@@ -149,8 +149,8 @@ void main() {
     test('returns matches with free tables', () {
       final queue = MatchQueue(
         waiting: [
-          [Match(id: 'g11', tischNr: 1)],
-          [Match(id: 'g12', tischNr: 2)],
+          [Match(id: 'g11', tableNumber: 1)],
+          [Match(id: 'g12', tableNumber: 2)],
         ],
         playing: [],
       );
@@ -165,10 +165,10 @@ void main() {
     test('excludes matches with occupied tables', () {
       final queue = MatchQueue(
         waiting: [
-          [Match(id: 'g11', tischNr: 1)],
-          [Match(id: 'g12', tischNr: 2)],
+          [Match(id: 'g11', tableNumber: 1)],
+          [Match(id: 'g12', tableNumber: 2)],
         ],
-        playing: [Match(id: 'playing', tischNr: 1)],
+        playing: [Match(id: 'playing', tableNumber: 1)],
       );
 
       final next = queue.nextMatches();
@@ -180,9 +180,9 @@ void main() {
     test('returns empty list when no matches with free tables', () {
       final queue = MatchQueue(
         waiting: [
-          [Match(id: 'g11', tischNr: 1)],
+          [Match(id: 'g11', tableNumber: 1)],
         ],
-        playing: [Match(id: 'playing', tischNr: 1)],
+        playing: [Match(id: 'playing', tableNumber: 1)],
       );
 
       final next = queue.nextMatches();
@@ -195,12 +195,12 @@ void main() {
       final queue = MatchQueue(
         waiting: [
           [
-            Match(id: 'g11', tischNr: 1),
-            Match(id: 'g12', tischNr: 3),
+            Match(id: 'g11', tableNumber: 1),
+            Match(id: 'g12', tableNumber: 3),
           ],
           [
-            Match(id: 'g21', tischNr: 2),
-            Match(id: 'g22', tischNr: 4),
+            Match(id: 'g21', tableNumber: 2),
+            Match(id: 'g22', tableNumber: 4),
           ],
         ],
         playing: [],
@@ -218,14 +218,14 @@ void main() {
       final queue = MatchQueue(
         waiting: [
           [
-            Match(id: 'g11', tischNr: 1),
-            Match(id: 'g12', tischNr: 3),
-            Match(id: 'g13', tischNr: 5),
+            Match(id: 'g11', tableNumber: 1),
+            Match(id: 'g12', tableNumber: 3),
+            Match(id: 'g13', tableNumber: 5),
           ],
           [
-            Match(id: 'g21', tischNr: 2),
-            Match(id: 'g22', tischNr: 4),
-            Match(id: 'g23', tischNr: 6),
+            Match(id: 'g21', tableNumber: 2),
+            Match(id: 'g22', tableNumber: 4),
+            Match(id: 'g23', tableNumber: 6),
           ],
         ],
         playing: [],
@@ -242,12 +242,12 @@ void main() {
       final queue = MatchQueue(
         waiting: [
           [
-            Match(id: 'g11', tischNr: 1),
-            Match(id: 'g12', tischNr: 3),
+            Match(id: 'g11', tableNumber: 1),
+            Match(id: 'g12', tableNumber: 3),
           ],
           [
-            Match(id: 'g21', tischNr: 1),
-            Match(id: 'g22', tischNr: 4),
+            Match(id: 'g21', tableNumber: 1),
+            Match(id: 'g22', tableNumber: 4),
           ],
         ],
         playing: [],
@@ -258,7 +258,7 @@ void main() {
       // Table 1 can only be given to one match; the other group's second
       // match on table 4 should still show up
       expect(next.length, 3);
-      final tables = next.map((m) => m.tischNr).toSet();
+      final tables = next.map((m) => m.tableNumber).toSet();
       expect(tables, containsAll([1, 3, 4]));
     });
 
@@ -266,12 +266,12 @@ void main() {
       final queue = MatchQueue(
         waiting: [
           [
-            Match(id: 'g11', tischNr: 1),
-            Match(id: 'g12', tischNr: 1), // same table, still occupied
-            Match(id: 'g13', tischNr: 3),
+            Match(id: 'g11', tableNumber: 1),
+            Match(id: 'g12', tableNumber: 1), // same table, still occupied
+            Match(id: 'g13', tableNumber: 3),
           ],
         ],
-        playing: [Match(id: 'playing', tischNr: 1)],
+        playing: [Match(id: 'playing', tableNumber: 1)],
       );
 
       final next = queue.nextMatches();
@@ -286,10 +286,10 @@ void main() {
     test('returns matches with occupied tables', () {
       final queue = MatchQueue(
         waiting: [
-          [Match(id: 'g11', tischNr: 1)],
-          [Match(id: 'g12', tischNr: 2)],
+          [Match(id: 'g11', tableNumber: 1)],
+          [Match(id: 'g12', tableNumber: 2)],
         ],
-        playing: [Match(id: 'playing', tischNr: 1)],
+        playing: [Match(id: 'playing', tableNumber: 1)],
       );
 
       final nextNext = queue.nextNextMatches();
@@ -303,12 +303,12 @@ void main() {
       final queue = MatchQueue(
         waiting: [
           [
-            Match(id: 'g11', tischNr: 1),
-            Match(id: 'g12', tischNr: 3),
+            Match(id: 'g11', tableNumber: 1),
+            Match(id: 'g12', tableNumber: 3),
           ],
           [
-            Match(id: 'g21', tischNr: 2),
-            Match(id: 'g22', tischNr: 4),
+            Match(id: 'g21', tableNumber: 2),
+            Match(id: 'g22', tableNumber: 4),
           ],
         ],
         playing: [],
@@ -326,12 +326,12 @@ void main() {
       final queue = MatchQueue(
         waiting: [
           [
-            Match(id: 'g11', tischNr: 1),
-            Match(id: 'g12', tischNr: 1),
-            Match(id: 'g13', tischNr: 1),
+            Match(id: 'g11', tableNumber: 1),
+            Match(id: 'g12', tableNumber: 1),
+            Match(id: 'g13', tableNumber: 1),
           ],
           [
-            Match(id: 'g21', tischNr: 2),
+            Match(id: 'g21', tableNumber: 2),
           ],
         ],
         playing: [],
@@ -349,7 +349,7 @@ void main() {
     test('returns true for free table', () {
       final queue = MatchQueue(
         waiting: [],
-        playing: [Match(tischNr: 1)],
+        playing: [Match(tableNumber: 1)],
       );
 
       expect(queue.isFree(2), true);
@@ -358,7 +358,7 @@ void main() {
     test('returns false for occupied table', () {
       final queue = MatchQueue(
         waiting: [],
-        playing: [Match(tischNr: 1)],
+        playing: [Match(tableNumber: 1)],
       );
 
       expect(queue.isFree(1), false);
@@ -637,8 +637,8 @@ void main() {
     test('finds and moves match from second waiting group', () {
       final queue = MatchQueue(
         waiting: [
-          [Match(id: 'g11', tischNr: 1)],
-          [Match(id: 'g21', tischNr: 2)],
+          [Match(id: 'g11', tableNumber: 1)],
+          [Match(id: 'g21', tableNumber: 2)],
         ],
         playing: [],
       );
@@ -654,9 +654,9 @@ void main() {
     test('finds and moves match from last waiting group', () {
       final queue = MatchQueue(
         waiting: [
-          [Match(id: 'g11', tischNr: 1)],
-          [Match(id: 'g21', tischNr: 2)],
-          [Match(id: 'g31', tischNr: 3)],
+          [Match(id: 'g11', tableNumber: 1)],
+          [Match(id: 'g21', tableNumber: 2)],
+          [Match(id: 'g31', tableNumber: 3)],
         ],
         playing: [],
       );
@@ -673,8 +673,8 @@ void main() {
     test('returns only one match when all on same table', () {
       final queue = MatchQueue(
         waiting: [
-          [Match(id: 'g11', tischNr: 1)],
-          [Match(id: 'g21', tischNr: 1)],
+          [Match(id: 'g11', tableNumber: 1)],
+          [Match(id: 'g21', tableNumber: 1)],
         ],
         playing: [],
       );
@@ -687,9 +687,9 @@ void main() {
     test('returns match per free table across groups', () {
       final queue = MatchQueue(
         waiting: [
-          [Match(id: 'g11', tischNr: 1)],
-          [Match(id: 'g21', tischNr: 2)],
-          [Match(id: 'g31', tischNr: 3)],
+          [Match(id: 'g11', tableNumber: 1)],
+          [Match(id: 'g21', tableNumber: 2)],
+          [Match(id: 'g31', tableNumber: 3)],
         ],
         playing: [],
       );
@@ -698,7 +698,7 @@ void main() {
 
       expect(next.length, 3);
       // All on different tables
-      final tables = next.map((m) => m.tischNr).toSet();
+      final tables = next.map((m) => m.tableNumber).toSet();
       expect(tables, {1, 2, 3});
     });
   });
@@ -731,7 +731,7 @@ void main() {
       knockouts.instantiate();
       knockouts.champions.rounds[0][0].teamId1 = 't1';
       knockouts.champions.rounds[0][0].teamId2 = 't2';
-      knockouts.champions.rounds[0][0].tischNr = 10; // Only 6 slots initially
+      knockouts.champions.rounds[0][0].tableNumber = 10; // Only 6 slots initially
 
       final queue = MatchQueue(
         waiting: List.generate(6, (_) => <Match>[]),
@@ -775,7 +775,7 @@ void main() {
         if (m.teamId1.isNotEmpty && m.teamId2.isNotEmpty && !m.done) {
           readyCount++;
           expect(queue.contains(m), true,
-              reason: 'Match ${m.id} on table ${m.tischNr} should be in queue');
+              reason: 'Match ${m.id} on table ${m.tableNumber} should be in queue');
         }
       }
       expect(readyCount, greaterThan(0));
@@ -814,11 +814,35 @@ void main() {
           r2Ready++;
           expect(queue.contains(m), true,
               reason:
-                  'R2 match ${m.id} on table ${m.tischNr} should be in queue');
+                  'R2 match ${m.id} on table ${m.tableNumber} should be in queue');
         }
       }
       expect(r2Ready, greaterThan(0),
           reason: 'Should have ready R2 matches after finishing R1');
+    });
+
+    test('updateKnockQueue returns early when champions is empty', () {
+      final queue = MatchQueue(
+        waiting: [<Match>[]],
+        playing: [],
+      );
+      final knockouts = Knockouts(); // empty brackets
+      queue.updateKnockQueue(knockouts);
+      expect(queue.waiting[0], isEmpty);
+      expect(queue.playing, isEmpty);
+    });
+
+    test('updateKnockQueue returns early when first match has no teams', () {
+      final queue = MatchQueue(
+        waiting: [<Match>[]],
+        playing: [],
+      );
+      final knockouts = Knockouts();
+      knockouts.instantiate();
+      mapTables(knockouts);
+      // All teamIds are empty — guard should trigger
+      queue.updateKnockQueue(knockouts);
+      expect(queue.waiting[0], isEmpty);
     });
   });
 }

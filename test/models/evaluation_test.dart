@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pongstrong/models/evaluation.dart';
 import 'package:pongstrong/models/groups.dart';
 import 'package:pongstrong/models/gruppenphase.dart';
+import 'package:pongstrong/models/knockouts.dart';
 import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/models/tabellen.dart';
 
 void main() {
   group('isValid', () {
@@ -212,13 +214,13 @@ void main() {
       final team1Row = table.firstWhere((row) => row.teamId == 'team1');
       final team2Row = table.firstWhere((row) => row.teamId == 'team2');
 
-      expect(team1Row.punkte, 3);
-      expect(team1Row.becher, 10);
-      expect(team1Row.differenz, 5);
+      expect(team1Row.points, 3);
+      expect(team1Row.cups, 10);
+      expect(team1Row.difference, 5);
 
-      expect(team2Row.punkte, 0);
-      expect(team2Row.becher, 5);
-      expect(team2Row.differenz, -5);
+      expect(team2Row.points, 0);
+      expect(team2Row.cups, 5);
+      expect(team2Row.difference, -5);
     });
 
     test('evaluates multiple finished matches correctly', () {
@@ -242,9 +244,9 @@ void main() {
       final table = evaluate(matches);
       final team1Row = table.firstWhere((row) => row.teamId == 'team1');
 
-      expect(team1Row.punkte, 5); // 3 + 2
-      expect(team1Row.becher, 26); // 10 + 16
-      expect(team1Row.differenz, 6); // (10-5) + (16-15)
+      expect(team1Row.points, 5); // 3 + 2
+      expect(team1Row.cups, 26); // 10 + 16
+      expect(team1Row.difference, 6); // (10-5) + (16-15)
     });
 
     test('handles deathcup correctly in evaluation', () {
@@ -262,13 +264,13 @@ void main() {
       final team1Row = table.firstWhere((row) => row.teamId == 'team1');
       final team2Row = table.firstWhere((row) => row.teamId == 'team2');
 
-      expect(team1Row.punkte, 4); // deathcup winner
-      expect(team1Row.becher, 10); // cups(-1) = 10
-      expect(team1Row.differenz, 2); // 10 - 8
+      expect(team1Row.points, 4); // deathcup winner
+      expect(team1Row.cups, 10); // cups(-1) = 10
+      expect(team1Row.difference, 2); // 10 - 8
 
-      expect(team2Row.punkte, 0);
-      expect(team2Row.becher, 8);
-      expect(team2Row.differenz, -2);
+      expect(team2Row.points, 0);
+      expect(team2Row.cups, 8);
+      expect(team2Row.difference, -2);
     });
 
     test('ignores unfinished matches', () {
@@ -290,8 +292,8 @@ void main() {
       final team1Row = table.firstWhere((row) => row.teamId == 'team1');
       final team3Row = table.firstWhere((row) => row.teamId == 'team3');
 
-      expect(team1Row.punkte, 3); // only from first match
-      expect(team3Row.punkte, 0); // unfinished match ignored
+      expect(team1Row.points, 3); // only from first match
+      expect(team3Row.points, 0); // unfinished match ignored
     });
   });
 
@@ -321,7 +323,7 @@ void main() {
       // Check that tables are sorted (highest points first)
       for (final table in tabellen.tables) {
         for (int i = 0; i < table.length - 1; i++) {
-          expect(table[i].punkte >= table[i + 1].punkte, true);
+          expect(table[i].points >= table[i + 1].points, true);
         }
       }
 
@@ -343,7 +345,7 @@ void main() {
       // Check that tables are still sorted correctly
       for (final table in updatedTabellen.tables) {
         for (int i = 0; i < table.length - 1; i++) {
-          expect(table[i].punkte >= table[i + 1].punkte, true);
+          expect(table[i].points >= table[i + 1].points, true);
         }
       }
     });
@@ -408,12 +410,12 @@ void main() {
       final t1 = table.firstWhere((r) => r.teamId == 'team1');
       final t2 = table.firstWhere((r) => r.teamId == 'team2');
 
-      expect(t1.punkte, 0, reason: 'no points for invalid score');
-      expect(t1.becher, 0, reason: 'no cups for invalid score');
-      expect(t1.differenz, 0, reason: 'no differenz for invalid score');
-      expect(t2.punkte, 0);
-      expect(t2.becher, 0);
-      expect(t2.differenz, 0);
+      expect(t1.points, 0, reason: 'no points for invalid score');
+      expect(t1.cups, 0, reason: 'no cups for invalid score');
+      expect(t1.difference, 0, reason: 'no differenz for invalid score');
+      expect(t2.points, 0);
+      expect(t2.cups, 0);
+      expect(t2.difference, 0);
     });
 
     test('only valid done matches contribute to cups', () {
@@ -439,9 +441,9 @@ void main() {
       final t1 = table.firstWhere((r) => r.teamId == 'team1');
 
       // Only the valid 10-5 match should count
-      expect(t1.punkte, 3);
-      expect(t1.becher, 10);
-      expect(t1.differenz, 5);
+      expect(t1.points, 3);
+      expect(t1.cups, 10);
+      expect(t1.difference, 5);
     });
   });
 
@@ -547,8 +549,63 @@ void main() {
       final t1 = table.firstWhere((r) => r.teamId == 'team1');
 
       // -2 should be converted to 16 cups
-      expect(t1.becher, 16);
-      expect(t1.differenz, 2); // 16 - 14
+      expect(t1.cups, 16);
+      expect(t1.difference, 2); // 16 - 14
+    });
+  });
+
+  group('evaluateGroups – edge cases', () {
+    test('throws ArgumentError for fewer than 2 groups', () {
+      final tabellen = Tabellen(tables: [
+        [TableRow(teamId: 'a', points: 3)],
+      ]);
+      expect(() => evaluateGroups(tabellen), throwsArgumentError);
+    });
+
+    test('throws ArgumentError for more than 10 groups', () {
+      final tabellen = Tabellen(
+        tables: List.generate(
+          11,
+          (g) => [TableRow(teamId: 'g${g}t1', points: 3)],
+        ),
+      );
+      expect(() => evaluateGroups(tabellen), throwsArgumentError);
+    });
+
+    test('handles exactly 2 groups (minimum valid)', () {
+      final tabellen = Tabellen(tables: [
+        [
+          TableRow(teamId: 'a1', points: 9),
+          TableRow(teamId: 'a2', points: 6),
+          TableRow(teamId: 'a3', points: 3),
+          TableRow(teamId: 'a4'),
+        ],
+        [
+          TableRow(teamId: 'b1', points: 9),
+          TableRow(teamId: 'b2', points: 6),
+          TableRow(teamId: 'b3', points: 3),
+          TableRow(teamId: 'b4'),
+        ],
+      ]);
+      final knockouts = evaluateGroups(tabellen);
+      // Should produce valid brackets without throwing
+      expect(knockouts.champions.rounds, isNotEmpty);
+    });
+  });
+
+  group('mapTablesDynamic', () {
+    test('assigns table numbers within tableCount range', () {
+      final knockouts = Knockouts();
+      knockouts.instantiate();
+      const tableCount = 4;
+      mapTablesDynamic(knockouts, tableCount: tableCount);
+
+      for (final round in knockouts.champions.rounds) {
+        for (final match in round) {
+          expect(match.tableNumber, greaterThanOrEqualTo(1));
+          expect(match.tableNumber, lessThanOrEqualTo(tableCount));
+        }
+      }
     });
   });
 }

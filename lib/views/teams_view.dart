@@ -288,9 +288,9 @@ class _GroupOverview extends StatelessWidget {
                       final team = data.getTeam(row.teamId);
                       return _tableDataRow(
                         team?.name ?? 'Team',
-                        row.punkte.toString(),
-                        row.differenz.toString(),
-                        row.becher.toString(),
+                        row.points.toString(),
+                        row.difference.toString(),
+                        row.cups.toString(),
                       );
                     }),
                   ],
@@ -465,7 +465,7 @@ class _MatchCard extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  match.tischNr.toString(),
+                  match.tableNumber.toString(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

@@ -9,6 +9,7 @@ import 'package:pongstrong/services/firestore_service/knockouts_service.dart';
 import 'package:pongstrong/services/firestore_service/match_queue_service.dart';
 import 'package:pongstrong/services/firestore_service/tabellen_service.dart';
 import 'package:pongstrong/services/firestore_service/teams_service.dart';
+import 'package:pongstrong/services/firestore_service/tournament_auth_service.dart';
 import 'package:pongstrong/services/firestore_service/tournament_management_service.dart';
 
 export 'firestore_base.dart';
@@ -18,6 +19,7 @@ export 'knockouts_service.dart';
 export 'match_queue_service.dart';
 export 'tabellen_service.dart';
 export 'teams_service.dart';
+export 'tournament_auth_service.dart';
 export 'tournament_management_service.dart';
 
 /// Firestore service for managing tournament data
@@ -42,6 +44,7 @@ class FirestoreService extends Object
         TabellenService,
         KnockoutsService,
         MatchQueueService,
+        TournamentAuthService,
         TournamentManagementService {
   static final FirestoreService _instance = FirestoreService._internal();
 

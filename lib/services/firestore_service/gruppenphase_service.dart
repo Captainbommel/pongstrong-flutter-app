@@ -2,6 +2,31 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service/firestore_base.dart';
 
+/// Parses a Firestore groups map into a [Gruppenphase].
+/// Returns null if invalid or empty.
+Gruppenphase? _parseGroups(Map<String, dynamic> data) {
+  if (data['initialized'] == true &&
+      (data['numberOfGroups'] == null || data['numberOfGroups'] == 0)) {
+    return Gruppenphase(groups: []);
+  }
+
+  final groupsMap = data['groups'] as Map<String, dynamic>?;
+  final numberOfGroups = data['numberOfGroups'] as int? ?? 0;
+
+  if (groupsMap == null || numberOfGroups == 0) {
+    return Gruppenphase(groups: []);
+  }
+
+  final groups = <List<Match>>[];
+  for (int i = 0; i < numberOfGroups; i++) {
+    final groupMatches = (groupsMap['group$i'] as List)
+        .map((m) => Match.fromJson(m as Map<String, dynamic>))
+        .toList();
+    groups.add(groupMatches);
+  }
+  return Gruppenphase(groups: groups);
+}
+
 /// Service for managing group phase data in Firestore
 mixin GruppenphaseService on FirestoreBase {
   /// Saves group phase data to Firestore
@@ -9,7 +34,6 @@ mixin GruppenphaseService on FirestoreBase {
     Gruppenphase gruppenphase, {
     String tournamentId = FirestoreBase.defaultTournamentId,
   }) async {
-    // Convert nested array to map to avoid Firestore nested array limitation
     final groupsMap = <String, dynamic>{};
     for (int i = 0; i < gruppenphase.groups.length; i++) {
       groupsMap['group$i'] =
@@ -24,38 +48,15 @@ mixin GruppenphaseService on FirestoreBase {
     await getDoc(tournamentId, 'gruppenphase').set(data);
   }
 
-  /// Loads group phase data from Firestore
-  /// Returns empty Gruppenphase if document exists but has no data (setup phase)
-  /// Returns null only if document doesn't exist
+  /// Loads group phase data from Firestore.
+  /// Returns empty Gruppenphase if document exists but has no data (setup phase).
+  /// Returns null only if document doesn't exist.
   Future<Gruppenphase?> loadGruppenphase({
     String tournamentId = FirestoreBase.defaultTournamentId,
   }) async {
     final doc = await getDoc(tournamentId, 'gruppenphase').get();
     if (!doc.exists) return null;
-
-    final data = doc.data()! as Map<String, dynamic>;
-
-    // Check if this is a placeholder document (setup phase)
-    if (data['initialized'] == true &&
-        (data['numberOfGroups'] == null || data['numberOfGroups'] == 0)) {
-      return Gruppenphase(groups: []);
-    }
-
-    final groupsMap = data['groups'] as Map<String, dynamic>?;
-    final numberOfGroups = data['numberOfGroups'] as int? ?? 0;
-
-    if (groupsMap == null || numberOfGroups == 0) {
-      return Gruppenphase(groups: []);
-    }
-
-    final groups = <List<Match>>[];
-    for (int i = 0; i < numberOfGroups; i++) {
-      final groupMatches = (groupsMap['group$i'] as List)
-          .map((m) => Match.fromJson(m as Map<String, dynamic>))
-          .toList();
-      groups.add(groupMatches);
-    }
-    return Gruppenphase(groups: groups);
+    return _parseGroups(doc.data()! as Map<String, dynamic>);
   }
 
   /// Stream of group phase updates
@@ -64,29 +65,7 @@ mixin GruppenphaseService on FirestoreBase {
   }) {
     return getDoc(tournamentId, 'gruppenphase').snapshots().map((doc) {
       if (!doc.exists) return null;
-      final data = doc.data()! as Map<String, dynamic>;
-
-      // Check if this is a placeholder document (setup phase)
-      if (data['initialized'] == true &&
-          (data['numberOfGroups'] == null || data['numberOfGroups'] == 0)) {
-        return Gruppenphase(groups: []);
-      }
-
-      final groupsMap = data['groups'] as Map<String, dynamic>?;
-      final numberOfGroups = data['numberOfGroups'] as int? ?? 0;
-
-      if (groupsMap == null || numberOfGroups == 0) {
-        return Gruppenphase(groups: []);
-      }
-
-      final groups = <List<Match>>[];
-      for (int i = 0; i < numberOfGroups; i++) {
-        final groupMatches = (groupsMap['group$i'] as List)
-            .map((m) => Match.fromJson(m as Map<String, dynamic>))
-            .toList();
-        groups.add(groupMatches);
-      }
-      return Gruppenphase(groups: groups);
+      return _parseGroups(doc.data()! as Map<String, dynamic>);
     });
   }
 
@@ -101,7 +80,6 @@ mixin GruppenphaseService on FirestoreBase {
     final gruppenphase = await loadGruppenphase(tournamentId: tournamentId);
     if (gruppenphase == null) return;
 
-    // Find and update the match
     for (final group in gruppenphase.groups) {
       for (final match in group) {
         if (match.id == matchId) {

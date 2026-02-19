@@ -19,8 +19,8 @@ void main() {
 
       expect(teams.length, 3);
       expect(teams[0].name, 'Thunder');
-      expect(teams[0].mem1, 'Alice');
-      expect(teams[0].mem2, 'Bob');
+      expect(teams[0].member1, 'Alice');
+      expect(teams[0].member2, 'Bob');
       expect(teams[0].id, 'team_0_0');
       expect(teams[1].id, 'team_0_1');
       expect(teams[2].id, 'team_1_0');
@@ -41,8 +41,8 @@ void main() {
 
       expect(teams.length, 1);
       expect(teams[0].name, 'Solo');
-      expect(teams[0].mem1, '');
-      expect(teams[0].mem2, '');
+      expect(teams[0].member1, '');
+      expect(teams[0].member2, '');
       expect(groups.groups.length, 1);
     });
 
@@ -93,8 +93,8 @@ void main() {
 
       final (teams, _) = ImportService.parseTeamsFromJson(jsonData);
 
-      expect(teams[0].mem1, '');
-      expect(teams[0].mem2, '');
+      expect(teams[0].member1, '');
+      expect(teams[0].member2, '');
     });
   });
 
@@ -132,8 +132,8 @@ void main() {
 
       final teams = ImportService.parseTeamsFlatFromJson(jsonData);
 
-      expect(teams[0].mem1, '');
-      expect(teams[0].mem2, '');
+      expect(teams[0].member1, '');
+      expect(teams[0].member2, '');
     });
 
     test('handles empty list', () {

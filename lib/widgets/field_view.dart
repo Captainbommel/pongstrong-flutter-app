@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 
+/// A themed card section used across the playing field views.
+///
+/// Wraps [child] in a styled card with a [title] header and gradient
+/// background from [primaryColor] / [secondaryColor].
 class FieldView extends StatelessWidget {
   final String title;
-  final Color color1;
-  final Color color2;
+  final Color primaryColor;
+  final Color secondaryColor;
   final Widget child;
   final bool smallScreen;
 
-  const FieldView(
-    this.title,
-    this.color1,
-    this.color2,
-    this.smallScreen,
-    this.child, {
+  const FieldView({
+    required this.title,
+    required this.primaryColor,
+    required this.secondaryColor,
+    required this.smallScreen,
+    required this.child,
     super.key,
   });
 
@@ -23,7 +27,7 @@ class FieldView extends StatelessWidget {
         borderRadius: BorderRadius.circular(15.0),
         side: const BorderSide(width: 4),
       ),
-      color: color1,
+      color: primaryColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -50,7 +54,7 @@ class FieldView extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(10.0),
               child: Card(
-                color: color2,
+                color: secondaryColor,
                 child: child,
               ),
             )
@@ -59,7 +63,7 @@ class FieldView extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: Card(
-                  color: color2,
+                  color: secondaryColor,
                   child: SingleChildScrollView(
                     child: child,
                   ),

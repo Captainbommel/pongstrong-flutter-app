@@ -2,12 +2,14 @@ import 'package:pongstrong/models/configurations.dart';
 import 'package:pongstrong/models/groups.dart';
 import 'package:pongstrong/models/match.dart';
 
+/// The group phase of a tournament, containing all group matches.
 class Gruppenphase {
+  /// Nested list of matches, one inner list per group.
   List<List<Match>> groups;
 
   Gruppenphase({List<List<Match>>? groups}) : groups = groups ?? [];
 
-  // create expects groups with equal team counts
+  /// Creates a [Gruppenphase] from team [Groups] using round-robin pairings.
   static Gruppenphase create(Groups teamGroups, {int tableCount = 6}) {
     final groupCount = teamGroups.groups.length;
     final groups = List<List<Match>>.generate(groupCount, (_) => []);
@@ -30,7 +32,7 @@ class Gruppenphase {
         groupCount, teamCount, tableCount)!;
     for (int i = 0; i < tablePattern[0].length; i++) {
       for (int j = 0; j < groupCount; j++) {
-        groups[j][i].tischNr = tablePattern[j][i];
+        groups[j][i].tableNumber = tablePattern[j][i];
       }
     }
 
@@ -50,5 +52,24 @@ class Gruppenphase {
                 .map((m) => Match.fromJson(m as Map<String, dynamic>))
                 .toList())
             .toList(),
+      );
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Gruppenphase) return false;
+    if (groups.length != other.groups.length) return false;
+    for (int i = 0; i < groups.length; i++) {
+      if (groups[i].length != other.groups[i].length) return false;
+      for (int j = 0; j < groups[i].length; j++) {
+        if (groups[i][j] != other.groups[i][j]) return false;
+      }
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hashAll(
+        groups.map((g) => Object.hashAll(g)),
       );
 }

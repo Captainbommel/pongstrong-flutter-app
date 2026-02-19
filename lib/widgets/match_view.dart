@@ -9,12 +9,12 @@ class MatchView extends StatelessWidget {
   final bool expandHorizontally;
   final void Function()? onTap;
 
-  const MatchView(
-    this.team1,
-    this.team2,
-    this.table,
-    this.tableColor,
-    this.clickable, {
+  const MatchView({
+    required this.team1,
+    required this.team2,
+    required this.table,
+    required this.tableColor,
+    required this.clickable,
     this.expandHorizontally = false,
     this.onTap,
     super.key,

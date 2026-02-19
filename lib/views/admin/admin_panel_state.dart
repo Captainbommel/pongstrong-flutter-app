@@ -3,23 +3,11 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:pongstrong/models/models.dart';
+import 'package:pongstrong/models/tournament_enums.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/utils/app_logger.dart';
 
-/// Tournament phase enum
-enum TournamentPhase {
-  notStarted,
-  groupPhase,
-  knockoutPhase,
-  finished,
-}
-
-/// Tournament style enum
-enum TournamentStyle {
-  groupsAndKnockouts,
-  knockoutsOnly,
-  everyoneVsEveryone,
-}
+export 'package:pongstrong/models/tournament_enums.dart';
 
 /// Admin panel state management with Firebase integration
 class AdminPanelState extends ChangeNotifier {
@@ -214,12 +202,10 @@ class AdminPanelState extends ChangeNotifier {
           }
         }
         // Load rules setting from metadata
-        // Only default to 'bmt-cup' if the field doesn't exist (backwards compatibility)
-        // If it exists and is null, keep it as null (user explicitly disabled rules)
         if (metadata.containsKey('selectedRuleset')) {
           _selectedRuleset = metadata['selectedRuleset'] as String?;
         } else {
-          _selectedRuleset = 'bmt-cup'; // Default for old tournaments
+          _selectedRuleset = 'bmt-cup';
         }
 
         Logger.info(
@@ -362,8 +348,8 @@ class AdminPanelState extends ChangeNotifier {
     final newTeam = Team(
       id: _generateTeamId(),
       name: name,
-      mem1: member1,
-      mem2: member2,
+      member1: member1,
+      member2: member2,
     );
     _teams.add(newTeam);
     notifyListeners();
@@ -402,10 +388,10 @@ class AdminPanelState extends ChangeNotifier {
     final previousTeam = Team(
       id: _teams[index].id,
       name: _teams[index].name,
-      mem1: _teams[index].mem1,
-      mem2: _teams[index].mem2,
+      member1: _teams[index].member1,
+      member2: _teams[index].member2,
     );
-    _teams[index] = Team(id: teamId, name: name, mem1: member1, mem2: member2);
+    _teams[index] = Team(id: teamId, name: name, member1: member1, member2: member2);
     notifyListeners();
     try {
       await _firestoreService.saveTeams(_teams,
@@ -910,15 +896,4 @@ class AdminPanelState extends ChangeNotifier {
     super.dispose();
   }
 
-  void shuffleMatches() {
-    Logger.debug('Shuffling matches...', tag: 'AdminPanel');
-  }
-
-  void importFromJson() {
-    Logger.debug('Importing from JSON...', tag: 'AdminPanel');
-  }
-
-  void exportToJson() {
-    Logger.debug('Exporting to JSON...', tag: 'AdminPanel');
-  }
 }

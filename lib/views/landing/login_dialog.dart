@@ -14,6 +14,7 @@ class LoginDialog extends StatefulWidget {
 }
 
 class _LoginDialogState extends State<LoginDialog> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
@@ -30,39 +31,11 @@ class _LoginDialogState extends State<LoginDialog> {
   }
 
   Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final authState = Provider.of<AuthState>(context, listen: false);
 
-    if (_emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bitte gib eine E-Mail ein'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (_passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bitte gib ein Passwort ein'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     if (_isRegisterMode) {
-      if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Passwörter stimmen nicht überein'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
       final success = await authState.createAccount(
         _emailController.text.trim(),
         _passwordController.text,
@@ -211,87 +184,119 @@ class _LoginDialogState extends State<LoginDialog> {
             ),
             const SizedBox(height: 24),
             // Form
-            TextField(
-              controller: _emailController,
-              cursorColor: GroupPhaseColors.cupred,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: 'E-Mail',
-                prefixIcon: const Icon(Icons.email_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                      color: GroupPhaseColors.cupred, width: 2),
-                ),
-                floatingLabelStyle:
-                    const TextStyle(color: GroupPhaseColors.cupred),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              obscureText: _obscurePassword,
-              cursorColor: GroupPhaseColors.cupred,
-              onSubmitted: (_) => _submit(),
-              decoration: InputDecoration(
-                labelText: 'Passwort',
-                prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: IconButton(
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                  ),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                      color: GroupPhaseColors.cupred, width: 2),
-                ),
-                floatingLabelStyle:
-                    const TextStyle(color: GroupPhaseColors.cupred),
-              ),
-            ),
-            if (_isRegisterMode) ...[
-              const SizedBox(height: 16),
-              TextField(
-                controller: _confirmPasswordController,
-                obscureText: _obscureConfirmPassword,
-                cursorColor: GroupPhaseColors.cupred,
-                onSubmitted: (_) => _submit(),
-                decoration: InputDecoration(
-                  labelText: 'Passwort bestätigen',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    onPressed: () => setState(() =>
-                        _obscureConfirmPassword = !_obscureConfirmPassword),
-                    icon: Icon(
-                      _obscureConfirmPassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
+            Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _emailController,
+                    cursorColor: GroupPhaseColors.cupred,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Bitte gib eine E-Mail ein';
+                      }
+                      if (!value.contains('@')) {
+                        return 'Bitte gib eine gültige E-Mail ein';
+                      }
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'E-Mail',
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                            color: GroupPhaseColors.cupred, width: 2),
+                      ),
+                      floatingLabelStyle:
+                          const TextStyle(color: GroupPhaseColors.cupred),
                     ),
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    cursorColor: GroupPhaseColors.cupred,
+                    onFieldSubmitted: (_) => _submit(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Bitte gib ein Passwort ein';
+                      }
+                      if (_isRegisterMode && value.length < 6) {
+                        return 'Passwort muss mindestens 6 Zeichen lang sein';
+                      }
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Passwort',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        onPressed: () =>
+                            setState(() => _obscurePassword = !_obscurePassword),
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                            color: GroupPhaseColors.cupred, width: 2),
+                      ),
+                      floatingLabelStyle:
+                          const TextStyle(color: GroupPhaseColors.cupred),
+                    ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                        color: GroupPhaseColors.cupred, width: 2),
-                  ),
-                  floatingLabelStyle:
-                      const TextStyle(color: GroupPhaseColors.cupred),
-                ),
+                  if (_isRegisterMode) ...[
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      obscureText: _obscureConfirmPassword,
+                      cursorColor: GroupPhaseColors.cupred,
+                      onFieldSubmitted: (_) => _submit(),
+                      validator: (value) {
+                        if (value != _passwordController.text) {
+                          return 'Passwörter stimmen nicht überein';
+                        }
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Passwort bestätigen',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() =>
+                              _obscureConfirmPassword = !_obscureConfirmPassword),
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                              color: GroupPhaseColors.cupred, width: 2),
+                        ),
+                        floatingLabelStyle:
+                            const TextStyle(color: GroupPhaseColors.cupred),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ],
+            ),
             if (!_isRegisterMode) ...[
               const SizedBox(height: 8),
               Align(

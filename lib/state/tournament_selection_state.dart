@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 class TournamentSelectionState extends ChangeNotifier {
   String? _selectedTournamentId;
 
+  /// The currently selected tournament ID, or `null`.
   String? get selectedTournamentId => _selectedTournamentId;
+
+  /// Whether a tournament has been selected.
   bool get hasSelectedTournament => _selectedTournamentId != null;
 
   /// Set the selected tournament ID

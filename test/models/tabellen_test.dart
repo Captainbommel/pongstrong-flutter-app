@@ -6,36 +6,36 @@ void main() {
     test('creates row with default values', () {
       final row = TableRow();
       expect(row.teamId, '');
-      expect(row.punkte, 0);
-      expect(row.differenz, 0);
-      expect(row.becher, 0);
-      expect(row.vergleich.length, 4);
-      expect(row.vergleich.every((v) => v == ''), true);
+      expect(row.points, 0);
+      expect(row.difference, 0);
+      expect(row.cups, 0);
+      expect(row.headToHead.length, 4);
+      expect(row.headToHead.every((v) => v == ''), true);
     });
 
     test('creates row with custom values', () {
       final row = TableRow(
         teamId: 'team1',
-        punkte: 6,
-        differenz: 5,
-        becher: 20,
-        vergleich: ['t1', 't2', 't3', 't4'],
+        points: 6,
+        difference: 5,
+        cups: 20,
+        headToHead: ['t1', 't2', 't3', 't4'],
       );
       expect(row.teamId, 'team1');
-      expect(row.punkte, 6);
-      expect(row.differenz, 5);
-      expect(row.becher, 20);
-      expect(row.vergleich, ['t1', 't2', 't3', 't4']);
+      expect(row.points, 6);
+      expect(row.difference, 5);
+      expect(row.cups, 20);
+      expect(row.headToHead, ['t1', 't2', 't3', 't4']);
     });
 
     group('JSON serialization', () {
       test('toJson converts row to JSON correctly', () {
         final row = TableRow(
           teamId: 'team1',
-          punkte: 6,
-          differenz: 5,
-          becher: 20,
-          vergleich: ['t1', 't2', 't3', 't4'],
+          points: 6,
+          difference: 5,
+          cups: 20,
+          headToHead: ['t1', 't2', 't3', 't4'],
         );
 
         final json = row.toJson();
@@ -57,20 +57,20 @@ void main() {
 
         final row = TableRow.fromJson(json);
         expect(row.teamId, 'team1');
-        expect(row.punkte, 6);
-        expect(row.differenz, 5);
-        expect(row.becher, 20);
-        expect(row.vergleich, ['t1', 't2', 't3', 't4']);
+        expect(row.points, 6);
+        expect(row.difference, 5);
+        expect(row.cups, 20);
+        expect(row.headToHead, ['t1', 't2', 't3', 't4']);
       });
 
       test('fromJson handles missing fields with defaults', () {
         final json = <String, dynamic>{};
         final row = TableRow.fromJson(json);
         expect(row.teamId, '');
-        expect(row.punkte, 0);
-        expect(row.differenz, 0);
-        expect(row.becher, 0);
-        expect(row.vergleich.length, 4);
+        expect(row.points, 0);
+        expect(row.difference, 0);
+        expect(row.cups, 0);
+        expect(row.headToHead.length, 4);
       });
     });
   });
@@ -84,8 +84,8 @@ void main() {
     test('creates Tabellen with tables', () {
       final tabellen = Tabellen(tables: [
         [
-          TableRow(teamId: 't1', punkte: 6),
-          TableRow(teamId: 't2', punkte: 3),
+          TableRow(teamId: 't1', points: 6),
+          TableRow(teamId: 't2', points: 3),
         ],
       ]);
       expect(tabellen.tables.length, 1);
@@ -96,8 +96,8 @@ void main() {
   group('sortTable', () {
     test('sorts by points descending', () {
       final table = [
-        TableRow(teamId: 't1', punkte: 3),
-        TableRow(teamId: 't2', punkte: 6),
+        TableRow(teamId: 't1', points: 3),
+        TableRow(teamId: 't2', points: 6),
         TableRow(teamId: 't3'),
       ];
 
@@ -110,38 +110,38 @@ void main() {
 
     test('sorts by differenz when points are equal', () {
       final table = [
-        TableRow(teamId: 't1', punkte: 3, differenz: 2),
-        TableRow(teamId: 't2', punkte: 3, differenz: 5),
-        TableRow(teamId: 't3', punkte: 3, differenz: -1),
+        TableRow(teamId: 't1', points: 3, difference: 2),
+        TableRow(teamId: 't2', points: 3, difference: 5),
+        TableRow(teamId: 't3', points: 3, difference: -1),
       ];
 
       Tabellen.sortTable(table);
 
-      expect(table[0].teamId, 't2'); // differenz: 5
-      expect(table[1].teamId, 't1'); // differenz: 2
-      expect(table[2].teamId, 't3'); // differenz: -1
+      expect(table[0].teamId, 't2'); // difference: 5
+      expect(table[1].teamId, 't1'); // difference: 2
+      expect(table[2].teamId, 't3'); // difference: -1
     });
 
     test('sorts by becher when points and differenz are equal', () {
       final table = [
-        TableRow(teamId: 't1', punkte: 3, differenz: 2, becher: 15),
-        TableRow(teamId: 't2', punkte: 3, differenz: 2, becher: 20),
-        TableRow(teamId: 't3', punkte: 3, differenz: 2, becher: 10),
+        TableRow(teamId: 't1', points: 3, difference: 2, cups: 15),
+        TableRow(teamId: 't2', points: 3, difference: 2, cups: 20),
+        TableRow(teamId: 't3', points: 3, difference: 2, cups: 10),
       ];
 
       Tabellen.sortTable(table);
 
-      expect(table[0].teamId, 't2'); // becher: 20
-      expect(table[1].teamId, 't1'); // becher: 15
-      expect(table[2].teamId, 't3'); // becher: 10
+      expect(table[0].teamId, 't2'); // cups: 20
+      expect(table[1].teamId, 't1'); // cups: 15
+      expect(table[2].teamId, 't3'); // cups: 10
     });
 
     test('sorts by all criteria in priority order', () {
       final table = [
-        TableRow(teamId: 't1', punkte: 3, differenz: 2, becher: 15),
-        TableRow(teamId: 't2', punkte: 6, differenz: -1, becher: 10),
-        TableRow(teamId: 't3', punkte: 3, differenz: 5, becher: 20),
-        TableRow(teamId: 't4', differenz: 10, becher: 25),
+        TableRow(teamId: 't1', points: 3, difference: 2, cups: 15),
+        TableRow(teamId: 't2', points: 6, difference: -1, cups: 10),
+        TableRow(teamId: 't3', points: 3, difference: 5, cups: 20),
+        TableRow(teamId: 't4', difference: 10, cups: 25),
       ];
 
       Tabellen.sortTable(table);
@@ -159,7 +159,7 @@ void main() {
     });
 
     test('handles single entry table', () {
-      final table = [TableRow(teamId: 't1', punkte: 3)];
+      final table = [TableRow(teamId: 't1', points: 3)];
       Tabellen.sortTable(table);
       expect(table.length, 1);
       expect(table[0].teamId, 't1');
@@ -170,12 +170,12 @@ void main() {
     test('sorts all tables in Tabellen', () {
       final tabellen = Tabellen(tables: [
         [
-          TableRow(teamId: 't1', punkte: 3),
-          TableRow(teamId: 't2', punkte: 6),
+          TableRow(teamId: 't1', points: 3),
+          TableRow(teamId: 't2', points: 6),
         ],
         [
           TableRow(teamId: 't3'),
-          TableRow(teamId: 't4', punkte: 3),
+          TableRow(teamId: 't4', points: 3),
         ],
       ]);
 
@@ -198,8 +198,8 @@ void main() {
     test('toJson converts Tabellen to JSON correctly', () {
       final tabellen = Tabellen(tables: [
         [
-          TableRow(teamId: 't1', punkte: 6),
-          TableRow(teamId: 't2', punkte: 3),
+          TableRow(teamId: 't1', points: 6),
+          TableRow(teamId: 't2', points: 3),
         ],
       ]);
 
@@ -234,14 +234,14 @@ void main() {
       expect(tabellen.tables.length, 1);
       expect(tabellen.tables[0].length, 2);
       expect(tabellen.tables[0][0].teamId, 't1');
-      expect(tabellen.tables[0][0].punkte, 6);
+      expect(tabellen.tables[0][0].points, 6);
     });
 
     test('round trip serialization preserves data', () {
       final original = Tabellen(tables: [
         [
-          TableRow(teamId: 't1', punkte: 6, differenz: 2, becher: 15),
-          TableRow(teamId: 't2', punkte: 3, becher: 10),
+          TableRow(teamId: 't1', points: 6, difference: 2, cups: 15),
+          TableRow(teamId: 't2', points: 3, cups: 10),
         ],
       ]);
 
@@ -250,7 +250,7 @@ void main() {
 
       expect(restored.tables.length, original.tables.length);
       expect(restored.tables[0][0].teamId, original.tables[0][0].teamId);
-      expect(restored.tables[0][0].punkte, original.tables[0][0].punkte);
+      expect(restored.tables[0][0].points, original.tables[0][0].points);
     });
   });
 
@@ -258,8 +258,8 @@ void main() {
     test('creates deep copy of Tabellen', () {
       final original = Tabellen(tables: [
         [
-          TableRow(teamId: 't1', punkte: 6),
-          TableRow(teamId: 't2', punkte: 3),
+          TableRow(teamId: 't1', points: 6),
+          TableRow(teamId: 't2', points: 3),
         ],
       ]);
 
@@ -267,12 +267,12 @@ void main() {
 
       // Same values
       expect(cloned.tables[0][0].teamId, original.tables[0][0].teamId);
-      expect(cloned.tables[0][0].punkte, original.tables[0][0].punkte);
+      expect(cloned.tables[0][0].points, original.tables[0][0].points);
 
       // But different objects
-      cloned.tables[0][0].punkte = 9;
-      expect(original.tables[0][0].punkte, 6); // Original unchanged
-      expect(cloned.tables[0][0].punkte, 9); // Clone changed
+      cloned.tables[0][0].points = 9;
+      expect(original.tables[0][0].points, 6); // Original unchanged
+      expect(cloned.tables[0][0].points, 9); // Clone changed
     });
   });
 }

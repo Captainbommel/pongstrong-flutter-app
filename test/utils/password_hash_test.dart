@@ -8,10 +8,13 @@ void main() {
       expect(hashed, isNotEmpty);
     });
 
-    test('hash returns same output for same input (deterministic)', () {
+    test('hash produces unique output per call (random salt)', () {
       final hash1 = PasswordHash.hash('test');
       final hash2 = PasswordHash.hash('test');
-      expect(hash1, hash2);
+      // Different salts → different stored strings, but both verify
+      expect(hash1, isNot(hash2));
+      expect(PasswordHash.verify('test', hash1), isTrue);
+      expect(PasswordHash.verify('test', hash2), isTrue);
     });
 
     test('hash returns different output for different inputs', () {
@@ -20,22 +23,29 @@ void main() {
       expect(hash1, isNot(hash2));
     });
 
-    test('hash produces SHA-256 length output (64 hex chars)', () {
+    test('hash produces salt:hash format (129 chars)', () {
       final hashed = PasswordHash.hash('anything');
-      expect(hashed.length, 64);
-      expect(RegExp(r'^[a-f0-9]{64}$').hasMatch(hashed), isTrue);
+      // Format: 64 hex salt + ':' + 64 hex hash = 129
+      expect(hashed.length, 129);
+      expect(hashed.contains(':'), isTrue);
+      final parts = hashed.split(':');
+      expect(parts.length, 2);
+      expect(RegExp(r'^[a-f0-9]{64}$').hasMatch(parts[0]), isTrue);
+      expect(RegExp(r'^[a-f0-9]{64}$').hasMatch(parts[1]), isTrue);
     });
 
     test('hash handles empty string', () {
       final hashed = PasswordHash.hash('');
       expect(hashed, isNotEmpty);
-      expect(hashed.length, 64);
+      expect(hashed.length, 129);
+      expect(PasswordHash.verify('', hashed), isTrue);
     });
 
     test('hash handles unicode characters', () {
       final hashed = PasswordHash.hash('Bïér Pöng 🍺');
       expect(hashed, isNotEmpty);
-      expect(hashed.length, 64);
+      expect(hashed.length, 129);
+      expect(PasswordHash.verify('Bïér Pöng 🍺', hashed), isTrue);
     });
 
     test('verify returns true for matching password', () {

@@ -19,8 +19,8 @@ List<Team> buildTeams(int count) => List.generate(
       (i) => Team(
         id: 'team_$i',
         name: 'Team $i',
-        mem1: 'Player ${i}A',
-        mem2: 'Player ${i}B',
+        member1: 'Player ${i}A',
+        member2: 'Player ${i}B',
       ),
     );
 
@@ -189,7 +189,7 @@ void main() {
       // Knockouts with teams seeded (indicating active KO mode)
       final knockouts = Knockouts(
         champions: Champions(rounds: [
-          [Match(teamId1: 'team_0', teamId2: 'team_1', id: 'ko_1', tischNr: 1)]
+          [Match(teamId1: 'team_0', teamId2: 'team_1', id: 'ko_1', tableNumber: 1)]
         ]),
       );
 
@@ -826,8 +826,8 @@ void main() {
       gp = buildGruppenphase(groups, tableCount: 3);
       queue = buildMatchQueue(gp);
       ko = buildKnockouts(championsRound1: [
-        Match(id: 'ko_1', teamId1: 'team_0', teamId2: 'team_1', tischNr: 1),
-        Match(id: 'ko_2', teamId1: 'team_2', teamId2: 'team_3', tischNr: 2),
+        Match(id: 'ko_1', teamId1: 'team_0', teamId2: 'team_1', tableNumber: 1),
+        Match(id: 'ko_2', teamId1: 'team_2', teamId2: 'team_3', tableNumber: 2),
       ]);
     });
 
@@ -856,7 +856,7 @@ void main() {
           id: 'ko_1',
           teamId1: 'team_0',
           teamId2: 'team_1',
-          tischNr: 1,
+          tableNumber: 1,
           score1: 10,
           score2: 5,
           done: true);
@@ -892,7 +892,7 @@ void main() {
           id: 'nonexistent_ko',
           teamId1: 'team_0',
           teamId2: 'team_1',
-          tischNr: 1,
+          tableNumber: 1,
           score1: 10,
           score2: 5,
           done: true);
@@ -927,7 +927,7 @@ void main() {
           id: 'ko_1',
           teamId1: 'team_0',
           teamId2: 'team_1',
-          tischNr: 1,
+          tableNumber: 1,
           score1: 10,
           score2: 5,
           done: true);
@@ -989,7 +989,7 @@ void main() {
           id: 'invalid_match',
           teamId1: 'team_0',
           teamId2: 'team_1',
-          tischNr: 1,
+          tableNumber: 1,
           score1: 7,
           score2: 7,
           done: true);
@@ -1036,7 +1036,7 @@ void main() {
           id: matchId,
           teamId1: gp.groups[0].first.teamId1,
           teamId2: gp.groups[0].first.teamId2,
-          tischNr: 1);
+          tableNumber: 1);
       state.matchQueue.playing.add(playingMatch);
 
       // Stub the reload of gruppenphase for finishMatch
@@ -1213,11 +1213,11 @@ void main() {
             id: 'ko_1',
             teamId1: 'team_0',
             teamId2: 'team_1',
-            tischNr: 1,
+            tableNumber: 1,
             score1: 10,
             score2: 5,
             done: true),
-        Match(id: 'ko_2', teamId1: 'team_2', teamId2: 'team_3', tischNr: 2),
+        Match(id: 'ko_2', teamId1: 'team_2', teamId2: 'team_3', tableNumber: 2),
       ]);
 
       stubLoadedTournament(
@@ -1259,7 +1259,7 @@ void main() {
       final gp = buildGruppenphase(groups, tableCount: 3);
       final queue = buildMatchQueue(gp);
       final ko = buildKnockouts(championsRound1: [
-        Match(id: 'ko_1', teamId1: 'team_0', teamId2: 'team_1', tischNr: 1),
+        Match(id: 'ko_1', teamId1: 'team_0', teamId2: 'team_1', tableNumber: 1),
       ]);
 
       stubLoadedTournament(
@@ -1294,7 +1294,7 @@ void main() {
             id: 'ko_1',
             teamId1: 'team_0',
             teamId2: 'team_1',
-            tischNr: 1,
+            tableNumber: 1,
             score1: 10,
             score2: 5,
             done: true),
@@ -1441,7 +1441,7 @@ void main() {
       final queue = MatchQueue(waiting: [], playing: []);
       final tabellen = Tabellen();
       final ko = buildKnockouts(championsRound1: [
-        Match(id: 'ko_1', teamId1: 'team_0', teamId2: 'team_1', tischNr: 1),
+        Match(id: 'ko_1', teamId1: 'team_0', teamId2: 'team_1', tableNumber: 1),
       ]);
 
       state.loadData(
@@ -1617,7 +1617,7 @@ void main() {
             id: 'streamed_ko',
             teamId1: 'team_0',
             teamId2: 'team_1',
-            tischNr: 1),
+            tableNumber: 1),
       ]);
 
       koController.add(updatedKo);

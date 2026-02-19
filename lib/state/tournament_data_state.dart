@@ -45,17 +45,37 @@ class TournamentDataState extends ChangeNotifier {
   StreamSubscription? _matchQueueSubscription;
   StreamSubscription? _knockoutsSubscription;
 
+  /// All teams in the current tournament.
   List<Team> get teams => _teams;
+
+  /// The current match scheduling queue.
   MatchQueue get matchQueue => _matchQueue;
+
+  /// The group phase match data.
   Gruppenphase get gruppenphase => _gruppenphase;
+
+  /// Computed standings tables for the group phase.
   Tabellen get tabellen => _tabellen;
+
+  /// The knockout bracket structure.
   Knockouts get knockouts => _knockouts;
+
+  /// The Firestore ID of the currently loaded tournament.
   String get currentTournamentId => _currentTournamentId;
+
+  /// Whether the tournament is in the knockout phase.
   bool get isKnockoutMode => _isKnockoutMode;
+
+  /// The tournament format style (e.g. 'groupsAndKnockouts').
   String get tournamentStyle => _tournamentStyle;
+
+  /// Whether a ruleset is active for this tournament.
   bool get rulesEnabled => _selectedRuleset != null;
+
+  /// The selected ruleset identifier, or `null` if disabled.
   String? get selectedRuleset => _selectedRuleset;
 
+  /// Whether team data has been loaded.
   bool get hasData => _teams.isNotEmpty;
 
   /// Check if the tournament is in setup phase (no game data yet)
@@ -80,12 +100,10 @@ class TournamentDataState extends ChangeNotifier {
       // Store tournament metadata
       _tournamentStyle = (tournamentInfo['tournamentStyle'] as String?) ??
           'groupsAndKnockouts';
-      // Only default to 'bmt-cup' if the field doesn't exist (backwards compatibility)
-      // If it exists and is null, keep it as null (user explicitly disabled rules)
       if (tournamentInfo.containsKey('selectedRuleset')) {
         _selectedRuleset = tournamentInfo['selectedRuleset'] as String?;
       } else {
-        _selectedRuleset = 'bmt-cup'; // Default for old tournaments
+        _selectedRuleset = 'bmt-cup';
       }
 
       final teams = await service.loadTeams(tournamentId: tournamentId);

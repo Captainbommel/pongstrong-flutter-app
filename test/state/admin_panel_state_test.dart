@@ -109,8 +109,8 @@ void main() {
       expect(ok, isTrue);
       expect(state.teams.length, 1);
       expect(state.teams.first.name, 'Eagles');
-      expect(state.teams.first.mem1, 'Alice');
-      expect(state.teams.first.mem2, 'Bob');
+      expect(state.teams.first.member1, 'Alice');
+      expect(state.teams.first.member2, 'Bob');
       expect(state.errorMessage, isNull);
     });
 
@@ -158,8 +158,8 @@ void main() {
       expect(ok, isTrue);
       final team = state.teams.first;
       expect(team.name, 'Renamed');
-      expect(team.mem1, 'NewM1');
-      expect(team.mem2, 'NewM2');
+      expect(team.member1, 'NewM1');
+      expect(team.member2, 'NewM2');
     });
 
     test('returns false and sets error for unknown teamId', () async {
@@ -849,8 +849,8 @@ void main() {
       final fs = FakeFirebaseFirestore();
       final svc = FirestoreService.forTesting(fs);
       await svc.saveTeams([
-        Team(id: 't1', name: 'Alpha', mem1: 'A1', mem2: 'A2'),
-        Team(id: 't2', name: 'Bravo', mem1: 'B1', mem2: 'B2'),
+        Team(id: 't1', name: 'Alpha', member1: 'A1', member2: 'A2'),
+        Team(id: 't2', name: 'Bravo', member1: 'B1', member2: 'B2'),
       ]);
       final state = AdminPanelState(firestoreService: svc);
 
@@ -901,7 +901,7 @@ void main() {
 
       // Build a small tournament and complete 2 of 6 matches
       final teams = List.generate(
-          4, (i) => Team(id: 't$i', name: 'T$i', mem1: 'M1', mem2: 'M2'));
+          4, (i) => Team(id: 't$i', name: 'T$i', member1: 'M1', member2: 'M2'));
       final groups = Groups(groups: [
         ['t0', 't1', 't2', 't3'],
       ]);

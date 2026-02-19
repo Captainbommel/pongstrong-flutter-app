@@ -1,19 +1,20 @@
 import 'package:pongstrong/models/groups.dart';
 
+/// A tournament team consisting of two members.
 class Team {
   String id;
   String name;
-  String mem1;
-  String mem2;
+  String member1;
+  String member2;
 
   Team({
     this.id = '',
     this.name = '',
-    this.mem1 = '',
-    this.mem2 = '',
+    this.member1 = '',
+    this.member2 = '',
   });
 
-  // origin returns the group the team is in
+  /// Returns the group index this team belongs to, or -1 if not found.
   int origin(Groups groups) {
     for (int g = 0; g < groups.groups.length; g++) {
       if (groups.groups[g].contains(id)) {
@@ -23,18 +24,20 @@ class Team {
     return -1;
   }
 
+  /// Serialises this team to a JSON-compatible map.
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
-        'mem1': mem1,
-        'mem2': mem2,
+        'mem1': member1,
+        'mem2': member2,
       };
 
+  /// Creates a [Team] from a Firestore JSON map.
   factory Team.fromJson(Map<String, dynamic> json) => Team(
         id: (json['id'] as String?) ?? '',
         name: (json['name'] as String?) ?? '',
-        mem1: (json['mem1'] as String?) ?? '',
-        mem2: (json['mem2'] as String?) ?? '',
+        member1: (json['mem1'] as String?) ?? '',
+        member2: (json['mem2'] as String?) ?? '',
       );
 
   @override
@@ -43,10 +46,10 @@ class Team {
       other is Team &&
           id == other.id &&
           name == other.name &&
-          mem1 == other.mem1 &&
-          mem2 == other.mem2;
+          member1 == other.member1 &&
+          member2 == other.member2;
 
   @override
   int get hashCode =>
-      id.hashCode ^ name.hashCode ^ mem1.hashCode ^ mem2.hashCode;
+      id.hashCode ^ name.hashCode ^ member1.hashCode ^ member2.hashCode;
 }

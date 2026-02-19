@@ -89,14 +89,14 @@ void main() {
       final gruppenphase = Gruppenphase.create(groups);
 
       // Blueprint for first round: [1, 2, ...] and [2, 3, ...]
-      expect(gruppenphase.groups[0][0].tischNr, 1);
-      expect(gruppenphase.groups[1][0].tischNr, 2);
+      expect(gruppenphase.groups[0][0].tableNumber, 1);
+      expect(gruppenphase.groups[1][0].tableNumber, 2);
 
       // Check that all matches have valid table numbers
       for (final group in gruppenphase.groups) {
         for (final match in group) {
-          expect(match.tischNr, greaterThan(0));
-          expect(match.tischNr, lessThanOrEqualTo(6));
+          expect(match.tableNumber, greaterThan(0));
+          expect(match.tableNumber, lessThanOrEqualTo(6));
         }
       }
     });

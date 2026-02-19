@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
+import 'package:pongstrong/views/admin/team_edit_controller.dart';
 import 'package:provider/provider.dart';
 
 /// A dedicated page for managing teams and group assignments
@@ -57,8 +58,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       _teamControllers.add(TeamEditController(
         id: team.id,
         name: team.name,
-        member1: team.mem1,
-        member2: team.mem2,
+        member1: team.member1,
+        member2: team.member2,
         groupIndex: groupIndex >= 0 ? groupIndex : null,
         isNew: false,
       ));
@@ -1080,34 +1081,5 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         ),
       ),
     );
-  }
-}
-
-/// Controller for a single team's edit fields
-class TeamEditController {
-  String? id;
-  final TextEditingController nameController;
-  final TextEditingController member1Controller;
-  final TextEditingController member2Controller;
-  int? groupIndex;
-  bool isNew;
-  bool markedForRemoval;
-
-  TeamEditController({
-    this.id,
-    String name = '',
-    String member1 = '',
-    String member2 = '',
-    this.groupIndex,
-    this.isNew = true,
-    this.markedForRemoval = false,
-  })  : nameController = TextEditingController(text: name),
-        member1Controller = TextEditingController(text: member1),
-        member2Controller = TextEditingController(text: member2);
-
-  void dispose() {
-    nameController.dispose();
-    member1Controller.dispose();
-    member2Controller.dispose();
   }
 }

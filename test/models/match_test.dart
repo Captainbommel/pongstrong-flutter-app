@@ -9,7 +9,7 @@ void main() {
       expect(match.teamId2, '');
       expect(match.score1, 0);
       expect(match.score2, 0);
-      expect(match.tischNr, 0);
+      expect(match.tableNumber, 0);
       expect(match.id, '');
       expect(match.done, false);
     });
@@ -20,7 +20,7 @@ void main() {
         teamId2: 'team2',
         score1: 10,
         score2: 5,
-        tischNr: 3,
+        tableNumber: 3,
         id: 'g11',
         done: true,
       );
@@ -28,7 +28,7 @@ void main() {
       expect(match.teamId2, 'team2');
       expect(match.score1, 10);
       expect(match.score2, 5);
-      expect(match.tischNr, 3);
+      expect(match.tableNumber, 3);
       expect(match.id, 'g11');
       expect(match.done, true);
     });
@@ -138,7 +138,7 @@ void main() {
         teamId2: 'team2',
         score1: 10,
         score2: 5,
-        tischNr: 3,
+        tableNumber: 3,
         id: 'g11',
         done: true,
       );
@@ -169,7 +169,7 @@ void main() {
       expect(match.teamId2, 'team2');
       expect(match.score1, 10);
       expect(match.score2, 5);
-      expect(match.tischNr, 3);
+      expect(match.tableNumber, 3);
       expect(match.id, 'g11');
       expect(match.done, true);
     });
@@ -181,7 +181,7 @@ void main() {
       expect(match.teamId2, '');
       expect(match.score1, 0);
       expect(match.score2, 0);
-      expect(match.tischNr, 0);
+      expect(match.tableNumber, 0);
       expect(match.id, '');
       expect(match.done, false);
     });
@@ -192,7 +192,7 @@ void main() {
         teamId2: 'team2',
         score1: 10,
         score2: 5,
-        tischNr: 3,
+        tableNumber: 3,
         id: 'g11',
         done: true,
       );
@@ -204,7 +204,7 @@ void main() {
       expect(restored.teamId2, original.teamId2);
       expect(restored.score1, original.score1);
       expect(restored.score2, original.score2);
-      expect(restored.tischNr, original.tischNr);
+      expect(restored.tableNumber, original.tableNumber);
       expect(restored.id, original.id);
       expect(restored.done, original.done);
     });

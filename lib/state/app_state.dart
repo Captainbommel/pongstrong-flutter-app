@@ -2,10 +2,19 @@ import 'package:flutter/material.dart';
 
 /// Unified navigation views for both desktop and mobile layouts
 enum AppView {
+  /// Live match playing field.
   playingField,
+
+  /// Group phase standings.
   groupPhase,
+
+  /// Knockout bracket tree.
   tournamentTree,
+
+  /// Tournament rules page.
   rules,
+
+  /// Admin settings panel.
   adminPanel,
 }
 
@@ -15,6 +24,7 @@ enum AppView {
 /// On mobile, the view is used to sync the PageView and drawer.
 class AppState extends ChangeNotifier {
   AppView _currentView = AppView.playingField;
+  /// The currently active navigation view.
   AppView get currentView => _currentView;
 
   /// Scaffold key for controlling the mobile drawer
@@ -33,43 +43,34 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Set view from a PageView index (mobile swipe navigation)
-  void setViewFromPageIndex(int index) {
-    _currentView = viewFromPageIndex(index);
+  /// Set view from a PageView index using the given available views list.
+  void setViewFromPageIndex(int index, {List<AppView>? availableViews}) {
+    final views = availableViews ?? AppView.values;
+    if (index >= 0 && index < views.length) {
+      _currentView = views[index];
+    } else {
+      _currentView = AppView.playingField;
+    }
     notifyListeners();
   }
 
-  /// Convert an AppView to a PageView index
-  static int pageIndexFromView(AppView view) {
-    switch (view) {
-      case AppView.playingField:
-        return 0;
-      case AppView.groupPhase:
-        return 1;
-      case AppView.tournamentTree:
-        return 2;
-      case AppView.rules:
-        return 3;
-      case AppView.adminPanel:
-        return 4;
-    }
+  /// Convert an [AppView] to a page index within the given [availableViews].
+  /// Returns 0 if the view is not in the list.
+  static int pageIndexFromView(AppView view,
+      {List<AppView>? availableViews}) {
+    final views = availableViews ?? AppView.values;
+    final index = views.indexOf(view);
+    return index >= 0 ? index : 0;
   }
 
-  /// Convert a PageView index to an AppView
-  static AppView viewFromPageIndex(int index) {
-    switch (index) {
-      case 0:
-        return AppView.playingField;
-      case 1:
-        return AppView.groupPhase;
-      case 2:
-        return AppView.tournamentTree;
-      case 3:
-        return AppView.rules;
-      case 4:
-        return AppView.adminPanel;
-      default:
-        return AppView.playingField;
+  /// Convert a page index to an [AppView] within the given [availableViews].
+  /// Returns [AppView.playingField] if the index is out of range.
+  static AppView viewFromPageIndex(int index,
+      {List<AppView>? availableViews}) {
+    final views = availableViews ?? AppView.values;
+    if (index >= 0 && index < views.length) {
+      return views[index];
     }
+    return AppView.playingField;
   }
 }

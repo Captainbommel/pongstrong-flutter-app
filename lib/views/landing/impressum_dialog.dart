@@ -67,7 +67,7 @@ class ImpressumDialog extends StatelessWidget {
                     _buildSection(
                       'Kontakt',
                       'Bei Fragen oder Anliegen wenden Sie sich bitte '
-                          'an email@adress.com.',
+                          'an email@address.com.',
                     ),
                     const SizedBox(height: 20),
                     _buildSection(

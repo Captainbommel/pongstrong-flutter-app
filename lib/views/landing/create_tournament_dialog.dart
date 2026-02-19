@@ -69,6 +69,33 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
     }
   }
 
+  /// Shared logic: create the tournament on Firestore and handle result.
+  Future<void> _submitTournament(String creatorId) async {
+    final tournamentId = await _firestoreService.createTournament(
+      tournamentName: _tournamentNameController.text.trim(),
+      creatorId: creatorId,
+      password: _passwordController.text,
+    );
+
+    if (mounted) {
+      if (tournamentId != null) {
+        Navigator.pop(context);
+        widget.onTournamentCreated(tournamentId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Turnier "$tournamentId" wurde erstellt!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        setState(() {
+          _isLoading = false;
+          _error = 'Ein Turnier mit diesem Namen existiert bereits';
+        });
+      }
+    }
+  }
+
   Future<void> _createTournament() async {
     final authState = Provider.of<AuthState>(context, listen: false);
 
@@ -120,29 +147,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
       return;
     }
 
-    final tournamentId = await _firestoreService.createTournament(
-      tournamentName: _tournamentNameController.text.trim(),
-      creatorId: authState.userId!,
-      password: _passwordController.text,
-    );
-
-    if (mounted) {
-      if (tournamentId != null) {
-        Navigator.pop(context);
-        widget.onTournamentCreated(tournamentId);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Turnier "$tournamentId" wurde erstellt!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        setState(() {
-          _isLoading = false;
-          _error = 'Ein Turnier mit diesem Namen existiert bereits';
-        });
-      }
-    }
+    await _submitTournament(authState.userId!);
   }
 
   Future<void> _createTournamentAsLoggedInUser(AuthState authState) async {
@@ -151,29 +156,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
       _error = null;
     });
 
-    final tournamentId = await _firestoreService.createTournament(
-      tournamentName: _tournamentNameController.text.trim(),
-      creatorId: authState.userId!,
-      password: _passwordController.text,
-    );
-
-    if (mounted) {
-      if (tournamentId != null) {
-        Navigator.pop(context);
-        widget.onTournamentCreated(tournamentId);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Turnier "$tournamentId" wurde erstellt!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        setState(() {
-          _isLoading = false;
-          _error = 'Ein Turnier mit diesem Namen existiert bereits';
-        });
-      }
-    }
+    await _submitTournament(authState.userId!);
   }
 
   @override

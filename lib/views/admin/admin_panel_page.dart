@@ -46,10 +46,12 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
   }
 
   Future<void> _loadData() async {
-    await _adminState.loadTournamentMetadata();
-    await _adminState.loadTeams();
-    await _adminState.loadGroups();
-    await _adminState.loadMatchStats();
+    await Future.wait([
+      _adminState.loadTournamentMetadata(),
+      _adminState.loadTeams(),
+      _adminState.loadGroups(),
+      _adminState.loadMatchStats(),
+    ]);
   }
 
   @override
@@ -344,7 +346,6 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         await AdminPanelDialogs.handleImportTeams(context);
         await _loadData();
       },
-      onExportJson: () => AdminPanelDialogs.showExportDialog(context),
       isCompact: isCompact,
     );
 

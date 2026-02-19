@@ -270,86 +270,9 @@ class AdminPanelDialogs {
     }
   }
 
-  /// Show export dialog
-  static Future<void> showExportDialog(BuildContext context) async {
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.download, color: GroupPhaseColors.steelblue),
-            SizedBox(width: 8),
-            Text('JSON Export'),
-          ],
-        ),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 450),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Folgende Daten werden exportiert:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              _exportItem('Teams und Gruppen'),
-              _exportItem('Spielergebnisse'),
-              _exportItem('Turnierstatus'),
-              _exportItem('Turniermodus'),
-              _exportItem('Spielreihenfolge'),
-              const SizedBox(height: 16),
-              InfoBanner.success(
-                'Die exportierte Datei kann jederzeit importiert werden, um das Turnier wiederherzustellen.',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
-              'Abbrechen',
-              style: TextStyle(color: GroupPhaseColors.steelblue),
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('JSON Export wird heruntergeladen...')),
-              );
-            },
-            icon: const Icon(Icons.download),
-            label: const Text('Exportieren'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: GroupPhaseColors.steelblue,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Handle JSON team import
   static Future<void> handleImportTeams(BuildContext context) async {
     if (!_verifyAdmin(context)) return;
     await ImportService.uploadTeamsFromJson(context);
-  }
-
-  static Widget _exportItem(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          const Icon(Icons.check_circle,
-              color: FieldColors.springgreen, size: 20),
-          const SizedBox(width: 8),
-          Text(text),
-        ],
-      ),
-    );
   }
 }

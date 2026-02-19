@@ -12,6 +12,7 @@ class AuthService {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  /// The currently signed-in Firebase user, or `null`.
   User? get user {
     return _auth.currentUser;
   }

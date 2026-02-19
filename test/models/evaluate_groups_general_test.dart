@@ -195,9 +195,9 @@ void main() {
         void check(List<List<Match>> rounds, String league) {
           for (final round in rounds) {
             for (final match in round) {
-              expect(match.tischNr, greaterThan(0),
+              expect(match.tableNumber, greaterThan(0),
                   reason: '$league match ${match.id} has no table assigned');
-              expect(match.tischNr, lessThanOrEqualTo(6),
+              expect(match.tableNumber, lessThanOrEqualTo(6),
                   reason: '$league match ${match.id} table > 6');
             }
           }
@@ -380,7 +380,7 @@ void main() {
             for (final m in rounds[r]) {
               final t1 = m.teamId1.isEmpty ? '___' : m.teamId1;
               final t2 = m.teamId2.isEmpty ? '___' : m.teamId2;
-              buf.write('[${m.id} T${m.tischNr}: $t1 v $t2]  ');
+              buf.write('[${m.id} T${m.tableNumber}: $t1 v $t2]  ');
             }
             buf.writeln();
           }

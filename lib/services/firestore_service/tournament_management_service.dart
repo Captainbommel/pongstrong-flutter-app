@@ -7,10 +7,8 @@ import 'package:pongstrong/services/firestore_service/knockouts_service.dart';
 import 'package:pongstrong/services/firestore_service/match_queue_service.dart';
 import 'package:pongstrong/services/firestore_service/tabellen_service.dart';
 import 'package:pongstrong/services/firestore_service/teams_service.dart';
-import 'package:pongstrong/utils/app_logger.dart';
-import 'package:pongstrong/utils/password_hash.dart';
 
-/// Service for tournament initialization, management, and authentication
+/// Service for tournament initialization, phase transitions, and lifecycle management.
 mixin TournamentManagementService
     on
         FirestoreBase,
@@ -53,27 +51,14 @@ mixin TournamentManagementService
     knockouts.instantiate();
     await saveKnockouts(knockouts, tournamentId: tournamentId);
 
-    // Update tournament metadata (use update to preserve creatorId, password etc.)
-    // Fall back to set with merge if document doesn't exist
-    try {
-      await firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(tournamentId)
-          .update({
-        'phase': 'groups', // 'groups' or 'knockouts'
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      // Document might not exist yet (legacy behavior)
-      await firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(tournamentId)
-          .set({
-        'phase': 'groups',
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    }
+    // Update tournament metadata (use set+merge to preserve creatorId, password etc.)
+    await firestore
+        .collection(FirestoreBase.tournamentsCollection)
+        .doc(tournamentId)
+        .set({
+      'phase': 'groups',
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   /// Imports teams and groups only WITHOUT starting the tournament
@@ -185,7 +170,7 @@ mixin TournamentManagementService
         teamId1: teams[i * 2].id,
         teamId2: teams[i * 2 + 1].id,
         id: 'ko_r1_${i + 1}',
-        tischNr: (i % tableCount) + 1,
+        tableNumber: (i % tableCount) + 1,
       ));
     }
     rounds.add(firstRound);
@@ -197,7 +182,7 @@ mixin TournamentManagementService
       for (int i = 0; i < matchesInRound; i++) {
         round.add(Match(
           id: 'ko_r${r}_${i + 1}',
-          tischNr: (i % tableCount) + 1,
+          tableNumber: (i % tableCount) + 1,
         ));
       }
       rounds.add(round);
@@ -216,7 +201,7 @@ mixin TournamentManagementService
       playing: [],
     );
     for (final match in firstRound) {
-      queue.waiting[match.tischNr - 1].add(match);
+      queue.waiting[match.tableNumber - 1].add(match);
     }
     await saveMatchQueue(queue, tournamentId: tournamentId);
 
@@ -287,7 +272,7 @@ mixin TournamentManagementService
           teamId1: teams[home].id,
           teamId2: teams[away].id,
           id: 'rr_$matchId',
-          tischNr: (tableSlot % tableCount) + 1,
+          tableNumber: (tableSlot % tableCount) + 1,
         ));
         matchId++;
         tableSlot++;
@@ -310,7 +295,7 @@ mixin TournamentManagementService
       playing: [],
     );
     for (final match in matches) {
-      queue.waiting[match.tischNr - 1].add(match);
+      queue.waiting[match.tableNumber - 1].add(match);
     }
     await saveMatchQueue(queue, tournamentId: tournamentId);
 
@@ -407,7 +392,7 @@ mixin TournamentManagementService
     int maxTable = 6;
     for (final group in gruppenphase.groups) {
       for (final match in group) {
-        if (match.tischNr > maxTable) maxTable = match.tischNr;
+        if (match.tableNumber > maxTable) maxTable = match.tableNumber;
       }
     }
 
@@ -419,7 +404,7 @@ mixin TournamentManagementService
     for (final group in gruppenphase.groups) {
       for (final match in group) {
         if (!match.done) {
-          queue.waiting[match.tischNr - 1].add(match);
+          queue.waiting[match.tableNumber - 1].add(match);
         }
       }
     }
@@ -527,251 +512,5 @@ mixin TournamentManagementService
       'phase': 'notStarted',
       'updatedAt': FieldValue.serverTimestamp(),
     });
-  }
-
-  // ==================== UTILITY METHODS ====================
-
-  /// Lists all tournaments
-  Future<List<String>> listTournaments() async {
-    final snapshot =
-        await firestore.collection(FirestoreBase.tournamentsCollection).get();
-    return snapshot.docs.map((doc) => doc.id).toList();
-  }
-
-  /// Gets tournaments created by a specific user
-  Future<List<String>> listUserTournaments(String creatorId) async {
-    final snapshot = await firestore
-        .collection(FirestoreBase.tournamentsCollection)
-        .where('creatorId', isEqualTo: creatorId)
-        .get();
-    return snapshot.docs.map((doc) => doc.id).toList();
-  }
-
-  /// Checks if a tournament exists
-  Future<bool> tournamentExists({
-    String tournamentId = FirestoreBase.defaultTournamentId,
-  }) async {
-    final doc = await firestore
-        .collection(FirestoreBase.tournamentsCollection)
-        .doc(tournamentId)
-        .get();
-    return doc.exists;
-  }
-
-  /// Creates a new empty tournament with just the name and creator info
-  /// Returns the tournament ID if successful, null otherwise
-  /// Also creates empty placeholder documents for all collections so they're ready for data
-  Future<String?> createTournament({
-    required String tournamentName,
-    required String creatorId,
-    required String password,
-  }) async {
-    try {
-      // Use the tournament name as the ID (sanitized)
-      final tournamentId =
-          tournamentName.trim().replaceAll(RegExp(r'\s+'), '-');
-
-      // Check if tournament already exists
-      if (await tournamentExists(tournamentId: tournamentId)) {
-        return null; // Tournament with this name already exists
-      }
-
-      // Create tournament document with metadata
-      await firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(tournamentId)
-          .set({
-        'name': tournamentName,
-        'creatorId': creatorId,
-        'password': PasswordHash.hash(password), // Hashed for security
-        'participants': [creatorId], // Creator is automatically a participant
-        'phase': 'setup', // 'setup', 'groups' or 'knockouts'
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      // Create empty placeholder documents for all collections
-      // This ensures the collections exist and are ready for data
-      final batch = firestore.batch();
-
-      // Teams placeholder
-      batch.set(getDoc(tournamentId, 'teams'), {
-        'teams': [],
-        'initialized': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      // Groups placeholder
-      batch.set(getDoc(tournamentId, 'groups'), {
-        'groups': [],
-        'initialized': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      // Match queue placeholder
-      batch.set(getDoc(tournamentId, 'matchQueue'), {
-        'queue': [],
-        'currentIndex': 0,
-        'initialized': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      // Gruppenphase placeholder
-      batch.set(getDoc(tournamentId, 'gruppenphase'), {
-        'gruppen': [],
-        'initialized': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      // Tabellen placeholder
-      batch.set(getDoc(tournamentId, 'tabellen'), {
-        'tabellen': [],
-        'initialized': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      // Knockouts placeholder
-      batch.set(getDoc(tournamentId, 'knockouts'), {
-        'champions': {'rounds': []},
-        'losers': {'rounds': []},
-        'initialized': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      await batch.commit();
-
-      return tournamentId;
-    } catch (e) {
-      Logger.error('Error creating tournament',
-          tag: 'TournamentService', error: e);
-      return null;
-    }
-  }
-
-  /// Verifies if the password is correct for a tournament
-  Future<bool> verifyTournamentPassword(
-      String tournamentId, String password) async {
-    try {
-      final doc = await firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(tournamentId)
-          .get();
-      if (!doc.exists) return false;
-
-      final data = doc.data()!;
-      final storedHash = data['password'] as String?;
-      if (storedHash == null) return false;
-
-      return PasswordHash.verify(password, storedHash);
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// Checks if a user is the creator of a tournament
-  Future<bool> isCreator(String tournamentId, String userId) async {
-    try {
-      final doc = await firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(tournamentId)
-          .get();
-      if (!doc.exists) return false;
-
-      final data = doc.data()!;
-      return data['creatorId'] == userId;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// Gets tournament info (name, creatorId, etc.)
-  Future<Map<String, dynamic>?> getTournamentInfo(String tournamentId) async {
-    try {
-      final doc = await firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(tournamentId)
-          .get();
-      if (!doc.exists) return null;
-
-      final data = doc.data()!;
-      // Don't return the password - return available fields
-      // Note: Return null for selectedRuleset if not set, don't default here
-      final result = {
-        'name': data['name'] ?? tournamentId,
-        'creatorId': data['creatorId'],
-        'phase': data['phase'] ?? 'groups',
-        'tournamentStyle': data['tournamentStyle'] ?? 'groupsAndKnockouts',
-        'createdAt': data['createdAt'],
-      };
-
-      // Include selectedRuleset in result map only if it exists in Firestore
-      if (data.containsKey('selectedRuleset')) {
-        result['selectedRuleset'] = data['selectedRuleset'];
-      }
-
-      return result;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Checks if a tournament has a password set
-  Future<bool> tournamentHasPassword(String tournamentId) async {
-    try {
-      final doc = await firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(tournamentId)
-          .get();
-      if (!doc.exists) return false;
-
-      final data = doc.data()!;
-      return data.containsKey('password') &&
-          data['password'] != null &&
-          data['password'].toString().isNotEmpty;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  // ==================== PARTICIPANT MANAGEMENT ====================
-
-  /// Adds a user to the tournament's participants list.
-  /// Called after password verification or when creator creates the tournament.
-  Future<bool> joinTournament(String tournamentId, String userId) async {
-    try {
-      await firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(tournamentId)
-          .update({
-        'participants': FieldValue.arrayUnion([userId]),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      Logger.error('Error joining tournament',
-          tag: 'TournamentService', error: e);
-      return false;
-    }
-  }
-
-  /// Checks if a user is a participant of (or creator of) a tournament.
-  Future<bool> isParticipant(String tournamentId, String userId) async {
-    try {
-      final doc = await firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(tournamentId)
-          .get();
-      if (!doc.exists) return false;
-
-      final data = doc.data()!;
-
-      // Creator is always considered a participant
-      if (data['creatorId'] == userId) return true;
-
-      final participants = data['participants'] as List<dynamic>? ?? [];
-      return participants.contains(userId);
-    } catch (e) {
-      return false;
-    }
   }
 }

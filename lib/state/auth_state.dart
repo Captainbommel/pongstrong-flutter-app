@@ -35,12 +35,25 @@ class AuthState extends ChangeNotifier {
     Logger.info('AuthState initialized', tag: 'AuthState');
   }
 
+  /// The currently authenticated Firebase user, or `null`.
   User? get user => _user;
+
+  /// Whether an auth operation is in progress.
   bool get isLoading => _isLoading;
+
+  /// The last authentication error message, or `null`.
   String? get error => _error;
+
+  /// Whether a user is currently signed in.
   bool get isLoggedIn => _user != null;
+
+  /// Whether the signed-in user has an email (non-anonymous).
   bool get isEmailUser => _user?.email != null;
+
+  /// The signed-in user's UID, or `null`.
   String? get userId => _user?.uid;
+
+  /// The signed-in user's email, or `null`.
   String? get userEmail => _user?.email;
 
   /// Whether the current user is the admin (creator) of the current tournament

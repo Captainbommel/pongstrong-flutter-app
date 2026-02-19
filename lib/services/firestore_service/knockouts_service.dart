@@ -3,6 +3,37 @@ import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service/firestore_base.dart';
 import 'package:pongstrong/utils/app_logger.dart';
 
+/// Converts a [KnockoutBracket]'s rounds to a Firestore-safe map structure.
+Map<String, dynamic> _bracketToMap(KnockoutBracket bracket) {
+  final roundsMap = <String, dynamic>{};
+  for (int i = 0; i < bracket.rounds.length; i++) {
+    roundsMap['round$i'] =
+        bracket.rounds[i].map((m) => m.toJson()).toList();
+  }
+  return {
+    'rounds': roundsMap,
+    'numberOfRounds': bracket.rounds.length,
+  };
+}
+
+/// Parses rounds from a Firestore map structure into a [KnockoutBracket].
+/// Returns an empty bracket if data is missing or invalid.
+KnockoutBracket _parseBracket(dynamic raw) {
+  if (raw == null || raw is! Map<String, dynamic>) return KnockoutBracket();
+  final roundsMap = raw['rounds'] as Map<String, dynamic>?;
+  final numberOfRounds = raw['numberOfRounds'] as int? ?? 0;
+  if (roundsMap == null || numberOfRounds == 0) return KnockoutBracket();
+
+  final rounds = <List<Match>>[];
+  for (int i = 0; i < numberOfRounds; i++) {
+    final roundMatches = (roundsMap['round$i'] as List)
+        .map((m) => Match.fromJson(m as Map<String, dynamic>))
+        .toList();
+    rounds.add(roundMatches);
+  }
+  return KnockoutBracket(rounds: rounds);
+}
+
 /// Service for managing knockout phase data in Firestore
 mixin KnockoutsService on FirestoreBase {
   /// Saves knockout phase data to Firestore
@@ -10,49 +41,19 @@ mixin KnockoutsService on FirestoreBase {
     Knockouts knockouts, {
     String tournamentId = FirestoreBase.defaultTournamentId,
   }) async {
-    // Convert Champions nested arrays to map
-    final championsMap = <String, dynamic>{};
-    for (int i = 0; i < knockouts.champions.rounds.length; i++) {
-      championsMap['round$i'] =
-          knockouts.champions.rounds[i].map((m) => m.toJson()).toList();
-    }
-
-    // Convert Europa nested arrays to map
-    final europaMap = <String, dynamic>{};
-    for (int i = 0; i < knockouts.europa.rounds.length; i++) {
-      europaMap['round$i'] =
-          knockouts.europa.rounds[i].map((m) => m.toJson()).toList();
-    }
-
-    // Convert Conference nested arrays to map
-    final conferenceMap = <String, dynamic>{};
-    for (int i = 0; i < knockouts.conference.rounds.length; i++) {
-      conferenceMap['round$i'] =
-          knockouts.conference.rounds[i].map((m) => m.toJson()).toList();
-    }
-
     final data = {
-      'champions': {
-        'rounds': championsMap,
-        'numberOfRounds': knockouts.champions.rounds.length,
-      },
-      'europa': {
-        'rounds': europaMap,
-        'numberOfRounds': knockouts.europa.rounds.length,
-      },
-      'conference': {
-        'rounds': conferenceMap,
-        'numberOfRounds': knockouts.conference.rounds.length,
-      },
+      'champions': _bracketToMap(knockouts.champions),
+      'europa': _bracketToMap(knockouts.europa),
+      'conference': _bracketToMap(knockouts.conference),
       'super': knockouts.superCup.toJson(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
     await getDoc(tournamentId, 'knockouts').set(data);
   }
 
-  /// Loads knockout phase data from Firestore
-  /// Returns empty Knockouts if document exists but has no data (setup phase)
-  /// Returns null only if document doesn't exist
+  /// Loads knockout phase data from Firestore.
+  /// Returns empty Knockouts if document exists but has no data (setup phase).
+  /// Returns null only if document doesn't exist.
   Future<Knockouts?> loadKnockouts({
     String tournamentId = FirestoreBase.defaultTournamentId,
   }) async {
@@ -70,57 +71,17 @@ mixin KnockoutsService on FirestoreBase {
     }
 
     try {
-      // Reconstruct Champions rounds from map
-      final championsData = data['champions'] as Map<String, dynamic>;
-      final championsRoundsMap =
-          championsData['rounds'] as Map<String, dynamic>;
-      final championsNumberOfRounds = championsData['numberOfRounds'] as int;
-      final championsRounds = <List<Match>>[];
-      for (int i = 0; i < championsNumberOfRounds; i++) {
-        final roundMatches = (championsRoundsMap['round$i'] as List)
-            .map((m) => Match.fromJson(m as Map<String, dynamic>))
-            .toList();
-        championsRounds.add(roundMatches);
-      }
-
-      // Reconstruct Europa rounds from map
-      final europaData = data['europa'] as Map<String, dynamic>;
-      final europaRoundsMap = europaData['rounds'] as Map<String, dynamic>;
-      final europaNumberOfRounds = europaData['numberOfRounds'] as int;
-      final europaRounds = <List<Match>>[];
-      for (int i = 0; i < europaNumberOfRounds; i++) {
-        final roundMatches = (europaRoundsMap['round$i'] as List)
-            .map((m) => Match.fromJson(m as Map<String, dynamic>))
-            .toList();
-        europaRounds.add(roundMatches);
-      }
-
-      // Reconstruct Conference rounds from map
-      final conferenceData = data['conference'] as Map<String, dynamic>;
-      final conferenceRoundsMap =
-          conferenceData['rounds'] as Map<String, dynamic>;
-      final conferenceNumberOfRounds = conferenceData['numberOfRounds'] as int;
-      final conferenceRounds = <List<Match>>[];
-      for (int i = 0; i < conferenceNumberOfRounds; i++) {
-        final roundMatches = (conferenceRoundsMap['round$i'] as List)
-            .map((m) => Match.fromJson(m as Map<String, dynamic>))
-            .toList();
-        conferenceRounds.add(roundMatches);
-      }
-
-      // Reconstruct Super
       final superMatches = (data['super'] as List)
           .map((m) => Match.fromJson(m as Map<String, dynamic>))
           .toList();
 
       return Knockouts(
-        champions: Champions(rounds: championsRounds),
-        europa: Europa(rounds: europaRounds),
-        conference: Conference(rounds: conferenceRounds),
+        champions: _parseBracket(data['champions']),
+        europa: _parseBracket(data['europa']),
+        conference: _parseBracket(data['conference']),
         superCup: Super(matches: superMatches),
       );
     } catch (e) {
-      // If parsing fails, return empty knockouts
       Logger.error('Error parsing knockouts',
           tag: 'KnockoutsService', error: e);
       return Knockouts();
@@ -140,58 +101,9 @@ mixin KnockoutsService on FirestoreBase {
         return Knockouts();
       }
 
-      // Safely check if champions data exists and is valid
-      final championsData = data['champions'];
-      if (championsData == null || championsData is! Map<String, dynamic>) {
-        return Knockouts();
-      }
+      final champions = _parseBracket(data['champions']);
+      if (champions.rounds.isEmpty) return Knockouts();
 
-      final championsRoundsMap =
-          championsData['rounds'] as Map<String, dynamic>?;
-      final championsNumberOfRounds =
-          championsData['numberOfRounds'] as int? ?? 0;
-      if (championsRoundsMap == null || championsNumberOfRounds == 0) {
-        return Knockouts();
-      }
-
-      final championsRounds = <List<Match>>[];
-      for (int i = 0; i < championsNumberOfRounds; i++) {
-        final roundMatches = (championsRoundsMap['round$i'] as List)
-            .map((m) => Match.fromJson(m as Map<String, dynamic>))
-            .toList();
-        championsRounds.add(roundMatches);
-      }
-
-      // Reconstruct Europa rounds from map
-      final europaRaw = data['europa'];
-      final europaData = europaRaw is Map<String, dynamic> ? europaRaw : null;
-      final europaRoundsMap = europaData?['rounds'] as Map<String, dynamic>?;
-      final europaNumberOfRounds = europaData?['numberOfRounds'] as int? ?? 0;
-      final europaRounds = <List<Match>>[];
-      for (int i = 0; i < europaNumberOfRounds; i++) {
-        final roundMatches = (europaRoundsMap!['round$i'] as List)
-            .map((m) => Match.fromJson(m as Map<String, dynamic>))
-            .toList();
-        europaRounds.add(roundMatches);
-      }
-
-      // Reconstruct Conference rounds from map
-      final conferenceRaw = data['conference'];
-      final conferenceData =
-          conferenceRaw is Map<String, dynamic> ? conferenceRaw : null;
-      final conferenceRoundsMap =
-          conferenceData?['rounds'] as Map<String, dynamic>?;
-      final conferenceNumberOfRounds =
-          conferenceData?['numberOfRounds'] as int? ?? 0;
-      final conferenceRounds = <List<Match>>[];
-      for (int i = 0; i < conferenceNumberOfRounds; i++) {
-        final roundMatches = (conferenceRoundsMap!['round$i'] as List)
-            .map((m) => Match.fromJson(m as Map<String, dynamic>))
-            .toList();
-        conferenceRounds.add(roundMatches);
-      }
-
-      // Reconstruct Super
       final superList = data['super'] as List?;
       final superMatches = superList
               ?.map((m) => Match.fromJson(m as Map<String, dynamic>))
@@ -199,9 +111,9 @@ mixin KnockoutsService on FirestoreBase {
           [];
 
       return Knockouts(
-        champions: Champions(rounds: championsRounds),
-        europa: Europa(rounds: europaRounds),
-        conference: Conference(rounds: conferenceRounds),
+        champions: champions,
+        europa: _parseBracket(data['europa']),
+        conference: _parseBracket(data['conference']),
         superCup: Super(matches: superMatches),
       );
     });
@@ -218,66 +130,8 @@ mixin KnockoutsService on FirestoreBase {
     final knockouts = await loadKnockouts(tournamentId: tournamentId);
     if (knockouts == null) return;
 
-    // Determine which league based on matchId prefix
-    bool matchFound = false;
-
-    if (matchId.startsWith('c')) {
-      // Champions league
-      for (final round in knockouts.champions.rounds) {
-        for (final match in round) {
-          if (match.id == matchId) {
-            match.score1 = score1;
-            match.score2 = score2;
-            match.done = done;
-            matchFound = true;
-            break;
-          }
-        }
-        if (matchFound) break;
-      }
-    } else if (matchId.startsWith('e')) {
-      // Europa league
-      for (final round in knockouts.europa.rounds) {
-        for (final match in round) {
-          if (match.id == matchId) {
-            match.score1 = score1;
-            match.score2 = score2;
-            match.done = done;
-            matchFound = true;
-            break;
-          }
-        }
-        if (matchFound) break;
-      }
-    } else if (matchId.startsWith('f')) {
-      // Conference league
-      for (final round in knockouts.conference.rounds) {
-        for (final match in round) {
-          if (match.id == matchId) {
-            match.score1 = score1;
-            match.score2 = score2;
-            match.done = done;
-            matchFound = true;
-            break;
-          }
-        }
-        if (matchFound) break;
-      }
-    } else if (matchId.startsWith('s')) {
-      // Super cup
-      for (final match in knockouts.superCup.matches) {
-        if (match.id == matchId) {
-          match.score1 = score1;
-          match.score2 = score2;
-          match.done = done;
-          matchFound = true;
-          break;
-        }
-      }
-    }
-
-    if (matchFound) {
-      // Update knockout state and save
+    final updated = knockouts.updateMatchScore(matchId, score1, score2);
+    if (updated) {
       knockouts.update();
       await saveKnockouts(knockouts, tournamentId: tournamentId);
     }

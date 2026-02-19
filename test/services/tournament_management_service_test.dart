@@ -16,8 +16,8 @@ List<Team> buildTeams(int count) => List.generate(
       (i) => Team(
         id: 'team_$i',
         name: 'Team $i',
-        mem1: 'Player ${i}A',
-        mem2: 'Player ${i}B',
+        member1: 'Player ${i}A',
+        member2: 'Player ${i}B',
       ),
     );
 
@@ -152,7 +152,7 @@ void main() {
 
       for (final group in gp!.groups) {
         for (final match in group) {
-          expect(match.tischNr, inInclusiveRange(1, 3));
+          expect(match.tableNumber, inInclusiveRange(1, 3));
         }
       }
     });
@@ -654,7 +654,7 @@ void main() {
       // The winning team should have 3 points
       final winnerRow = tabellen!.tables[0]
           .firstWhere((row) => row.teamId == gp.groups[0][0].teamId1);
-      expect(winnerRow.punkte, 3);
+      expect(winnerRow.points, 3);
     });
   });
 

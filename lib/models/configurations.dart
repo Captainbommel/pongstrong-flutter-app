@@ -1,5 +1,6 @@
 import 'package:pongstrong/utils/app_logger.dart';
 
+/// Static tournament configuration helpers for match pairings and table layouts.
 class Configurations {
   /// Generates round-robin match pairings for any team count bigger than 1.
   static List<List<int>> generateMatchPairings(int teamCount) {
