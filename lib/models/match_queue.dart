@@ -12,24 +12,29 @@ class MatchQueue {
   })  : waiting = waiting ?? [],
         playing = playing ?? [];
 
-  // switchPlaying moves the match at index from Waiting to Playing
+  // switchPlaying moves the match from Waiting to Playing
   bool switchPlaying(String matchId) {
     Match? match;
     int groupIndex = -1;
+    int matchIndex = -1;
 
-    // find the match by ID in waiting lists
+    // find the match by ID anywhere in waiting lists
     for (int i = 0; i < waiting.length; i++) {
-      if (waiting[i].isNotEmpty && waiting[i][0].id == matchId) {
-        match = waiting[i][0];
-        groupIndex = i;
-        break;
+      for (int j = 0; j < waiting[i].length; j++) {
+        if (waiting[i][j].id == matchId) {
+          match = waiting[i][j];
+          groupIndex = i;
+          matchIndex = j;
+          break;
+        }
       }
+      if (match != null) break;
     }
 
     if (match == null) return false;
     if (!isFree(match.tischNr)) return false;
 
-    waiting[groupIndex].removeAt(0);
+    waiting[groupIndex].removeAt(matchIndex);
     playing.add(match);
     return true;
   }
@@ -46,7 +51,9 @@ class MatchQueue {
     return false;
   }
 
-  // nextMatches returns all Matches with unoccupied table that are next in line
+  // nextMatches returns all Matches with unoccupied table that are next in line.
+  // When there are more tables than groups, this looks deeper into each
+  // group's queue so that extra tables are utilised immediately.
   List<Match> nextMatches() {
     final matches = <Match>[];
     final tables = <int>{};
@@ -55,24 +62,47 @@ class MatchQueue {
     final rankedIndices = List.generate(waiting.length, (i) => i)
       ..sort((a, b) => waiting[b].length.compareTo(waiting[a].length));
 
-    for (final i in rankedIndices) {
-      if (waiting[i].isNotEmpty &&
-          isFree(waiting[i][0].tischNr) &&
-          !tables.contains(waiting[i][0].tischNr)) {
-        tables.add(waiting[i][0].tischNr);
-        matches.add(waiting[i][0]);
+    // Round-robin across groups: each pass picks at most one match per group
+    // on a free, unclaimed table. Repeat until no new match is found.
+    final positions = List.filled(waiting.length, 0);
+    bool added = true;
+    while (added) {
+      added = false;
+      for (final i in rankedIndices) {
+        while (positions[i] < waiting[i].length) {
+          final match = waiting[i][positions[i]];
+          positions[i]++;
+          if (isFree(match.tischNr) && !tables.contains(match.tischNr)) {
+            tables.add(match.tischNr);
+            matches.add(match);
+            added = true;
+            break; // one match per group per pass
+          }
+        }
       }
     }
 
     return matches;
   }
 
-  // nextNextMatches returns all Matches with occupied table that are next in line
+  // nextNextMatches returns the first blocked match per group (table occupied
+  // or claimed by a ready match) that is not already returned by nextMatches.
   List<Match> nextNextMatches() {
+    final readyIds = nextMatches().map((m) => m.id).toSet();
     final matches = <Match>[];
-    for (int i = 0; i < waiting.length; i++) {
-      if (waiting[i].isNotEmpty && !isFree(waiting[i][0].tischNr)) {
-        matches.add(waiting[i][0]);
+    final tables = <int>{};
+
+    // Create a list of indices sorted by the length of their waiting lists (descending)
+    final rankedIndices = List.generate(waiting.length, (i) => i)
+      ..sort((a, b) => waiting[b].length.compareTo(waiting[a].length));
+
+    for (final i in rankedIndices) {
+      for (var match in waiting[i]) {
+        if (!readyIds.contains(match.id) && !tables.contains(match.tischNr)) {
+          matches.add(match);
+          tables.add(match.tischNr);
+          break;
+        }
       }
     }
     return matches;

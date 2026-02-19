@@ -74,6 +74,45 @@ void main() {
 
       expect(result, false);
     });
+
+    test('can move match from deeper in a waiting list (not just first)', () {
+      // Group has 3 matches: table 1 (occupied), table 2, table 3
+      final queue = MatchQueue(
+        waiting: [
+          [
+            Match(id: 'g11', tischNr: 1),
+            Match(id: 'g12', tischNr: 2),
+            Match(id: 'g13', tischNr: 3),
+          ],
+        ],
+        playing: [Match(id: 'playing', tischNr: 1)],
+      );
+
+      // g12 is at index 1, but its table (2) is free
+      final result = queue.switchPlaying('g12');
+
+      expect(result, true);
+      expect(queue.waiting[0].length, 2);
+      expect(queue.playing.length, 2);
+      expect(queue.playing[1].id, 'g12');
+    });
+
+    test('does not move deeper match when its table is occupied', () {
+      final queue = MatchQueue(
+        waiting: [
+          [
+            Match(id: 'g11', tischNr: 1),
+            Match(id: 'g12', tischNr: 1),
+          ],
+        ],
+        playing: [Match(id: 'playing', tischNr: 1)],
+      );
+
+      final result = queue.switchPlaying('g12');
+
+      expect(result, false);
+      expect(queue.waiting[0].length, 2);
+    });
   });
 
   group('removeFromPlaying', () {
@@ -150,6 +189,97 @@ void main() {
 
       expect(next, isEmpty);
     });
+
+    test('fills extra tables from deeper in group queues', () {
+      // 2 groups, but matches on 4 different tables → all 4 should be ready
+      final queue = MatchQueue(
+        waiting: [
+          [
+            Match(id: 'g11', tischNr: 1),
+            Match(id: 'g12', tischNr: 3),
+          ],
+          [
+            Match(id: 'g21', tischNr: 2),
+            Match(id: 'g22', tischNr: 4),
+          ],
+        ],
+        playing: [],
+      );
+
+      final next = queue.nextMatches();
+
+      expect(next.length, 4);
+      final ids = next.map((m) => m.id).toSet();
+      expect(ids, containsAll(['g11', 'g12', 'g21', 'g22']));
+    });
+
+    test('round-robins fairly across groups', () {
+      // 2 groups each with 3 matches on different tables
+      final queue = MatchQueue(
+        waiting: [
+          [
+            Match(id: 'g11', tischNr: 1),
+            Match(id: 'g12', tischNr: 3),
+            Match(id: 'g13', tischNr: 5),
+          ],
+          [
+            Match(id: 'g21', tischNr: 2),
+            Match(id: 'g22', tischNr: 4),
+            Match(id: 'g23', tischNr: 6),
+          ],
+        ],
+        playing: [],
+      );
+
+      final next = queue.nextMatches();
+
+      // All 6 tables free → all 6 matches ready
+      expect(next.length, 6);
+    });
+
+    test('skips matches on already-claimed tables', () {
+      // Both groups compete for table 1, second match in group has unique table
+      final queue = MatchQueue(
+        waiting: [
+          [
+            Match(id: 'g11', tischNr: 1),
+            Match(id: 'g12', tischNr: 3),
+          ],
+          [
+            Match(id: 'g21', tischNr: 1),
+            Match(id: 'g22', tischNr: 4),
+          ],
+        ],
+        playing: [],
+      );
+
+      final next = queue.nextMatches();
+
+      // Table 1 can only be given to one match; the other group's second
+      // match on table 4 should still show up
+      expect(next.length, 3);
+      final tables = next.map((m) => m.tischNr).toSet();
+      expect(tables, containsAll([1, 3, 4]));
+    });
+
+    test('does not return matches on occupied tables even if deeper', () {
+      final queue = MatchQueue(
+        waiting: [
+          [
+            Match(id: 'g11', tischNr: 1),
+            Match(id: 'g12', tischNr: 1), // same table, still occupied
+            Match(id: 'g13', tischNr: 3),
+          ],
+        ],
+        playing: [Match(id: 'playing', tischNr: 1)],
+      );
+
+      final next = queue.nextMatches();
+
+      // Only g13 on table 3 is available
+      expect(next.length, 1);
+      expect(next[0].id, 'g13');
+    });
   });
 
   group('nextNextMatches', () {
@@ -166,6 +296,52 @@ void main() {
 
       expect(nextNext.length, 1);
       expect(nextNext[0].id, 'g11');
+    });
+
+    test('excludes matches already returned by nextMatches', () {
+      // 2 groups, deeper matches fill extra tables
+      final queue = MatchQueue(
+        waiting: [
+          [
+            Match(id: 'g11', tischNr: 1),
+            Match(id: 'g12', tischNr: 3),
+          ],
+          [
+            Match(id: 'g21', tischNr: 2),
+            Match(id: 'g22', tischNr: 4),
+          ],
+        ],
+        playing: [],
+      );
+
+      final nextNext = queue.nextNextMatches();
+
+      // All 4 matches are ready via nextMatches, so nextNext should be empty
+      expect(nextNext, isEmpty);
+    });
+
+    test('returns first blocked match per group', () {
+      // Group 0: all on table 1 (only first is ready, rest blocked)
+      // Group 1: on table 2 (ready)
+      final queue = MatchQueue(
+        waiting: [
+          [
+            Match(id: 'g11', tischNr: 1),
+            Match(id: 'g12', tischNr: 1),
+            Match(id: 'g13', tischNr: 1),
+          ],
+          [
+            Match(id: 'g21', tischNr: 2),
+          ],
+        ],
+        playing: [],
+      );
+
+      final nextNext = queue.nextNextMatches();
+
+      // g11 and g21 are ready. g12 is first blocked in group 0.
+      expect(nextNext.length, 1);
+      expect(nextNext[0].id, 'g12');
     });
   });
 
