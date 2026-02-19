@@ -1,4 +1,4 @@
-import 'match.dart';
+import 'package:pongstrong/models/match.dart';
 
 class Champions {
   List<List<Match>> rounds;
@@ -125,8 +125,8 @@ class Knockouts {
   bool updateMatchScore(String matchId, int score1, int score2) {
     // Helper function to search and update in rounds
     bool searchAndUpdate(List<List<Match>> rounds) {
-      for (var round in rounds) {
-        for (var match in round) {
+      for (final round in rounds) {
+        for (final match in round) {
           if (match.id == matchId) {
             match.score1 = score1;
             match.score2 = score2;
@@ -144,7 +144,7 @@ class Knockouts {
     if (searchAndUpdate(conference.rounds)) return true;
 
     // Search in super cup
-    for (var match in superCup.matches) {
+    for (final match in superCup.matches) {
       if (match.id == matchId) {
         match.score1 = score1;
         match.score2 = score2;
@@ -185,7 +185,7 @@ class Knockouts {
           roundIndex++) {
         // In knockout, each match in round N feeds into match at index N/2 in next round
         // We need to clear matches that could be affected by this chain
-        for (var match in rounds[roundIndex]) {
+        for (final match in rounds[roundIndex]) {
           if (match.teamId1.isNotEmpty ||
               match.teamId2.isNotEmpty ||
               match.done) {
@@ -380,7 +380,7 @@ class Knockouts {
     if (conference.rounds.isNotEmpty && conference.rounds.last.isNotEmpty) {
       leagueFinals.add(conference.rounds.last[0]);
     }
-    for (var leagueFinal in leagueFinals) {
+    for (final leagueFinal in leagueFinals) {
       if (leagueFinal.done) {
         final winnerId = leagueFinal.getWinnerId();
         if (winnerId != null && winnerId.isNotEmpty) {
@@ -420,10 +420,10 @@ class Knockouts {
   Knockouts clone() => Knockouts.fromJson(toJson());
 
   factory Knockouts.fromJson(Map<String, dynamic> json) => Knockouts(
-        champions: Champions.fromJson(json['champions'] ?? []),
-        europa: Europa.fromJson(json['europa'] ?? []),
-        conference: Conference.fromJson(json['conference'] ?? []),
-        superCup: Super.fromJson(json['super'] ?? []),
+        champions: Champions.fromJson((json['champions'] as List?) ?? []),
+        europa: Europa.fromJson((json['europa'] as List?) ?? []),
+        conference: Conference.fromJson((json['conference'] as List?) ?? []),
+        superCup: Super.fromJson((json['super'] as List?) ?? []),
       );
 }
 

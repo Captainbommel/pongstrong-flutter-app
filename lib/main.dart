@@ -1,15 +1,15 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pongstrong/app.dart';
-import 'package:pongstrong/state/app_state.dart';
 import 'package:pongstrong/services/auth_service.dart';
+import 'package:pongstrong/state/app_state.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
-import 'package:pongstrong/views/landing/landing_page.dart';
 import 'package:pongstrong/utils/app_logger.dart';
+import 'package:pongstrong/views/landing/landing_page.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {

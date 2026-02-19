@@ -19,7 +19,7 @@ class TableColors {
   static const gold = Color.fromARGB(255, 208, 157, 28);
   static const turquoise = Color.fromARGB(255, 32, 218, 209);
 
-  static get(int i) =>
+  static Color forIndex(int i) =>
       <Color>[blue, green, purple, orange, gold, turquoise][i % 6];
 }
 

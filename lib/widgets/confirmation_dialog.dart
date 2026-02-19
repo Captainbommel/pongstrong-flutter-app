@@ -36,8 +36,7 @@ Future<bool?> showConfirmationDialog(
           onPressed: () => Navigator.of(context).pop(false),
           child: Text(cancelText, style: TextStyle(color: confirmColor)),
         ),
-        confirmIcon != null
-            ? ElevatedButton.icon(
+        if (confirmIcon != null) ElevatedButton.icon(
                 onPressed: () => Navigator.of(context).pop(true),
                 icon: Icon(confirmIcon),
                 label: Text(confirmText),
@@ -45,8 +44,7 @@ Future<bool?> showConfirmationDialog(
                   backgroundColor: confirmColor,
                   foregroundColor: Colors.white,
                 ),
-              )
-            : ElevatedButton(
+              ) else ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: confirmColor,
@@ -75,7 +73,6 @@ class InfoBanner extends StatelessWidget {
   factory InfoBanner.warning(String text) => InfoBanner(
         text: text,
         color: Colors.amber,
-        icon: Icons.warning_amber,
       );
 
   factory InfoBanner.error(String text) => InfoBanner(

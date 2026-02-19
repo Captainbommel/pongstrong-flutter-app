@@ -1,20 +1,19 @@
 // Barrel export for landing page components
-export 'tournament_password_dialog.dart';
-export 'create_tournament_dialog.dart';
-export 'login_dialog.dart';
-
 import 'package:flutter/material.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/state/auth_state.dart';
-import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
+import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/views/landing/create_tournament_dialog.dart';
+import 'package:pongstrong/views/landing/impressum_dialog.dart';
+import 'package:pongstrong/views/landing/login_dialog.dart';
+import 'package:pongstrong/views/landing/tournament_password_dialog.dart';
 import 'package:provider/provider.dart';
 
-import 'impressum_dialog.dart';
-import 'tournament_password_dialog.dart';
-import 'create_tournament_dialog.dart';
-import 'login_dialog.dart';
+export 'create_tournament_dialog.dart';
+export 'login_dialog.dart';
+export 'tournament_password_dialog.dart';
 
 /// Landing page content that adapts to mobile and desktop layouts
 class LandingPage extends StatefulWidget {
@@ -183,7 +182,7 @@ class _LandingPageState extends State<LandingPage> {
         // Right side - Actions
         Expanded(
           flex: 4,
-          child: Container(
+          child: ColoredBox(
             color: Colors.white,
             child: Column(
               children: [
@@ -363,14 +362,14 @@ class _LandingPageState extends State<LandingPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  feature['icon'] as IconData,
+                  feature['icon']! as IconData,
                   color: GroupPhaseColors.cupred,
                   size: 24,
                 ),
               ),
               const SizedBox(width: 16),
               Text(
-                feature['text'] as String,
+                feature['text']! as String,
                 style: const TextStyle(
                   fontSize: 16,
                   color: Colors.black87,
@@ -649,9 +648,7 @@ class _LandingPageState extends State<LandingPage> {
       builder: (context, authState, _) {
         return FutureBuilder<List<bool>>(
           future: Future.wait([
-            authState.isEmailUser && authState.userId != null
-                ? _firestoreService.isCreator(tournamentId, authState.userId!)
-                : Future.value(false),
+            if (authState.isEmailUser && authState.userId != null) _firestoreService.isCreator(tournamentId, authState.userId!) else Future.value(false),
             _firestoreService.tournamentHasPassword(tournamentId),
           ]),
           builder: (context, snapshot) {

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/models/gruppenphase.dart';
 import 'package:pongstrong/models/groups.dart';
+import 'package:pongstrong/models/gruppenphase.dart';
 import 'package:pongstrong/models/match.dart';
 
 void main() {
@@ -93,8 +93,8 @@ void main() {
       expect(gruppenphase.groups[1][0].tischNr, 2);
 
       // Check that all matches have valid table numbers
-      for (var group in gruppenphase.groups) {
-        for (var match in group) {
+      for (final group in gruppenphase.groups) {
+        for (final match in group) {
           expect(match.tischNr, greaterThan(0));
           expect(match.tischNr, lessThanOrEqualTo(6));
         }
@@ -112,7 +112,7 @@ void main() {
 
       final gruppenphase = Gruppenphase.create(groups);
 
-      for (var match in gruppenphase.groups[0]) {
+      for (final match in gruppenphase.groups[0]) {
         expect(match.done, false);
         expect(match.score1, 0);
         expect(match.score2, 0);
@@ -125,15 +125,16 @@ void main() {
       final gruppenphase = Gruppenphase(groups: [
         [
           Match(id: 'g11', teamId1: 't1', teamId2: 't2', score1: 10, score2: 5),
-          Match(id: 'g12', teamId1: 't3', teamId2: 't4', score1: 0, score2: 0),
+          Match(id: 'g12', teamId1: 't3', teamId2: 't4'),
         ],
       ]);
 
       final json = gruppenphase.toJson();
+      final matches = json[0]['matches'] as List;
       expect(json.length, 1);
-      expect(json[0]['matches'].length, 2);
-      expect(json[0]['matches'][0]['id'], 'g11');
-      expect(json[0]['matches'][1]['id'], 'g12');
+      expect(matches.length, 2);
+      expect((matches[0] as Map<String, dynamic>)['id'], 'g11');
+      expect((matches[1] as Map<String, dynamic>)['id'], 'g12');
     });
 
     test('fromJson creates Gruppenphase from JSON correctly', () {

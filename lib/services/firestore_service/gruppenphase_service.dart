@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pongstrong/models/models.dart';
-import 'firestore_base.dart';
+import 'package:pongstrong/services/firestore_service/firestore_base.dart';
 
 /// Service for managing group phase data in Firestore
 mixin GruppenphaseService on FirestoreBase {
@@ -33,7 +33,7 @@ mixin GruppenphaseService on FirestoreBase {
     final doc = await getDoc(tournamentId, 'gruppenphase').get();
     if (!doc.exists) return null;
 
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data()! as Map<String, dynamic>;
 
     // Check if this is a placeholder document (setup phase)
     if (data['initialized'] == true &&
@@ -64,7 +64,7 @@ mixin GruppenphaseService on FirestoreBase {
   }) {
     return getDoc(tournamentId, 'gruppenphase').snapshots().map((doc) {
       if (!doc.exists) return null;
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()! as Map<String, dynamic>;
 
       // Check if this is a placeholder document (setup phase)
       if (data['initialized'] == true &&
@@ -102,8 +102,8 @@ mixin GruppenphaseService on FirestoreBase {
     if (gruppenphase == null) return;
 
     // Find and update the match
-    for (var group in gruppenphase.groups) {
-      for (var match in group) {
+    for (final group in gruppenphase.groups) {
+      for (final match in group) {
         if (match.id == matchId) {
           match.score1 = score1;
           match.score2 = score2;

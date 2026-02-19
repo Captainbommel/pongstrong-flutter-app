@@ -1,13 +1,14 @@
 import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
 import 'package:pongstrong/utils/app_logger.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
+import 'package:provider/provider.dart';
 
 class ImportService {
   /// Parse teams from JSON data
@@ -55,12 +56,13 @@ class ImportService {
       // Handle the alternative format with separate teams and groups
       final teamsList = jsonData['teams'] as List;
 
-      for (var teamJson in teamsList) {
+      for (final teamJson in teamsList) {
+        final teamMap = teamJson as Map<String, dynamic>;
         final team = Team(
-          id: teamJson['id'] as String,
-          name: teamJson['name'] as String,
-          mem1: teamJson['mem1'] as String? ?? '',
-          mem2: teamJson['mem2'] as String? ?? '',
+          id: teamMap['id'] as String,
+          name: teamMap['name'] as String,
+          mem1: teamMap['mem1'] as String? ?? '',
+          mem2: teamMap['mem2'] as String? ?? '',
         );
         allTeams.add(team);
       }
@@ -90,8 +92,8 @@ class ImportService {
       if (jsonData.isNotEmpty && jsonData[0] is List) {
         // Flatten group format
         int idx = 0;
-        for (var group in jsonData) {
-          for (var teamJson in (group as List)) {
+        for (final group in jsonData) {
+          for (final teamJson in (group as List)) {
             final map = teamJson as Map<String, dynamic>;
             allTeams.add(Team(
               id: 'team_$idx',
@@ -152,7 +154,7 @@ class ImportService {
 
     try {
       // Pick JSON file
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
         dialogTitle: 'Select Teams JSON File',

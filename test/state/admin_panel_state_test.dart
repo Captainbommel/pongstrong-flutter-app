@@ -330,7 +330,7 @@ void main() {
       expect(state.getTeamGroupIndex(ids[2]), 1);
     });
 
-    test('returns -1 for unassigned team', () async {
+    test('returns -1 for unassigned team', () {
       final state = makeState();
       expect(state.getTeamGroupIndex('ghost'), -1);
     });

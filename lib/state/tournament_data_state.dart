@@ -78,8 +78,8 @@ class TournamentDataState extends ChangeNotifier {
       }
 
       // Store tournament metadata
-      _tournamentStyle =
-          tournamentInfo['tournamentStyle'] ?? 'groupsAndKnockouts';
+      _tournamentStyle = (tournamentInfo['tournamentStyle'] as String?) ??
+          'groupsAndKnockouts';
       // Only default to 'bmt-cup' if the field doesn't exist (backwards compatibility)
       // If it exists and is null, keep it as null (user explicitly disabled rules)
       if (tournamentInfo.containsKey('selectedRuleset')) {
@@ -259,7 +259,7 @@ class TournamentDataState extends ChangeNotifier {
 
   /// Rebuild team cache for O(1) lookups
   void _rebuildTeamCache() {
-    _teamCache = {for (var team in _teams) team.id: team};
+    _teamCache = {for (final team in _teams) team.id: team};
     Logger.debug('Rebuilt team cache with ${_teamCache.length} teams',
         tag: 'TournamentData');
   }
@@ -267,8 +267,8 @@ class TournamentDataState extends ChangeNotifier {
   /// Compute hash of gruppenphase state to detect actual changes
   String _computeGruppenphaseHash(Gruppenphase phase) {
     final buffer = StringBuffer();
-    for (var group in phase.groups) {
-      for (var match in group) {
+    for (final group in phase.groups) {
+      for (final match in group) {
         if (match.done) {
           buffer.write('${match.id}:${match.score1}:${match.score2}|');
         }
@@ -429,7 +429,7 @@ class TournamentDataState extends ChangeNotifier {
     int groupIndex = -1;
     Match? groupPhaseMatch;
     for (int i = 0; i < groupPhase.groups.length; i++) {
-      for (var m in groupPhase.groups[i]) {
+      for (final m in groupPhase.groups[i]) {
         if (m.id == matchId) {
           groupIndex = i;
           groupPhaseMatch = m;
@@ -507,8 +507,8 @@ class TournamentDataState extends ChangeNotifier {
 
     // Helper function to find and update match in knockout structure
     bool findAndUpdateMatch(List<List<Match>> rounds) {
-      for (var round in rounds) {
-        for (var m in round) {
+      for (final round in rounds) {
+        for (final m in round) {
           if (m.id == matchId) {
             m.score1 = match.score1;
             m.score2 = match.score2;
@@ -527,7 +527,7 @@ class TournamentDataState extends ChangeNotifier {
 
     // Search in super cup if not found in other tournaments
     if (!found) {
-      for (var m in _knockouts.superCup.matches) {
+      for (final m in _knockouts.superCup.matches) {
         if (m.id == matchId) {
           m.score1 = match.score1;
           m.score2 = match.score2;
@@ -679,7 +679,7 @@ class TournamentDataState extends ChangeNotifier {
     int newScore2,
     int groupIndex, {
     required bool isKnockout,
-  }) async {
+  }) {
     Logger.info(
       'Editing match $matchId: $newScore1-$newScore2 (knockout: $isKnockout)',
       tag: 'TournamentData',
@@ -715,7 +715,7 @@ class TournamentDataState extends ChangeNotifier {
       // Find and update the match
       Match? targetMatch;
       for (int i = 0; i < groupPhase.groups.length; i++) {
-        for (var match in groupPhase.groups[i]) {
+        for (final match in groupPhase.groups[i]) {
           if (match.id == matchId) {
             match.score1 = newScore1;
             match.score2 = newScore2;

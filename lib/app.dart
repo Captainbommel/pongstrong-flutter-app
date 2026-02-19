@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/state/app_state.dart';
-import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/state/auth_state.dart';
-import 'package:pongstrong/state/tournament_selection_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
+import 'package:pongstrong/state/tournament_selection_state.dart';
+import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/views/admin/admin_panel_page.dart';
+import 'package:pongstrong/views/mobile_drawer.dart';
 import 'package:pongstrong/views/playing_field_view.dart';
 import 'package:pongstrong/views/rules_view.dart';
 import 'package:pongstrong/views/teams_view.dart';
 import 'package:pongstrong/views/tree_view.dart';
-import 'package:pongstrong/views/mobile_drawer.dart';
 import 'package:pongstrong/widgets/confirmation_dialog.dart';
 import 'package:provider/provider.dart';
 

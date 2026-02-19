@@ -567,8 +567,8 @@ void main() {
       final queue = buildMatchQueue(gp);
 
       // Complete all group matches
-      for (var group in gp.groups) {
-        for (var match in group) {
+      for (final group in gp.groups) {
+        for (final match in group) {
           match.done = true;
           match.score1 = 10;
           match.score2 = 5;
@@ -638,8 +638,8 @@ void main() {
       final gp = buildGruppenphase(groups);
       final queue = buildMatchQueue(gp);
 
-      for (var group in gp.groups) {
-        for (var match in group) {
+      for (final group in gp.groups) {
+        for (final match in group) {
           match.done = true;
           match.score1 = 10;
           match.score2 = 5;
@@ -1814,7 +1814,6 @@ void main() {
         gruppenphase: gp,
         matchQueue: queue,
         includeSelectedRuleset: true,
-        selectedRuleset: null,
       );
 
       final state = makeState(mockService);

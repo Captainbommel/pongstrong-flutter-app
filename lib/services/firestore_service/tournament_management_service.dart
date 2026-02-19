@@ -1,14 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pongstrong/models/models.dart';
+import 'package:pongstrong/services/firestore_service/firestore_base.dart';
+import 'package:pongstrong/services/firestore_service/groups_service.dart';
+import 'package:pongstrong/services/firestore_service/gruppenphase_service.dart';
+import 'package:pongstrong/services/firestore_service/knockouts_service.dart';
+import 'package:pongstrong/services/firestore_service/match_queue_service.dart';
+import 'package:pongstrong/services/firestore_service/tabellen_service.dart';
+import 'package:pongstrong/services/firestore_service/teams_service.dart';
 import 'package:pongstrong/utils/app_logger.dart';
 import 'package:pongstrong/utils/password_hash.dart';
-import 'firestore_base.dart';
-import 'teams_service.dart';
-import 'groups_service.dart';
-import 'gruppenphase_service.dart';
-import 'tabellen_service.dart';
-import 'knockouts_service.dart';
-import 'match_queue_service.dart';
 
 /// Service for tournament initialization, management, and authentication
 mixin TournamentManagementService
@@ -215,7 +215,7 @@ mixin TournamentManagementService
       waiting: List.generate(tableCount, (_) => <Match>[]),
       playing: [],
     );
-    for (var match in firstRound) {
+    for (final match in firstRound) {
       queue.waiting[match.tischNr - 1].add(match);
     }
     await saveMatchQueue(queue, tournamentId: tournamentId);
@@ -309,7 +309,7 @@ mixin TournamentManagementService
       waiting: List.generate(tableCount, (_) => <Match>[]),
       playing: [],
     );
-    for (var match in matches) {
+    for (final match in matches) {
       queue.waiting[match.tischNr - 1].add(match);
     }
     await saveMatchQueue(queue, tournamentId: tournamentId);
@@ -350,9 +350,10 @@ mixin TournamentManagementService
 
   /// Helper: integer log2
   int _log2(int n) {
+    var value = n;
     int result = 0;
-    while (n > 1) {
-      n ~/= 2;
+    while (value > 1) {
+      value ~/= 2;
       result++;
     }
     return result;
@@ -405,8 +406,8 @@ mixin TournamentManagementService
 
     // Derive table count from existing matches
     int maxTable = 6;
-    for (var group in gruppenphase.groups) {
-      for (var match in group) {
+    for (final group in gruppenphase.groups) {
+      for (final match in group) {
         if (match.tischNr > maxTable) maxTable = match.tischNr;
       }
     }
@@ -416,8 +417,8 @@ mixin TournamentManagementService
       waiting: List.generate(maxTable, (_) => <Match>[]),
       playing: [],
     );
-    for (var group in gruppenphase.groups) {
-      for (var match in group) {
+    for (final group in gruppenphase.groups) {
+      for (final match in group) {
         if (!match.done) {
           queue.waiting[match.tischNr - 1].add(match);
         }
@@ -464,7 +465,7 @@ mixin TournamentManagementService
         .doc(tournamentId)
         .get();
     if (!doc.exists) return null;
-    return doc.data() as Map<String, dynamic>;
+    return doc.data()!;
   }
 
   /// Stream of tournament metadata
@@ -477,7 +478,7 @@ mixin TournamentManagementService
         .snapshots()
         .map((doc) {
       if (!doc.exists) return null;
-      return doc.data() as Map<String, dynamic>;
+      return doc.data();
     });
   }
 
@@ -658,7 +659,7 @@ mixin TournamentManagementService
           .get();
       if (!doc.exists) return false;
 
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()!;
       final storedHash = data['password'] as String?;
       if (storedHash == null) return false;
 
@@ -677,7 +678,7 @@ mixin TournamentManagementService
           .get();
       if (!doc.exists) return false;
 
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()!;
       return data['creatorId'] == userId;
     } catch (e) {
       return false;
@@ -693,7 +694,7 @@ mixin TournamentManagementService
           .get();
       if (!doc.exists) return null;
 
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()!;
       // Don't return the password - return available fields
       // Note: Return null for selectedRuleset if not set, don't default here
       final result = {
@@ -724,7 +725,7 @@ mixin TournamentManagementService
           .get();
       if (!doc.exists) return false;
 
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()!;
       return data.containsKey('password') &&
           data['password'] != null &&
           data['password'].toString().isNotEmpty;
@@ -763,7 +764,7 @@ mixin TournamentManagementService
           .get();
       if (!doc.exists) return false;
 
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()!;
 
       // Creator is always considered a participant
       if (data['creatorId'] == userId) return true;

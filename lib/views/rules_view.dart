@@ -15,7 +15,7 @@ class RulesView extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
-    return Container(
+    return ColoredBox(
       color: FieldColors.skyblue,
       child: Center(
         child: SingleChildScrollView(

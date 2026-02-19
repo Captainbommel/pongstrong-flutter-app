@@ -1,7 +1,6 @@
 import 'package:pongstrong/models/configurations.dart';
-
-import 'match.dart';
-import 'groups.dart';
+import 'package:pongstrong/models/groups.dart';
+import 'package:pongstrong/models/match.dart';
 
 class Gruppenphase {
   List<List<Match>> groups;
@@ -47,7 +46,7 @@ class Gruppenphase {
 
   static Gruppenphase fromJson(List<dynamic> json) => Gruppenphase(
         groups: json
-            .map((group) => (group['matches'] as List)
+            .map((group) => ((group as Map<String, dynamic>)['matches'] as List)
                 .map((m) => Match.fromJson(m as Map<String, dynamic>))
                 .toList())
             .toList(),

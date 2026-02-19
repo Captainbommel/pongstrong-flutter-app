@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pongstrong/models/models.dart';
-import 'firestore_base.dart';
+import 'package:pongstrong/services/firestore_service/firestore_base.dart';
 
 /// Service for managing team data in Firestore
 mixin TeamsService on FirestoreBase {
@@ -25,7 +25,7 @@ mixin TeamsService on FirestoreBase {
     final doc = await getDoc(tournamentId, 'teams').get();
     if (!doc.exists) return null;
 
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data()! as Map<String, dynamic>;
     final teamsData = data['teams'];
     if (teamsData == null || teamsData is! List) return [];
 
@@ -40,7 +40,7 @@ mixin TeamsService on FirestoreBase {
   }) {
     return getDoc(tournamentId, 'teams').snapshots().map((doc) {
       if (!doc.exists) return null;
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()! as Map<String, dynamic>;
       final teamsList = (data['teams'] as List)
           .map((t) => Team.fromJson(t as Map<String, dynamic>))
           .toList();

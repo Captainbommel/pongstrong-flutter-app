@@ -98,7 +98,7 @@ void main() {
       final table = [
         TableRow(teamId: 't1', punkte: 3),
         TableRow(teamId: 't2', punkte: 6),
-        TableRow(teamId: 't3', punkte: 0),
+        TableRow(teamId: 't3'),
       ];
 
       Tabellen.sortTable(table);
@@ -141,7 +141,7 @@ void main() {
         TableRow(teamId: 't1', punkte: 3, differenz: 2, becher: 15),
         TableRow(teamId: 't2', punkte: 6, differenz: -1, becher: 10),
         TableRow(teamId: 't3', punkte: 3, differenz: 5, becher: 20),
-        TableRow(teamId: 't4', punkte: 0, differenz: 10, becher: 25),
+        TableRow(teamId: 't4', differenz: 10, becher: 25),
       ];
 
       Tabellen.sortTable(table);
@@ -174,7 +174,7 @@ void main() {
           TableRow(teamId: 't2', punkte: 6),
         ],
         [
-          TableRow(teamId: 't3', punkte: 0),
+          TableRow(teamId: 't3'),
           TableRow(teamId: 't4', punkte: 3),
         ],
       ]);
@@ -241,7 +241,7 @@ void main() {
       final original = Tabellen(tables: [
         [
           TableRow(teamId: 't1', punkte: 6, differenz: 2, becher: 15),
-          TableRow(teamId: 't2', punkte: 3, differenz: 0, becher: 10),
+          TableRow(teamId: 't2', punkte: 3, becher: 10),
         ],
       ]);
 

@@ -21,12 +21,11 @@ class FieldView extends StatelessWidget {
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15.0),
-        side: const BorderSide(color: Colors.black, width: 4),
+        side: const BorderSide(width: 4),
       ),
       color: color1,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pongstrong/models/evaluation.dart';
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/gruppenphase.dart';
 import 'package:pongstrong/models/groups.dart';
+import 'package:pongstrong/models/gruppenphase.dart';
+import 'package:pongstrong/models/match.dart';
 
 void main() {
   group('isValid', () {
@@ -283,9 +283,6 @@ void main() {
         Match(
           teamId1: 'team1',
           teamId2: 'team3',
-          score1: 0,
-          score2: 0,
-          done: false,
         ),
       ];
 
@@ -322,7 +319,7 @@ void main() {
       expect(tabellen.tables[1].length, 4);
 
       // Check that tables are sorted (highest points first)
-      for (var table in tabellen.tables) {
+      for (final table in tabellen.tables) {
         for (int i = 0; i < table.length - 1; i++) {
           expect(table[i].punkte >= table[i + 1].punkte, true);
         }
@@ -344,7 +341,7 @@ void main() {
       expect(updatedTabellen.tables[1].length, 4);
 
       // Check that tables are still sorted correctly
-      for (var table in updatedTabellen.tables) {
+      for (final table in updatedTabellen.tables) {
         for (int i = 0; i < table.length - 1; i++) {
           expect(table[i].punkte >= table[i + 1].punkte, true);
         }
@@ -379,7 +376,7 @@ void main() {
       expect(knockouts.champions.rounds[0].length, 8);
 
       // All 8 first-round champions matches should have both teams assigned
-      for (var match in knockouts.champions.rounds[0]) {
+      for (final match in knockouts.champions.rounds[0]) {
         expect(match.teamId1, isNotEmpty,
             reason: 'Champions round 1 match ${match.id} teamId1 is empty');
         expect(match.teamId2, isNotEmpty,
@@ -387,13 +384,13 @@ void main() {
       }
 
       // Europa first round should have teams assigned
-      for (var match in knockouts.europa.rounds[0]) {
+      for (final match in knockouts.europa.rounds[0]) {
         expect(match.teamId1, isNotEmpty);
         expect(match.teamId2, isNotEmpty);
       }
 
       // Conference first round should have teams assigned
-      for (var match in knockouts.conference.rounds[0]) {
+      for (final match in knockouts.conference.rounds[0]) {
         expect(match.teamId1, isNotEmpty);
         expect(match.teamId2, isNotEmpty);
       }
@@ -429,7 +426,7 @@ void main() {
           knockouts.champions.rounds[0].map((m) => m.teamId2).toSet();
 
       // Team 1s should be group firsts (index 0 in each table)
-      for (var table in tabellen.tables) {
+      for (final table in tabellen.tables) {
         expect(
           allTeam1s.contains(table[0].teamId),
           isTrue,
@@ -439,7 +436,7 @@ void main() {
       }
 
       // Team 2s should be group seconds (index 1 in each table)
-      for (var table in tabellen.tables) {
+      for (final table in tabellen.tables) {
         expect(
           allTeam2s.contains(table[1].teamId),
           isTrue,
@@ -470,8 +467,8 @@ void main() {
       final knockouts = evaluateGroups8(tabellen);
 
       // All matches should have table numbers assigned
-      for (var round in knockouts.champions.rounds) {
-        for (var match in round) {
+      for (final round in knockouts.champions.rounds) {
+        for (final match in round) {
           expect(match.tischNr, greaterThan(0));
         }
       }
@@ -507,7 +504,7 @@ void main() {
       expect(knockouts.conference.rounds[1].length, 2);
 
       // Check that best thirds are placed
-      int filledSlots = knockouts.champions.rounds[0]
+      final int filledSlots = knockouts.champions.rounds[0]
           .where((m) => m.teamId1.isNotEmpty && m.teamId2.isNotEmpty)
           .length;
       expect(filledSlots, greaterThan(0));

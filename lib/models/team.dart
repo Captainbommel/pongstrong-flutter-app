@@ -1,4 +1,4 @@
-import 'groups.dart';
+import 'package:pongstrong/models/groups.dart';
 
 class Team {
   String id;
@@ -31,10 +31,10 @@ class Team {
       };
 
   factory Team.fromJson(Map<String, dynamic> json) => Team(
-        id: json['id'] ?? '',
-        name: json['name'] ?? '',
-        mem1: json['mem1'] ?? '',
-        mem2: json['mem2'] ?? '',
+        id: (json['id'] as String?) ?? '',
+        name: (json['name'] as String?) ?? '',
+        mem1: (json['mem1'] as String?) ?? '',
+        mem2: (json['mem2'] as String?) ?? '',
       );
 
   @override

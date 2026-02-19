@@ -7,21 +7,22 @@ class Configurations {
       throw ArgumentError('Team count must be at least 2.');
     }
 
-    List<List<int>> pairings = [];
-    List<int> teams = List.generate(teamCount, (i) => i);
+    final List<List<int>> pairings = [];
+    final List<int> teams = List.generate(teamCount, (i) => i);
+    var effectiveCount = teamCount;
     bool hasDummy = false;
-    if (teamCount % 2 != 0) {
+    if (effectiveCount % 2 != 0) {
       teams.add(-1); // Dummy
       hasDummy = true;
-      teamCount++;
+      effectiveCount++;
     }
 
-    int rounds = teamCount - 1;
-    int matchesPerRound = teamCount ~/ 2;
+    final int rounds = effectiveCount - 1;
+    final int matchesPerRound = effectiveCount ~/ 2;
     for (int round = 0; round < rounds; round++) {
       for (int i = 0; i < matchesPerRound; i++) {
-        int t1 = teams[i];
-        int t2 = teams[teamCount - 1 - i];
+        final int t1 = teams[i];
+        final int t2 = teams[effectiveCount - 1 - i];
         if (t1 == -1 || t2 == -1) {
           // Dummy round
           pairings.add([t1, t2]);
@@ -49,11 +50,11 @@ class Configurations {
   ) {
     // Evenly distribute teams into groups
     if (teamCount % groupCount != 0) return null;
-    int groupSize = teamCount ~/ groupCount;
+    final int groupSize = teamCount ~/ groupCount;
 
     // Calculate matches per group: n*(n-1)/2
-    int matchesPerGroup = groupSize * (groupSize - 1) ~/ 2;
-    List<List<int>> configuration = List.generate(
+    final int matchesPerGroup = groupSize * (groupSize - 1) ~/ 2;
+    final List<List<int>> configuration = List.generate(
       groupCount,
       (_) => List.filled(matchesPerGroup, 0),
     );
@@ -67,8 +68,7 @@ class Configurations {
 
     int tableId = 0;
     int periodicTableNumber() {
-      tableId = (tableId % tableCount) + 1;
-      return tableId;
+      return tableId = (tableId % tableCount) + 1;
     }
 
     for (int i = 0; i < groupCount; i++) {
@@ -77,6 +77,7 @@ class Configurations {
       }
       tableId = i % tableCount + 1;
     }
+
     return configuration;
   }
 }

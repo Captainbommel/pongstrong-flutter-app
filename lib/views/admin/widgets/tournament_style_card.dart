@@ -139,7 +139,7 @@ class TournamentStyleCard extends StatelessWidget {
                 numberOfTables > totalTeams ~/ 2)
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                    const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
                     const Icon(Icons.warning_amber,
@@ -200,7 +200,6 @@ class TournamentStyleCard extends StatelessWidget {
                     ),
                     items: const [
                       DropdownMenuItem(
-                        value: null,
                         child: Text('Keine Regeln anzeigen'),
                       ),
                       DropdownMenuItem(

@@ -1,24 +1,24 @@
 // Barrel export for FirestoreService
 // All service mixins are combined into one class
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pongstrong/services/firestore_service/firestore_base.dart';
+import 'package:pongstrong/services/firestore_service/groups_service.dart';
+import 'package:pongstrong/services/firestore_service/gruppenphase_service.dart';
+import 'package:pongstrong/services/firestore_service/knockouts_service.dart';
+import 'package:pongstrong/services/firestore_service/match_queue_service.dart';
+import 'package:pongstrong/services/firestore_service/tabellen_service.dart';
+import 'package:pongstrong/services/firestore_service/teams_service.dart';
+import 'package:pongstrong/services/firestore_service/tournament_management_service.dart';
+
 export 'firestore_base.dart';
-export 'teams_service.dart';
 export 'groups_service.dart';
 export 'gruppenphase_service.dart';
-export 'tabellen_service.dart';
 export 'knockouts_service.dart';
 export 'match_queue_service.dart';
+export 'tabellen_service.dart';
+export 'teams_service.dart';
 export 'tournament_management_service.dart';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'firestore_base.dart';
-import 'teams_service.dart';
-import 'groups_service.dart';
-import 'gruppenphase_service.dart';
-import 'tabellen_service.dart';
-import 'knockouts_service.dart';
-import 'match_queue_service.dart';
-import 'tournament_management_service.dart';
 
 /// Firestore service for managing tournament data
 ///

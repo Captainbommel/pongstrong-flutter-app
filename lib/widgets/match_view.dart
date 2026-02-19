@@ -37,7 +37,6 @@ class MatchView extends StatelessWidget {
         color: Colors.white,
         boxShadow: const [
           BoxShadow(
-            color: Colors.black,
             offset: Offset(3, 3),
             blurRadius: 2,
           ),
@@ -86,7 +85,6 @@ class MatchView extends StatelessWidget {
                 width: 116,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     FittedBox(
                       fit: BoxFit.scaleDown,

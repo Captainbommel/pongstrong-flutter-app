@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/services/import_service.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
+import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
 import 'package:pongstrong/widgets/confirmation_dialog.dart';
 import 'package:provider/provider.dart';
@@ -50,21 +50,17 @@ class AdminPanelDialogs {
       case TournamentStyle.groupsAndKnockouts:
         successMessage =
             'Turnier gestartet! Gruppenphase-Spiele wurden generiert.';
-        break;
       case TournamentStyle.knockoutsOnly:
         successMessage = 'Turnier gestartet! K.O.-Bracket wurde erstellt.';
-        break;
       case TournamentStyle.everyoneVsEveryone:
         successMessage =
             'Turnier gestartet! Alle Rundenspiele wurden generiert.';
-        break;
     }
 
     final confirmed = await showConfirmationDialog(
       context,
       title: 'Turnier starten?',
       confirmText: 'Turnier starten',
-      confirmColor: GroupPhaseColors.cupred,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,7 +73,6 @@ class AdminPanelDialogs {
             text:
                 'Nach dem Start können keine neuen Teams mehr hinzugefügt werden und der Turniermodus kann nicht mehr geändert werden.',
             color: Colors.amber,
-            icon: Icons.warning_amber,
           ),
         ],
       ),
@@ -141,7 +136,6 @@ class AdminPanelDialogs {
               text:
                   'Achtung: ${state.remainingMatches} Spiel(e) wurden noch nicht eingetragen!',
               color: Colors.orange,
-              icon: Icons.warning_amber,
             )
           else
             const InfoBanner(
@@ -188,7 +182,6 @@ class AdminPanelDialogs {
       titleIcon: Icons.restart_alt,
       confirmText: 'Zurücksetzen',
       confirmIcon: Icons.restart_alt,
-      confirmColor: GroupPhaseColors.cupred,
       content: const Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,7 +234,6 @@ class AdminPanelDialogs {
       titleIcon: Icons.undo,
       confirmText: 'Zurücksetzen',
       confirmIcon: Icons.undo,
-      confirmColor: GroupPhaseColors.cupred,
       content: const Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

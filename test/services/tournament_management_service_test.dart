@@ -150,8 +150,8 @@ void main() {
       await svc.initializeTournament(teams, groups, tableCount: 3);
       final gp = await svc.loadGruppenphase();
 
-      for (var group in gp!.groups) {
-        for (var match in group) {
+      for (final group in gp!.groups) {
+        for (final match in group) {
           expect(match.tischNr, inInclusiveRange(1, 3));
         }
       }
@@ -165,8 +165,8 @@ void main() {
       await svc.initializeTournament(teams, groups);
       final gp = await svc.loadGruppenphase();
 
-      for (var group in gp!.groups) {
-        for (var match in group) {
+      for (final group in gp!.groups) {
+        for (final match in group) {
           expect(match.done, isFalse);
           expect(match.score1, 0);
           expect(match.score2, 0);
@@ -229,7 +229,7 @@ void main() {
 
       final knockouts = await svc.loadKnockouts();
       for (int r = 1; r < knockouts!.champions.rounds.length; r++) {
-        for (var m in knockouts.champions.rounds[r]) {
+        for (final m in knockouts.champions.rounds[r]) {
           expect(m.teamId1, isEmpty);
           expect(m.teamId2, isEmpty);
         }
@@ -274,7 +274,7 @@ void main() {
       expect(pairs.length, 15);
 
       // No team plays itself
-      for (var m in matches) {
+      for (final m in matches) {
         expect(m.teamId1, isNot(m.teamId2));
       }
     });
@@ -302,8 +302,8 @@ void main() {
 
       // Mark all group matches as done with valid scores
       final gp = await svc.loadGruppenphase();
-      for (var group in gp!.groups) {
-        for (var match in group) {
+      for (final group in gp!.groups) {
+        for (final match in group) {
           match.done = true;
           match.score1 = 10;
           match.score2 = 5;
@@ -521,7 +521,7 @@ void main() {
           .collection(FirestoreBase.tournamentsCollection)
           .doc('Style-Cup')
           .get();
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()!;
       expect(data['tournamentStyle'], 'knockoutsOnly');
     });
   });

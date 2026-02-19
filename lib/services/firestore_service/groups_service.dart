@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pongstrong/models/models.dart';
-import 'firestore_base.dart';
+import 'package:pongstrong/services/firestore_service/firestore_base.dart';
 
 /// Service for managing group data in Firestore
 mixin GroupsService on FirestoreBase {
@@ -30,7 +30,7 @@ mixin GroupsService on FirestoreBase {
     final doc = await getDoc(tournamentId, 'groups').get();
     if (!doc.exists) return null;
 
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data()! as Map<String, dynamic>;
     final groupsMap = data['groups'] as Map<String, dynamic>;
     final numberOfGroups = data['numberOfGroups'] as int;
 
@@ -49,7 +49,7 @@ mixin GroupsService on FirestoreBase {
   }) {
     return getDoc(tournamentId, 'groups').snapshots().map((doc) {
       if (!doc.exists) return null;
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()! as Map<String, dynamic>;
       final groupsMap = data['groups'] as Map<String, dynamic>;
       final numberOfGroups = data['numberOfGroups'] as int;
 

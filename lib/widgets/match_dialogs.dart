@@ -1,11 +1,11 @@
 //* matches should use an identifier to be able to update the match correctly
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/models/match.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/app_logger.dart';
+import 'package:pongstrong/utils/colors.dart';
 import 'package:provider/provider.dart';
 
 Future<dynamic> finnishMatchDialog(
@@ -192,7 +192,6 @@ SizedBox cupInput(TextEditingController cups1) {
         focusColor: FieldColors.skyblue,
         border: OutlineInputBorder(
           borderSide: const BorderSide(
-            color: Colors.black,
             width: 2.0,
           ),
           borderRadius: BorderRadius.circular(10.0),
@@ -297,7 +296,7 @@ Future<dynamic> startMatchDialog(
                   child: Column(
                     children: [
                       Text('$team1:'),
-                      for (var member in members1) Text(member),
+                      for (final member in members1) Text(member),
                     ],
                   ),
                 ),
@@ -305,7 +304,7 @@ Future<dynamic> startMatchDialog(
                   child: Column(
                     children: [
                       Text('$team2:'),
-                      for (var member in members2) Text(member),
+                      for (final member in members2) Text(member),
                     ],
                   ),
                 ),

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pongstrong/models/models.dart';
-import 'firestore_base.dart';
+import 'package:pongstrong/services/firestore_service/firestore_base.dart';
 
 /// Service for managing standings/tables data in Firestore
 mixin TabellenService on FirestoreBase {
@@ -33,7 +33,7 @@ mixin TabellenService on FirestoreBase {
     final doc = await getDoc(tournamentId, 'tabellen').get();
     if (!doc.exists) return null;
 
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data()! as Map<String, dynamic>;
     final tablesMap = data['tables'] as Map<String, dynamic>;
     final numberOfTables = data['numberOfTables'] as int;
 
@@ -53,7 +53,7 @@ mixin TabellenService on FirestoreBase {
   }) {
     return getDoc(tournamentId, 'tabellen').snapshots().map((doc) {
       if (!doc.exists) return null;
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()! as Map<String, dynamic>;
       final tablesMap = data['tables'] as Map<String, dynamic>;
       final numberOfTables = data['numberOfTables'] as int;
 

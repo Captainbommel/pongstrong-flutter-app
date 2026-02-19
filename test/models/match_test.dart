@@ -89,8 +89,6 @@ void main() {
       final match = Match(
         teamId1: 'team1',
         teamId2: 'team2',
-        score1: 0,
-        score2: 0,
       );
       expect(match.getWinnerId(), null);
     });

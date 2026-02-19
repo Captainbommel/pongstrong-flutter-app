@@ -1,6 +1,6 @@
-import 'match.dart';
-import 'gruppenphase.dart';
-import 'knockouts.dart';
+import 'package:pongstrong/models/gruppenphase.dart';
+import 'package:pongstrong/models/knockouts.dart';
+import 'package:pongstrong/models/match.dart';
 
 class MatchQueue {
   List<List<Match>> waiting;
@@ -97,7 +97,7 @@ class MatchQueue {
       ..sort((a, b) => waiting[b].length.compareTo(waiting[a].length));
 
     for (final i in rankedIndices) {
-      for (var match in waiting[i]) {
+      for (final match in waiting[i]) {
         if (!readyIds.contains(match.id) && !tables.contains(match.tischNr)) {
           matches.add(match);
           tables.add(match.tischNr);
@@ -110,7 +110,7 @@ class MatchQueue {
 
   // isFree checks if table tischNr is free
   bool isFree(int tischNr) {
-    for (var match in playing) {
+    for (final match in playing) {
       if (match.tischNr == tischNr) {
         return false;
       }
@@ -120,12 +120,12 @@ class MatchQueue {
 
   // contains checks if a Match is already in the MatchQueue
   bool contains(Match match) {
-    for (var line in waiting) {
-      for (var m in line) {
+    for (final line in waiting) {
+      for (final m in line) {
         if (m.id == match.id) return true;
       }
     }
-    for (var m in playing) {
+    for (final m in playing) {
       if (m.id == match.id) return true;
     }
     return false;
@@ -133,7 +133,7 @@ class MatchQueue {
 
   // isEmpty returns true if q is completely empty
   bool isEmpty() {
-    for (var group in waiting) {
+    for (final group in waiting) {
       if (group.isNotEmpty) return false;
     }
     return playing.isEmpty;
@@ -141,7 +141,7 @@ class MatchQueue {
 
   // clearQueue removes all matches from waiting and playing
   void clearQueue() {
-    for (var line in waiting) {
+    for (final line in waiting) {
       line.clear();
     }
     playing.clear();
@@ -170,22 +170,22 @@ class MatchQueue {
     }
 
     // search for new matches
-    for (var round in knock.champions.rounds) {
-      for (var match in round) {
+    for (final round in knock.champions.rounds) {
+      for (final match in round) {
         enqueue(match);
       }
     }
-    for (var round in knock.europa.rounds) {
-      for (var match in round) {
+    for (final round in knock.europa.rounds) {
+      for (final match in round) {
         enqueue(match);
       }
     }
-    for (var round in knock.conference.rounds) {
-      for (var match in round) {
+    for (final round in knock.conference.rounds) {
+      for (final match in round) {
         enqueue(match);
       }
     }
-    for (var match in knock.superCup.matches) {
+    for (final match in knock.superCup.matches) {
       enqueue(match);
     }
   }
@@ -198,7 +198,7 @@ class MatchQueue {
     );
 
     for (int i = 0; i < gruppenphase.groups.length; i++) {
-      for (var match in gruppenphase.groups[i]) {
+      for (final match in gruppenphase.groups[i]) {
         queue.waiting[i].add(match);
       }
     }
@@ -221,7 +221,7 @@ class MatchQueue {
                 .toList() ??
             [],
         playing: (json['playing'] as List?)
-                ?.map((m) => Match.fromJson(m))
+                ?.map((m) => Match.fromJson(m as Map<String, dynamic>))
                 .toList() ??
             [],
       );

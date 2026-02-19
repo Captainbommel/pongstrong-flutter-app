@@ -1,6 +1,7 @@
 import 'dart:math';
-import 'package:flutter/material.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/utils/app_logger.dart';
@@ -89,7 +90,7 @@ class AdminPanelState extends ChangeNotifier {
 
   int get teamsInGroupsCount {
     int count = 0;
-    for (var group in _groups.groups) {
+    for (final group in _groups.groups) {
       count += group.length;
     }
     return count;
@@ -186,13 +187,10 @@ class AdminPanelState extends ChangeNotifier {
           switch (phase) {
             case 'groups':
               _currentPhase = TournamentPhase.groupPhase;
-              break;
             case 'knockouts':
               _currentPhase = TournamentPhase.knockoutPhase;
-              break;
             case 'finished':
               _currentPhase = TournamentPhase.finished;
-              break;
             default:
               _currentPhase = TournamentPhase.notStarted;
           }
@@ -203,10 +201,8 @@ class AdminPanelState extends ChangeNotifier {
           switch (styleStr) {
             case 'knockoutsOnly':
               _tournamentStyle = TournamentStyle.knockoutsOnly;
-              break;
             case 'everyoneVsEveryone':
               _tournamentStyle = TournamentStyle.everyoneVsEveryone;
-              break;
             default:
               _tournamentStyle = TournamentStyle.groupsAndKnockouts;
           }
@@ -291,25 +287,25 @@ class AdminPanelState extends ChangeNotifier {
         final knockouts = await _firestoreService.loadKnockouts(
             tournamentId: _currentTournamentId);
         if (knockouts != null) {
-          for (var round in knockouts.champions.rounds) {
-            for (var match in round) {
+          for (final round in knockouts.champions.rounds) {
+            for (final match in round) {
               totalMatches++;
               if (match.done) completedMatches++;
             }
           }
-          for (var round in knockouts.europa.rounds) {
-            for (var match in round) {
+          for (final round in knockouts.europa.rounds) {
+            for (final match in round) {
               totalMatches++;
               if (match.done) completedMatches++;
             }
           }
-          for (var round in knockouts.conference.rounds) {
-            for (var match in round) {
+          for (final round in knockouts.conference.rounds) {
+            for (final match in round) {
               totalMatches++;
               if (match.done) completedMatches++;
             }
           }
-          for (var match in knockouts.superCup.matches) {
+          for (final match in knockouts.superCup.matches) {
             totalMatches++;
             if (match.done) completedMatches++;
           }
@@ -319,7 +315,7 @@ class AdminPanelState extends ChangeNotifier {
         final gruppenphase = await _firestoreService.loadGruppenphase(
             tournamentId: _currentTournamentId);
         if (gruppenphase != null) {
-          for (var group in gruppenphase.groups) {
+          for (final group in gruppenphase.groups) {
             totalMatches += group.length;
             completedMatches += group.where((m) => m.done).length;
           }
@@ -434,7 +430,7 @@ class AdminPanelState extends ChangeNotifier {
     final previousGroups = Groups(
       groups: _groups.groups.map((g) => List<String>.from(g)).toList(),
     );
-    for (var group in _groups.groups) {
+    for (final group in _groups.groups) {
       group.remove(teamId);
     }
     notifyListeners();
@@ -514,7 +510,7 @@ class AdminPanelState extends ChangeNotifier {
     final previousGroups = Groups(
       groups: _groups.groups.map((g) => List<String>.from(g)).toList(),
     );
-    for (var group in _groups.groups) {
+    for (final group in _groups.groups) {
       group.remove(teamId);
     }
     _groups.groups[groupIndex].add(teamId);
@@ -588,7 +584,7 @@ class AdminPanelState extends ChangeNotifier {
   bool _validateGroupAssignment() {
     if (_groups.groups.isEmpty) return false;
     final assignedTeamIds = <String>{};
-    for (var group in _groups.groups) {
+    for (final group in _groups.groups) {
       assignedTeamIds.addAll(group);
     }
     return _teams.every((team) => assignedTeamIds.contains(team.id));
@@ -740,7 +736,7 @@ class AdminPanelState extends ChangeNotifier {
           );
           // Compute total group matches dynamically: C(n,2) per group
           _totalMatches = 0;
-          for (var group in _groups.groups) {
+          for (final group in _groups.groups) {
             final n = group.length;
             _totalMatches += (n * (n - 1)) ~/ 2;
           }
@@ -750,7 +746,6 @@ class AdminPanelState extends ChangeNotifier {
           Logger.info(
               'Tournament started (Group+KO) with ${_teams.length} teams in $_numberOfGroups groups',
               tag: 'AdminPanel');
-          break;
 
         case TournamentStyle.knockoutsOnly:
           final selectedTeams = _teams.take(_targetTeamCount).toList();
@@ -767,7 +762,6 @@ class AdminPanelState extends ChangeNotifier {
           Logger.info(
               'Tournament started (KO only) with ${selectedTeams.length} teams',
               tag: 'AdminPanel');
-          break;
 
         case TournamentStyle.everyoneVsEveryone:
           await _firestoreService.initializeRoundRobinTournament(
@@ -783,7 +777,6 @@ class AdminPanelState extends ChangeNotifier {
           Logger.info(
               'Tournament started (Round Robin) with ${_teams.length} teams, $_totalMatches matches',
               tag: 'AdminPanel');
-          break;
       }
       notifyListeners();
       return true;

@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pongstrong/models/models.dart';
+import 'package:pongstrong/services/firestore_service/firestore_base.dart';
 import 'package:pongstrong/utils/app_logger.dart';
-import 'firestore_base.dart';
 
 /// Service for managing knockout phase data in Firestore
 mixin KnockoutsService on FirestoreBase {
@@ -59,7 +59,7 @@ mixin KnockoutsService on FirestoreBase {
     final doc = await getDoc(tournamentId, 'knockouts').get();
     if (!doc.exists) return null;
 
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data()! as Map<String, dynamic>;
 
     // Check if this is a placeholder document (setup phase)
     if (data['initialized'] == true) {
@@ -133,7 +133,7 @@ mixin KnockoutsService on FirestoreBase {
   }) {
     return getDoc(tournamentId, 'knockouts').snapshots().map((doc) {
       if (!doc.exists) return null;
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()! as Map<String, dynamic>;
 
       // Check if this is a placeholder document (setup phase)
       if (data['initialized'] == true && data['champions'] is! Map) {
@@ -223,8 +223,8 @@ mixin KnockoutsService on FirestoreBase {
 
     if (matchId.startsWith('c')) {
       // Champions league
-      for (var round in knockouts.champions.rounds) {
-        for (var match in round) {
+      for (final round in knockouts.champions.rounds) {
+        for (final match in round) {
           if (match.id == matchId) {
             match.score1 = score1;
             match.score2 = score2;
@@ -237,8 +237,8 @@ mixin KnockoutsService on FirestoreBase {
       }
     } else if (matchId.startsWith('e')) {
       // Europa league
-      for (var round in knockouts.europa.rounds) {
-        for (var match in round) {
+      for (final round in knockouts.europa.rounds) {
+        for (final match in round) {
           if (match.id == matchId) {
             match.score1 = score1;
             match.score2 = score2;
@@ -251,8 +251,8 @@ mixin KnockoutsService on FirestoreBase {
       }
     } else if (matchId.startsWith('f')) {
       // Conference league
-      for (var round in knockouts.conference.rounds) {
-        for (var match in round) {
+      for (final round in knockouts.conference.rounds) {
+        for (final match in round) {
           if (match.id == matchId) {
             match.score1 = score1;
             match.score2 = score2;
@@ -265,7 +265,7 @@ mixin KnockoutsService on FirestoreBase {
       }
     } else if (matchId.startsWith('s')) {
       // Super cup
-      for (var match in knockouts.superCup.matches) {
+      for (final match in knockouts.superCup.matches) {
         if (match.id == matchId) {
           match.score1 = score1;
           match.score2 = score2;

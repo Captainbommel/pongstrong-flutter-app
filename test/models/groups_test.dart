@@ -29,8 +29,10 @@ void main() {
       final json = groups.toJson();
       expect(json['numberOfGroups'], 2);
       expect(json['groups'], isA<Map<String, dynamic>>());
-      expect(json['groups']['group0'], ['t1', 't2', 't3', 't4']);
-      expect(json['groups']['group1'], ['t5', 't6', 't7', 't8']);
+      expect((json['groups'] as Map<String, dynamic>)['group0'],
+          ['t1', 't2', 't3', 't4']);
+      expect((json['groups'] as Map<String, dynamic>)['group1'],
+          ['t5', 't6', 't7', 't8']);
     });
 
     test('fromJson creates Groups from JSON correctly', () {

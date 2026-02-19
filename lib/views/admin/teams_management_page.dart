@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:pongstrong/views/admin/admin_panel_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/views/admin/admin_panel_state.dart';
+import 'package:provider/provider.dart';
 
 /// A dedicated page for managing teams and group assignments
 /// Provides inline editing for better UX
@@ -47,12 +47,12 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   }
 
   void _initializeControllers({int? preserveTargetCount}) {
-    for (var controller in _teamControllers) {
+    for (final controller in _teamControllers) {
       controller.dispose();
     }
     _teamControllers.clear();
 
-    for (var team in widget.adminState.teams) {
+    for (final team in widget.adminState.teams) {
       final groupIndex = widget.adminState.getTeamGroupIndex(team.id);
       _teamControllers.add(TeamEditController(
         id: team.id,
@@ -93,7 +93,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       }
       // Grow controller list to fill selected slots
       while (_teamControllers.length < _targetTeamCount) {
-        _teamControllers.add(TeamEditController(isNew: true));
+        _teamControllers.add(TeamEditController());
       }
       // For KO-only: trim the visible list to targetTeamCount
       if (_isKOOnly && _teamControllers.length > _targetTeamCount) {
@@ -116,7 +116,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       // In round-robin mode, don't pre-create empty slots
       if (!_isRoundRobin) {
         for (int i = 0; i < _targetTeamCount; i++) {
-          _teamControllers.add(TeamEditController(isNew: true));
+          _teamControllers.add(TeamEditController());
         }
       }
     }
@@ -144,7 +144,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       _targetTeamCount = count;
       // Grow or shrink the controller list
       while (_teamControllers.length < count) {
-        _teamControllers.add(TeamEditController(isNew: true));
+        _teamControllers.add(TeamEditController());
       }
       while (_teamControllers.length > count) {
         final last = _teamControllers.removeLast();
@@ -159,7 +159,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   /// Add a single new team entry (for round-robin mode)
   void _addTeamEntry() {
     setState(() {
-      _teamControllers.add(TeamEditController(isNew: true));
+      _teamControllers.add(TeamEditController());
       _targetTeamCount =
           _teamControllers.where((c) => !c.markedForRemoval).length;
       _hasUnsavedChanges = true;
@@ -283,7 +283,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
     final success = await widget.adminState.assignGroupsRandomly();
     if (success) {
-      for (var controller in _teamControllers) {
+      for (final controller in _teamControllers) {
         if (controller.id != null) {
           controller.groupIndex =
               widget.adminState.getTeamGroupIndex(controller.id!);
@@ -328,7 +328,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
     if (confirmed == true) {
       await widget.adminState.clearGroupAssignments();
-      for (var controller in _teamControllers) {
+      for (final controller in _teamControllers) {
         controller.groupIndex = null;
       }
       setState(() {});
@@ -385,7 +385,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
   @override
   void dispose() {
-    for (var controller in _teamControllers) {
+    for (final controller in _teamControllers) {
       controller.dispose();
     }
     super.dispose();
@@ -484,17 +484,14 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         modeLabel = 'Gruppenphase + K.O.';
         modeIcon = Icons.grid_view;
         modeColor = GroupPhaseColors.steelblue;
-        break;
       case TournamentStyle.knockoutsOnly:
         modeLabel = 'Nur K.O.-Phase';
         modeIcon = Icons.account_tree;
         modeColor = TreeColors.rebeccapurple;
-        break;
       case TournamentStyle.everyoneVsEveryone:
         modeLabel = 'Jeder gegen Jeden';
         modeIcon = Icons.sync_alt;
         modeColor = FieldColors.springgreen;
-        break;
     }
 
     return Container(
@@ -559,7 +556,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                       value: allowed.contains(_targetTeamCount)
                           ? _targetTeamCount
                           : allowed.first,
-                      isDense: true,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.symmetric(
                             horizontal: isMobile ? 8 : 12,
@@ -638,7 +634,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                   width: isMobile ? 55 : 60,
                   child: DropdownButtonFormField<int>(
                     value: 6,
-                    isDense: true,
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.symmetric(
                           horizontal: isMobile ? 8 : 12,
@@ -920,7 +915,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             width: 120,
             child: DropdownButtonFormField<int?>(
               value: controller.groupIndex,
-              isDense: true,
               isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Gruppe',
@@ -930,7 +924,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
               ),
               items: [
                 const DropdownMenuItem(
-                  value: null,
                   child: Text('-', style: TextStyle(color: Colors.grey)),
                 ),
                 ...List.generate(widget.adminState.numberOfGroups, (i) {
@@ -953,14 +946,12 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         ],
         if (!isLocked) ...[
           const SizedBox(width: 8),
-          _isRoundRobin
-              ? IconButton(
+          if (_isRoundRobin) IconButton(
                   onPressed: () => _removeTeamEntry(index),
                   icon: const Icon(Icons.delete_outline),
                   color: GroupPhaseColors.cupred,
                   tooltip: 'Team löschen',
-                )
-              : IconButton(
+                ) else IconButton(
                   onPressed: () => _clearTeamFields(index),
                   icon: const Icon(Icons.backspace_outlined),
                   color: Colors.orange,
@@ -1061,7 +1052,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           const SizedBox(height: 8),
           DropdownButtonFormField<int?>(
             value: controller.groupIndex,
-            isDense: true,
             decoration: const InputDecoration(
               labelText: 'Gruppe',
               border: OutlineInputBorder(),
@@ -1070,7 +1060,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             ),
             items: [
               const DropdownMenuItem(
-                value: null,
                 child:
                     Text('Keine Gruppe', style: TextStyle(color: Colors.grey)),
               ),

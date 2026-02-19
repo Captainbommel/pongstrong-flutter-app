@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pongstrong/models/models.dart';
-import 'firestore_base.dart';
+import 'package:pongstrong/services/firestore_service/firestore_base.dart';
 
 /// Service for managing match queue data in Firestore
 mixin MatchQueueService on FirestoreBase {
@@ -33,7 +33,7 @@ mixin MatchQueueService on FirestoreBase {
     final doc = await getDoc(tournamentId, 'matchQueue').get();
     if (!doc.exists) return null;
 
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data()! as Map<String, dynamic>;
 
     // Check if this is a placeholder document (setup phase)
     if (data['initialized'] == true &&
@@ -70,7 +70,7 @@ mixin MatchQueueService on FirestoreBase {
   }) {
     return getDoc(tournamentId, 'matchQueue').snapshots().map((doc) {
       if (!doc.exists) return null;
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()! as Map<String, dynamic>;
 
       // Check if this is a placeholder document (setup phase)
       if (data['initialized'] == true &&

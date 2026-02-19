@@ -1,7 +1,7 @@
-import 'match.dart';
-import 'tabellen.dart';
-import 'gruppenphase.dart';
-import 'knockouts.dart';
+import 'package:pongstrong/models/gruppenphase.dart';
+import 'package:pongstrong/models/knockouts.dart';
+import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/models/tabellen.dart';
 
 // calculatePoints calculates the points for both teams based on match scores
 // Returns (team1Points, team2Points) or null if the match is not finished
@@ -95,7 +95,7 @@ bool isValid(int b1, int b2) {
 List<TableRow> evaluate(List<Match> matches) {
   // Count unique teams first
   final uniqueTeams = <String>{};
-  for (var match in matches) {
+  for (final match in matches) {
     uniqueTeams.add(match.teamId1);
     uniqueTeams.add(match.teamId2);
   }
@@ -105,7 +105,7 @@ List<TableRow> evaluate(List<Match> matches) {
 
   // Build a map of teamId -> table index by scanning all matches
   final teamIndexMap = <String, int>{};
-  for (var match in matches) {
+  for (final match in matches) {
     if (!teamIndexMap.containsKey(match.teamId1)) {
       teamIndexMap[match.teamId1] = teamIndexMap.length;
     }
@@ -115,12 +115,12 @@ List<TableRow> evaluate(List<Match> matches) {
   }
 
   // Set team IDs in table based on their assigned indices
-  for (var entry in teamIndexMap.entries) {
+  for (final entry in teamIndexMap.entries) {
     table[entry.value].teamId = entry.key;
   }
 
   // Calculate standings for each finished match
-  for (var match in matches) {
+  for (final match in matches) {
     if (match.done) {
       final t1 = teamIndexMap[match.teamId1]!;
       final t2 = teamIndexMap[match.teamId2]!;
@@ -158,7 +158,7 @@ List<TableRow> evaluate(List<Match> matches) {
 // evalGruppen evaluates all groups in Gruppenphase and returns Tabellen
 Tabellen evalGruppen(Gruppenphase gruppenphase) {
   final tables = <List<TableRow>>[];
-  for (var group in gruppenphase.groups) {
+  for (final group in gruppenphase.groups) {
     tables.add(evaluate(group));
   }
   final tabellen = Tabellen(tables: tables);
@@ -187,14 +187,14 @@ Knockouts evaluateGroups8(Tabellen tabellen) {
 
   // euro & conf
   for (int i = 0; i < 8; i++) {
-    if (i % 2 == 0) {
+    if (i.isEven) {
       knock.europa.rounds[0][i ~/ 2].teamId1 = teamIds[i][2];
     } else {
       knock.europa.rounds[0][i ~/ 2].teamId2 = teamIds[i][2];
     }
   }
   for (int i = 0; i < 8; i++) {
-    if (i % 2 == 0) {
+    if (i.isEven) {
       knock.conference.rounds[0][i ~/ 2].teamId1 = teamIds[i][3];
     } else {
       knock.conference.rounds[0][i ~/ 2].teamId2 = teamIds[i][3];

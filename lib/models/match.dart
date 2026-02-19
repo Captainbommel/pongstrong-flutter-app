@@ -1,4 +1,4 @@
-import 'evaluation.dart';
+import 'package:pongstrong/models/evaluation.dart';
 
 class Match {
   String teamId1;
@@ -50,12 +50,12 @@ class Match {
       };
 
   factory Match.fromJson(Map<String, dynamic> json) => Match(
-        teamId1: json['teamId1'] ?? '',
-        teamId2: json['teamId2'] ?? '',
-        score1: json['score1'] ?? 0,
-        score2: json['score2'] ?? 0,
-        tischNr: json['tischnummer'] ?? 0,
-        id: json['id'] ?? '',
-        done: json['done'] ?? false,
+        teamId1: (json['teamId1'] as String?) ?? '',
+        teamId2: (json['teamId2'] as String?) ?? '',
+        score1: (json['score1'] as int?) ?? 0,
+        score2: (json['score2'] as int?) ?? 0,
+        tischNr: (json['tischnummer'] as int?) ?? 0,
+        id: (json['id'] as String?) ?? '',
+        done: (json['done'] as bool?) ?? false,
       );
 }

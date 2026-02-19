@@ -368,7 +368,7 @@ void main() {
 
       // Rounds 2-4 all get cleared
       for (int r = 1; r < knockouts.champions.rounds.length; r++) {
-        for (var match in knockouts.champions.rounds[r]) {
+        for (final match in knockouts.champions.rounds[r]) {
           expect(match.teamId1, isEmpty);
           expect(match.teamId2, isEmpty);
           expect(match.done, isFalse);
@@ -421,7 +421,7 @@ void main() {
 
       // Europa rounds 2-3 should be cleared
       for (int r = 1; r < knockouts.europa.rounds.length; r++) {
-        for (var match in knockouts.europa.rounds[r]) {
+        for (final match in knockouts.europa.rounds[r]) {
           expect(match.teamId1, isEmpty);
           expect(match.teamId2, isEmpty);
           expect(match.done, isFalse);
@@ -477,31 +477,31 @@ void main() {
       mapTables(knockouts);
 
       // Check champions league tables
-      for (var round in knockouts.champions.rounds) {
-        for (var match in round) {
+      for (final round in knockouts.champions.rounds) {
+        for (final match in round) {
           expect(match.tischNr, greaterThan(0));
           expect(match.tischNr, lessThanOrEqualTo(6));
         }
       }
 
       // Check europa league tables
-      for (var round in knockouts.europa.rounds) {
-        for (var match in round) {
+      for (final round in knockouts.europa.rounds) {
+        for (final match in round) {
           expect(match.tischNr, greaterThan(0));
           expect(match.tischNr, lessThanOrEqualTo(6));
         }
       }
 
       // Check conference league tables
-      for (var round in knockouts.conference.rounds) {
-        for (var match in round) {
+      for (final round in knockouts.conference.rounds) {
+        for (final match in round) {
           expect(match.tischNr, greaterThan(0));
           expect(match.tischNr, lessThanOrEqualTo(6));
         }
       }
 
       // Check super cup tables
-      for (var match in knockouts.superCup.matches) {
+      for (final match in knockouts.superCup.matches) {
         expect(match.tischNr, greaterThan(0));
         expect(match.tischNr, lessThanOrEqualTo(6));
       }

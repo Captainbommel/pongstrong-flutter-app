@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/models/match_queue.dart';
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/gruppenphase.dart';
 import 'package:pongstrong/models/groups.dart';
+import 'package:pongstrong/models/gruppenphase.dart';
 import 'package:pongstrong/models/knockouts.dart';
+import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/models/match_queue.dart';
 
 void main() {
   group('MatchQueue', () {
@@ -532,7 +532,7 @@ void main() {
       final queue = MatchQueue.create(gruppenphase);
 
       // All 6 tables should have matches
-      for (var line in queue.waiting) {
+      for (final line in queue.waiting) {
         expect(line.isNotEmpty, true);
       }
     });

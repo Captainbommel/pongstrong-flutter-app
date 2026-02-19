@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:pongstrong/utils/colors.dart';
 import 'dart:convert';
 import 'dart:js_interop';
-import 'package:web/web.dart' as web;
+
+import 'package:flutter/material.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
+import 'package:pongstrong/utils/colors.dart';
 import 'package:provider/provider.dart';
+import 'package:web/web.dart' as web;
 
 /// Card widget for import/export functionality
 class ImportExportCard extends StatelessWidget {
@@ -19,7 +20,7 @@ class ImportExportCard extends StatelessWidget {
     this.isCompact = false,
   });
 
-  void _exportTournamentState(BuildContext context) async {
+  Future<void> _exportTournamentState(BuildContext context) async {
     try {
       // Retrieve the tournament state using Provider
       final tournamentState =

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/widgets/field_view.dart';
-import 'package:pongstrong/widgets/match_view.dart';
 import 'package:pongstrong/widgets/match_dialogs.dart';
+import 'package:pongstrong/widgets/match_view.dart';
 import 'package:pongstrong/widgets/standings_table.dart';
-import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:provider/provider.dart';
 
 /// Unified responsive playing field view.
@@ -151,7 +151,7 @@ class _RunningMatchesSection extends StatelessWidget {
                   team1?.name ?? 'Team 1',
                   team2?.name ?? 'Team 2',
                   match.tischNr.toString(),
-                  TableColors.get(match.tischNr - 1),
+                  TableColors.forIndex(match.tischNr - 1),
                   true,
                   onTap: () {
                     finnishMatchDialog(
@@ -211,7 +211,7 @@ class _UpcomingMatchesSection extends StatelessWidget {
                   team1?.name ?? 'Team 1',
                   team2?.name ?? 'Team 2',
                   match.tischNr.toString(),
-                  TableColors.get(match.tischNr - 1),
+                  TableColors.forIndex(match.tischNr - 1),
                   isReady,
                   onTap: isReady
                       ? () {
@@ -299,7 +299,7 @@ List<Widget> _buildRunningMatches(
         team1?.name ?? 'Team 1',
         team2?.name ?? 'Team 2',
         match.tischNr.toString(),
-        TableColors.get(match.tischNr - 1),
+        TableColors.forIndex(match.tischNr - 1),
         true,
         onTap: () {
           finnishMatchDialog(
@@ -338,7 +338,7 @@ List<Widget> _buildUpcomingMatches(
         team1?.name ?? 'Team 1',
         team2?.name ?? 'Team 2',
         match.tischNr.toString(),
-        TableColors.get(match.tischNr - 1),
+        TableColors.forIndex(match.tischNr - 1),
         isReady,
         onTap: isReady
             ? () {

@@ -40,7 +40,7 @@ class AuthService {
   Future<User?> signInAnon() async {
     try {
       Logger.debug('Signing in anonymously...', tag: 'AuthService');
-      UserCredential userCredential = await _auth.signInAnonymously();
+      final UserCredential userCredential = await _auth.signInAnonymously();
       Logger.info('Anonymous sign-in successful: ${userCredential.user?.uid}',
           tag: 'AuthService');
       return userCredential.user;
@@ -55,7 +55,7 @@ class AuthService {
   Future<User?> signInWithEmail(String email, String password) async {
     try {
       Logger.debug('Signing in with email: $email', tag: 'AuthService');
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -76,7 +76,7 @@ class AuthService {
   Future<User?> createUserWithEmail(String email, String password) async {
     try {
       Logger.debug('Creating user with email: $email', tag: 'AuthService');
-      UserCredential userCredential =
+      final UserCredential userCredential =
           await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,

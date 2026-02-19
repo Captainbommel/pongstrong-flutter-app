@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/models/match.dart';
 import 'package:pongstrong/models/tabellen.dart' as tabellen;
-import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
+import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/widgets/match_edit_dialog.dart';
 import 'package:provider/provider.dart';
 
@@ -357,7 +357,6 @@ Future<void> _onEditGroupMatch(
     match: match,
     team1Name: team1Name,
     team2Name: team2Name,
-    isKnockout: false,
   );
   if (result != null && context.mounted) {
     final tournamentData =

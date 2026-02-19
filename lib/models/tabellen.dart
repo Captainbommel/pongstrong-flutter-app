@@ -22,10 +22,10 @@ class TableRow {
       };
 
   factory TableRow.fromJson(Map<String, dynamic> json) => TableRow(
-        teamId: json['teamId'] ?? '',
-        punkte: json['punkte'] ?? 0,
-        differenz: json['differenz'] ?? 0,
-        becher: json['becher'] ?? 0,
+        teamId: (json['teamId'] as String?) ?? '',
+        punkte: (json['punkte'] as int?) ?? 0,
+        differenz: (json['differenz'] as int?) ?? 0,
+        becher: (json['becher'] as int?) ?? 0,
         vergleich:
             (json['vergleich'] as List?)?.map((e) => e.toString()).toList() ??
                 List.filled(4, ''),
@@ -49,7 +49,7 @@ class Tabellen {
 
   // SortTables sortiert alle Bewertungstabellen
   void sortTables() {
-    for (var table in tables) {
+    for (final table in tables) {
       sortTable(table);
     }
   }
