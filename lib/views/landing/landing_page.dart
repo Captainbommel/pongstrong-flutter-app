@@ -28,6 +28,10 @@ class _LandingPageState extends State<LandingPage> {
   final FirestoreService _firestoreService = FirestoreService();
   bool _isLoadingTournament = false;
   final Map<String, Future<List<bool>>> _tournamentMetaCache = {};
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  Future<List<String>>? _myTournamentsFuture;
+  String? _myTournamentsUserId;
 
   @override
   void initState() {
@@ -35,10 +39,18 @@ class _LandingPageState extends State<LandingPage> {
     _tournamentsFuture = _firestoreService.listTournaments();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _refreshTournaments() {
     setState(() {
       _tournamentMetaCache.clear();
       _tournamentsFuture = _firestoreService.listTournaments();
+      _myTournamentsFuture = null;
+      _myTournamentsUserId = null;
     });
   }
 
@@ -516,78 +528,104 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   Widget _buildTournamentSelection({required bool isLarge}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Consumer<AuthState>(
+      builder: (context, authState, _) {
+        final isLoggedIn = authState.isEmailUser;
+
+        // Cache the future for logged-in users
+        if (isLoggedIn && _myTournamentsUserId != authState.userId) {
+          _myTournamentsUserId = authState.userId;
+          _myTournamentsFuture = authState.userId != null
+              ? _firestoreService.listUserTournaments(authState.userId!)
+              : Future.value([]);
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.emoji_events,
-                color: GroupPhaseColors.steelblue,
-                size: isLarge ? 28 : 24,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Turnier beitreten',
-                style: TextStyle(
-                  fontSize: isLarge ? 22 : 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+              // "Deine Turniere" sub-section for logged-in creators
+              if (isLoggedIn) ...[
+                Row(
+                  children: [
+                    Icon(
+                      Icons.star,
+                      color: GroupPhaseColors.cupred,
+                      size: isLarge ? 28 : 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Deine Turniere',
+                      style: TextStyle(
+                        fontSize: isLarge ? 22 : 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 16),
+                _buildMyTournamentList(),
+                const SizedBox(height: 24),
+                Divider(color: Colors.grey.shade300),
+                const SizedBox(height: 24),
+              ],
+              // Search sub-section
+              Row(
+                children: [
+                  Icon(
+                    Icons.search,
+                    color: GroupPhaseColors.steelblue,
+                    size: isLarge ? 28 : 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Turnier suchen',
+                    style: TextStyle(
+                      fontSize: isLarge ? 22 : 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 16),
+              const Text(
+                'Suche nach dem Namen des Turniers dem du beitreten möchtest:',
+                style: TextStyle(color: Colors.black54),
+              ),
+              const SizedBox(height: 16),
+              _buildSearchBar(),
+              if (_searchQuery.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildSearchResults(),
+              ],
             ],
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Wähle ein bestehendes Turnier um Punkte und Spielpläne zu sehen:',
-            style: TextStyle(color: Colors.black54),
-          ),
-          const SizedBox(height: 16),
-          _buildTournamentList(),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildTournamentList() {
+  Widget _buildMyTournamentList() {
     return FutureBuilder<List<String>>(
-      future: _tournamentsFuture,
+      future: _myTournamentsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.red),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Fehler beim Laden der Turniere: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
-              ],
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(GroupPhaseColors.cupred),
+              ),
             ),
           );
         }
@@ -607,7 +645,7 @@ class _LandingPageState extends State<LandingPage> {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Keine Turniere verfügbar. Erstelle eines um loszulegen!',
+                    'Du hast noch keine Turniere erstellt.',
                     style: TextStyle(color: Colors.black87),
                   ),
                 ),
@@ -619,7 +657,135 @@ class _LandingPageState extends State<LandingPage> {
         if (_isLoadingTournament) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  CircularProgressIndicator(
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(GroupPhaseColors.cupred),
+                  ),
+                  SizedBox(height: 16),
+                  Text('Turnier wird geladen...'),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children:
+              tournaments.map((id) => _buildTournamentListItem(id)).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: 'Turniername eingeben...',
+        prefixIcon: const Icon(Icons.search, color: Colors.grey),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              const BorderSide(color: GroupPhaseColors.steelblue, width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      onChanged: (value) {
+        setState(() => _searchQuery = value.trim());
+      },
+    );
+  }
+
+  Widget _buildSearchResults() {
+    return FutureBuilder<List<String>>(
+      future: _tournamentsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Fehler beim Laden: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final allTournaments = snapshot.data ?? [];
+        final filtered = allTournaments
+            .where(
+                (id) => id.toLowerCase().contains(_searchQuery.toLowerCase()))
+            .toList();
+
+        if (filtered.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.amber.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.amber),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Kein Turnier gefunden.',
+                    style: TextStyle(color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        if (_isLoadingTournament) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
               child: Column(
                 children: [
                   CircularProgressIndicator(
@@ -636,9 +802,7 @@ class _LandingPageState extends State<LandingPage> {
         }
 
         return Column(
-          children: tournaments.map((tournamentId) {
-            return _buildTournamentListItem(tournamentId);
-          }).toList(),
+          children: filtered.map((id) => _buildTournamentListItem(id)).toList(),
         );
       },
     );
@@ -710,7 +874,7 @@ class _LandingPageState extends State<LandingPage> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
-                            isCreator ? Icons.star : Icons.sports_esports,
+                            Icons.sports_esports,
                             color: isCreator
                                 ? GroupPhaseColors.cupred
                                 : GroupPhaseColors.steelblue,

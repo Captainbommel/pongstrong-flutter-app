@@ -77,8 +77,9 @@ class Tabellen {
   static void sortTable(List<TableRow> table) {
     table.sort((a, b) {
       if (a.points != b.points) return b.points.compareTo(a.points);
-      if (a.difference != b.difference)
+      if (a.difference != b.difference) {
         return b.difference.compareTo(a.difference);
+      }
       if (a.cups != b.cups) return b.cups.compareTo(a.cups);
       // TODO: Better tiebreaker — use the direct comparison (head-to-head)
       // between the two tied teams to determine who placed higher, instead of
