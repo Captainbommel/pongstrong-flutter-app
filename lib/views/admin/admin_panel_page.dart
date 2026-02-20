@@ -342,8 +342,12 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     );
 
     final importExportCard = ImportExportCard(
-      onImportJson: () async {
+      onImportTeams: () async {
         await AdminPanelDialogs.handleImportTeams(context);
+        await _loadData();
+      },
+      onImportSnapshot: () async {
+        await AdminPanelDialogs.handleImportSnapshot(context);
         await _loadData();
       },
       isCompact: isCompact,

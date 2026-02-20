@@ -254,7 +254,7 @@ class AdminPanelState extends ChangeNotifier {
         _groupsAssigned = _groups.groups.isNotEmpty;
         // Sync group count from saved data (initial load / reload)
         if (_groups.groups.isNotEmpty) {
-          _numberOfGroups = _groups.groups.length;
+          _numberOfGroups = _groups.groups.length.clamp(2, 10);
           if (_tournamentStyle == TournamentStyle.groupsAndKnockouts) {
             _targetTeamCount = _numberOfGroups * 4;
           }

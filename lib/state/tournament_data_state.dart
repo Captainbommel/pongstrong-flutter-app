@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart' hide TableRow;
 import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
@@ -890,7 +891,78 @@ class TournamentDataState extends ChangeNotifier {
     }
   }
 
-  // TODO: Ensure compatibility with the import function in the future
+  // ===================== SNAPSHOT RESTORE =====================
+
+  /// Restores the full tournament state from a snapshot and persists it
+  /// to Firestore.
+  ///
+  /// This is the counterpart of [toJson] – it takes the parsed snapshot
+  /// fields and writes them into both the local state and Firestore so
+  /// they survive a page reload.
+  Future<void> restoreFromSnapshot({
+    required List<Team> teams,
+    required MatchQueue matchQueue,
+    required Gruppenphase gruppenphase,
+    required Tabellen tabellen,
+    required Knockouts knockouts,
+    required bool isKnockoutMode,
+    required String tournamentStyle,
+    required String? selectedRuleset,
+    required String tournamentId,
+  }) async {
+    final service = _firestoreService;
+
+    // Persist every sub-collection to Firestore
+    await service.saveTeams(teams, tournamentId: tournamentId);
+    await service.saveGruppenphase(gruppenphase, tournamentId: tournamentId);
+    await service.saveMatchQueue(matchQueue, tournamentId: tournamentId);
+    await service.saveTabellen(tabellen, tournamentId: tournamentId);
+    await service.saveKnockouts(knockouts, tournamentId: tournamentId);
+
+    // Determine the phase from the state
+    String phase;
+    if (teams.isEmpty) {
+      phase = 'notStarted';
+    } else if (isKnockoutMode) {
+      phase = 'knockouts';
+    } else {
+      phase = 'groups';
+    }
+
+    // Update tournament metadata
+    await service.firestore
+        .collection(FirestoreBase.tournamentsCollection)
+        .doc(tournamentId)
+        .set({
+      'phase': phase,
+      'tournamentStyle': tournamentStyle,
+      'selectedRuleset': selectedRuleset,
+      'updatedAt':
+          null, // will be overwritten by FieldValue.serverTimestamp() when available
+    }, SetOptions(merge: true));
+
+    // Update local state
+    _teams = teams;
+    _rebuildTeamCache();
+    _matchQueue = matchQueue;
+    _gruppenphase = gruppenphase;
+    _tabellen = tabellen;
+    _knockouts = knockouts;
+    _currentTournamentId = tournamentId;
+    _isKnockoutMode = isKnockoutMode;
+    _tournamentStyle = tournamentStyle;
+    _selectedRuleset = selectedRuleset;
+    _tabellenHash = _computeGruppenphaseHash(gruppenphase);
+
+    _setupStreams();
+
+    Logger.info(
+      'Restored snapshot: ${teams.length} teams, style=$tournamentStyle, knockoutMode=$isKnockoutMode',
+      tag: 'TournamentData',
+    );
+
+    notifyListeners();
+  }
 
   /// Convert the tournament state to JSON
   Map<String, dynamic> toJson() {
