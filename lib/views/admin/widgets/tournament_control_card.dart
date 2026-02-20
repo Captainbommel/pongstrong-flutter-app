@@ -66,7 +66,7 @@ class TournamentControlCard extends StatelessWidget {
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: GroupPhaseColors.cupred,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColors.textOnColored,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -89,7 +89,7 @@ class TournamentControlCard extends StatelessWidget {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: GroupPhaseColors.cupred,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.textOnColored,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),

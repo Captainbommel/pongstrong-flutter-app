@@ -66,7 +66,7 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
     return Container(
       height: MediaQuery.of(context).size.height / 3,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         border: isLargeScreen
             ? const Border(
                 top: BorderSide(color: FieldColors.skyblue, width: 14.0),
@@ -135,7 +135,7 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
                   const SnackBar(
                     content: Text(
                         'Keine Berechtigung. Bitte dem Turnier beitreten.'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.error,
                   ),
                 );
                 return;
@@ -158,7 +158,7 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Fehler beim Abschließen des Spiels'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.error,
                   ),
                 );
                 return;
@@ -167,7 +167,7 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.surface,
               shape: RoundedRectangleBorder(
                 side: const BorderSide(color: FieldColors.skyblue, width: 3),
                 borderRadius: BorderRadius.circular(10),
@@ -176,7 +176,7 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
             ),
             child: const Text(
               'Spiel Abschließen',
-              style: TextStyle(color: Colors.black),
+              style: TextStyle(color: AppColors.shadow),
             ),
           ),
         ],
@@ -261,7 +261,7 @@ Future<dynamic> startMatchDialog(
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Keine Berechtigung. Bitte dem Turnier beitreten.'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
             ),
           );
           return;
@@ -284,7 +284,7 @@ Future<dynamic> startMatchDialog(
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Tisch nicht verfügbar'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
             ),
           );
         }
@@ -293,7 +293,7 @@ Future<dynamic> startMatchDialog(
       return Container(
         height: MediaQuery.of(context).size.height / 3,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           border: isLargeScreen
               ? const Border(
                   top: BorderSide(color: FieldColors.skyblue, width: 14.0),
@@ -345,7 +345,7 @@ Future<dynamic> startMatchDialog(
               // autofocus: true,
               onPressed: handleStartMatch,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
+                backgroundColor: AppColors.surface,
                 shape: RoundedRectangleBorder(
                   side: const BorderSide(color: FieldColors.skyblue, width: 3),
                   borderRadius: BorderRadius.circular(10),
@@ -354,7 +354,7 @@ Future<dynamic> startMatchDialog(
               ),
               child: const Text(
                 'Spiel starten',
-                style: TextStyle(color: Colors.black),
+                style: TextStyle(color: AppColors.shadow),
               ),
             ),
           ],

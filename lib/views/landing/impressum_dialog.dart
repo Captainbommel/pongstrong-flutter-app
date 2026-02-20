@@ -38,12 +38,13 @@ class ImpressumDialog extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppColors.textOnColored,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon:
+                        const Icon(Icons.close, color: AppColors.textOnColored),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -98,7 +99,7 @@ class ImpressumDialog extends StatelessWidget {
                 width: double.infinity,
                 child: TextButton(
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey.shade600,
+                    foregroundColor: AppColors.textSubtle,
                   ),
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text('Schließen'),
@@ -125,9 +126,9 @@ class ImpressumDialog extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           content,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 14,
-            color: Colors.grey.shade700,
+            color: AppColors.grey700,
             height: 1.5,
           ),
         ),

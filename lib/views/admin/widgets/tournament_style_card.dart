@@ -138,19 +138,18 @@ class TournamentStyleCard extends StatelessWidget {
                 totalTeams > 0 &&
                 numberOfTables > totalTeams ~/ 2)
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
                     const Icon(Icons.warning_amber,
-                        color: Colors.orange, size: 16),
+                        color: AppColors.warning, size: 16),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'Einige Tische werden leer bleiben (max. ${totalTeams ~/ 2}).',
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.orange,
+                          color: AppColors.warning,
                         ),
                       ),
                     ),
@@ -175,8 +174,8 @@ class TournamentStyleCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String?>(
                     value: selectedRuleset,
-                    focusColor: Colors.transparent,
-                    dropdownColor: Colors.white,
+                    focusColor: AppColors.transparent,
+                    dropdownColor: AppColors.surface,
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -211,11 +210,11 @@ class TournamentStyleCard extends StatelessWidget {
                     hint: const Text('Regelwerk wählen'),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  const Text(
                     'Wähle ein Regelwerk zur Anzeige im Navigationsmenü',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[600],
+                      color: AppColors.textSubtle,
                     ),
                   ),
                 ],
@@ -246,9 +245,9 @@ class TournamentStyleCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? GroupPhaseColors.steelblue.withValues(alpha: 0.1)
-              : Colors.transparent,
+              : AppColors.transparent,
           border: Border.all(
-            color: isSelected ? GroupPhaseColors.steelblue : Colors.grey[300]!,
+            color: isSelected ? GroupPhaseColors.steelblue : AppColors.grey300,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
@@ -258,10 +257,10 @@ class TournamentStyleCard extends StatelessWidget {
             Icon(
               icon,
               color: isDisabled
-                  ? Colors.grey
+                  ? AppColors.textDisabled
                   : (isSelected
                       ? GroupPhaseColors.steelblue
-                      : Colors.grey[600]),
+                      : AppColors.textSubtle),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -273,14 +272,15 @@ class TournamentStyleCard extends StatelessWidget {
                     style: TextStyle(
                       fontWeight:
                           isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isDisabled ? Colors.grey : null,
+                      color: isDisabled ? AppColors.textDisabled : null,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDisabled ? Colors.grey[400] : Colors.grey[600],
+                      color:
+                          isDisabled ? AppColors.grey400 : AppColors.textSubtle,
                     ),
                   ),
                 ],
@@ -289,7 +289,9 @@ class TournamentStyleCard extends StatelessWidget {
             if (isSelected)
               Icon(
                 isDisabled ? Icons.lock : Icons.check_circle,
-                color: isDisabled ? Colors.grey : GroupPhaseColors.steelblue,
+                color: isDisabled
+                    ? AppColors.textDisabled
+                    : GroupPhaseColors.steelblue,
               ),
           ],
         ),

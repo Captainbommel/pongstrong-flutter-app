@@ -72,7 +72,7 @@ class AdminPanelDialogs {
           const InfoBanner(
             text:
                 'Nach dem Start können keine neuen Teams mehr hinzugefügt werden und der Turniermodus kann nicht mehr geändert werden.',
-            color: Colors.amber,
+            color: AppColors.caution,
           ),
         ],
       ),
@@ -135,12 +135,12 @@ class AdminPanelDialogs {
             InfoBanner(
               text:
                   'Achtung: ${state.remainingMatches} Spiel(e) wurden noch nicht eingetragen!',
-              color: Colors.orange,
+              color: AppColors.warning,
             )
           else
             const InfoBanner(
               text: 'Alle Spiele der aktuellen Phase wurden eingetragen.',
-              color: Colors.blue,
+              color: AppColors.info,
               icon: Icons.info_outline,
             ),
         ],

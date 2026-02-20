@@ -169,11 +169,11 @@ class TreeViewPageState extends State<TreeViewPage>
         children: [
           if (isLargeScreen)
             // Desktop: Show TabBar
-            Container(
-              color: Colors.grey[100],
+            ColoredBox(
+              color: AppColors.grey100,
               child: TabBar(
                 controller: _tabController,
-                labelColor: Colors.black,
+                labelColor: AppColors.shadow,
                 indicatorColor: visibleBrackets[_tabController!.index].color,
                 indicatorWeight: 4,
                 tabs: [
@@ -188,8 +188,8 @@ class TreeViewPageState extends State<TreeViewPage>
                             GestureDetector(
                               onTap: () =>
                                   _showRenameDialog(b.key, b.name, b.color),
-                              child: Icon(Icons.edit,
-                                  size: 14, color: Colors.grey[500]),
+                              child: const Icon(Icons.edit,
+                                  size: 14, color: AppColors.grey500),
                             ),
                           ],
                         ],
@@ -201,7 +201,7 @@ class TreeViewPageState extends State<TreeViewPage>
           else
             // Mobile: Show Dropdown
             Container(
-              color: Colors.grey[100],
+              color: AppColors.grey100,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: DropdownButtonFormField<int>(
                 value: _selectedIndex,
@@ -238,8 +238,8 @@ class TreeViewPageState extends State<TreeViewPage>
                         )
                       : null,
                 ),
-                dropdownColor: Colors.white,
-                focusColor: Colors.transparent,
+                dropdownColor: AppColors.surface,
+                focusColor: AppColors.transparent,
                 items: [
                   for (int i = 0; i < visibleBrackets.length; i++)
                     DropdownMenuItem(
@@ -322,7 +322,7 @@ class TreeViewPageState extends State<TreeViewPage>
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: bracketColor,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.textOnColored,
               ),
               onPressed: () =>
                   Navigator.of(context).pop(controller.text.trim()),
@@ -379,7 +379,7 @@ class TreeViewPageState extends State<TreeViewPage>
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
                 child: Container(
-                  color: Colors.white.withAlpha(80),
+                  color: AppColors.surface.withAlpha(80),
                 ),
               ),
             ),
@@ -392,7 +392,7 @@ class TreeViewPageState extends State<TreeViewPage>
               label: const Text('Erkunden'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: currentBracket.color,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.textOnColored,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 textStyle: const TextStyle(fontSize: 16),
@@ -411,8 +411,8 @@ class TreeViewPageState extends State<TreeViewPage>
             right: 16,
             child: FloatingActionButton.small(
               onPressed: () => _setExploring(false),
-              backgroundColor: Colors.black.withAlpha(150),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.shadow.withAlpha(150),
+              foregroundColor: AppColors.textOnColored,
               child: const Icon(Icons.close),
             ),
           ),
@@ -427,10 +427,10 @@ class TreeViewPageState extends State<TreeViewPage>
   ) {
     // Guard: no rounds or all rounds empty → show placeholder
     if (rounds.isEmpty || rounds.every((r) => r.isEmpty)) {
-      return Center(
+      return const Center(
         child: Text(
           'Keine Daten verfügbar',
-          style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 18, color: AppColors.textSubtle),
         ),
       );
     }
@@ -532,7 +532,7 @@ class TreeViewPageState extends State<TreeViewPage>
         width: 180,
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isReady ? borderColor : borderColor.withAlpha(76),
@@ -554,7 +554,9 @@ class TreeViewPageState extends State<TreeViewPage>
                           match.done && match.getWinnerId() == match.teamId1
                               ? FontWeight.bold
                               : FontWeight.normal,
-                      color: match.teamId1.isEmpty ? Colors.grey : Colors.black,
+                      color: match.teamId1.isEmpty
+                          ? AppColors.textDisabled
+                          : AppColors.shadow,
                     ),
                   ),
                 ),
@@ -574,7 +576,9 @@ class TreeViewPageState extends State<TreeViewPage>
                           match.done && match.getWinnerId() == match.teamId2
                               ? FontWeight.bold
                               : FontWeight.normal,
-                      color: match.teamId2.isEmpty ? Colors.grey : Colors.black,
+                      color: match.teamId2.isEmpty
+                          ? AppColors.textDisabled
+                          : AppColors.shadow,
                     ),
                   ),
                 ),
@@ -627,10 +631,10 @@ class TreeViewPageState extends State<TreeViewPage>
   Widget _buildSuperCupTree(Knockouts knockouts) {
     // Guard: no super cup matches → show placeholder
     if (knockouts.superCup.matches.length < 2) {
-      return Center(
+      return const Center(
         child: Text(
           'Keine Daten verfügbar',
-          style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 18, color: AppColors.textSubtle),
         ),
       );
     }

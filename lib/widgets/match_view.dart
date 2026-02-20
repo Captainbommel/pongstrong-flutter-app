@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pongstrong/utils/colors.dart';
 
 class MatchView extends StatelessWidget {
   final String team1;
@@ -34,7 +35,7 @@ class MatchView extends StatelessWidget {
       width: expandHorizontally ? 500 : 200,
       height: 75,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         boxShadow: const [
           BoxShadow(
             offset: Offset(3, 3),

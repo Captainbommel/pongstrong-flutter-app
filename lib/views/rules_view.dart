@@ -35,7 +35,7 @@ class _RulesViewState extends State<RulesView> {
             padding: EdgeInsets.all(isMobile ? 12 : 20),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.textOnColored,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: GroupPhaseColors.cupred,

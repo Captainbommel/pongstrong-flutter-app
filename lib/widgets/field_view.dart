@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pongstrong/utils/colors.dart';
 
 /// A themed card section used across the playing field views.
 ///
@@ -41,7 +42,7 @@ class FieldView extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   shadows: [
                     Shadow(
-                      color: Colors.black54,
+                      color: AppColors.textSecondary,
                       offset: Offset(2, 2),
                       blurRadius: 1.5,
                     ),

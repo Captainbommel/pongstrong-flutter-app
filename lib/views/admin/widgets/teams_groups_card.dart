@@ -51,10 +51,10 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
   }
 
   Color get _statusColor {
-    if (_isRoundRobin || _isKOOnly) return Colors.grey;
-    if (totalTeams == 0) return Colors.grey;
+    if (_isRoundRobin || _isKOOnly) return AppColors.textDisabled;
+    if (totalTeams == 0) return AppColors.textDisabled;
     if (!groupsAssigned || teamsInGroups == 0) return GroupPhaseColors.cupred;
-    if (teamsInGroups < numberOfGroups * 4) return Colors.orange;
+    if (teamsInGroups < numberOfGroups * 4) return AppColors.warning;
     return FieldColors.springgreen;
   }
 
@@ -102,7 +102,8 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
                 if (isLocked)
                   const Tooltip(
                     message: 'Turnier gestartet',
-                    child: Icon(Icons.lock, color: Colors.grey, size: 20),
+                    child: Icon(Icons.lock,
+                        color: AppColors.textDisabled, size: 20),
                   ),
               ],
             ),
@@ -136,8 +137,8 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
                         totalTeams == 0
                             ? 'Tippe um Teams hinzuzufügen'
                             : 'registriert',
-                        style: TextStyle(
-                          color: Colors.grey[600],
+                        style: const TextStyle(
+                          color: AppColors.textSubtle,
                           fontSize: 12,
                         ),
                       ),
@@ -215,7 +216,7 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
                 label: Text(isLocked ? 'Teams anzeigen' : 'Teams verwalten'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TreeColors.rebeccapurple,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.textOnColored,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),

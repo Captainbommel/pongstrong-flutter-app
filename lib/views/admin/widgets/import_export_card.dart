@@ -69,7 +69,7 @@ class ImportExportCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'Turnierfortschritt speichern oder wiederherstellen',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: AppColors.textDisabled),
               ),
             ),
             const SizedBox(height: 8),
@@ -82,7 +82,7 @@ class ImportExportCard extends StatelessWidget {
                     label: const Text('JSON Import'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: TableColors.turquoise,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.textOnColored,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -97,7 +97,7 @@ class ImportExportCard extends StatelessWidget {
                     label: const Text('JSON Export'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: GroupPhaseColors.steelblue,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.textOnColored,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),

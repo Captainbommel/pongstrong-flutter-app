@@ -115,7 +115,7 @@ class _LandingPageState extends State<LandingPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Turnier konnte nicht geladen werden'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
         setState(() => _isLoadingTournament = false);
@@ -150,7 +150,7 @@ class _LandingPageState extends State<LandingPage> {
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 940;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
       ),
@@ -196,7 +196,7 @@ class _LandingPageState extends State<LandingPage> {
         Expanded(
           flex: 4,
           child: ColoredBox(
-            color: Colors.white,
+            color: AppColors.surface,
             child: Column(
               children: [
                 Expanded(
@@ -293,7 +293,7 @@ class _LandingPageState extends State<LandingPage> {
             'Impressum & Datenschutz',
             style: TextStyle(
               fontSize: isLarge ? 10 : 12,
-              color: Colors.grey.shade600,
+              color: AppColors.textSubtle,
               decoration: TextDecoration.underline,
             ),
           ),
@@ -321,7 +321,7 @@ class _LandingPageState extends State<LandingPage> {
               style: TextStyle(
                 fontSize: isLarge ? 48 : 32,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: AppColors.textPrimary,
                 letterSpacing: 2,
               ),
             ),
@@ -332,7 +332,7 @@ class _LandingPageState extends State<LandingPage> {
           'Turnier Manager',
           style: TextStyle(
             fontSize: isLarge ? 24 : 18,
-            color: Colors.black54,
+            color: AppColors.textSecondary,
             fontWeight: FontWeight.w300,
           ),
         ),
@@ -346,7 +346,7 @@ class _LandingPageState extends State<LandingPage> {
       'Verfolge Punkte, verwalte Spielpläne und halte den Wettbewerb am Laufen!',
       style: TextStyle(
         fontSize: isLarge ? 18 : 16,
-        color: Colors.black87,
+        color: AppColors.textPrimary,
         height: 1.5,
       ),
       textAlign: isLarge ? TextAlign.start : TextAlign.center,
@@ -385,7 +385,7 @@ class _LandingPageState extends State<LandingPage> {
                 feature['text']! as String,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Colors.black87,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -424,7 +424,7 @@ class _LandingPageState extends State<LandingPage> {
                 color: GroupPhaseColors.cupred,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.person, color: Colors.white),
+              child: const Icon(Icons.person, color: AppColors.textOnColored),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -435,14 +435,14 @@ class _LandingPageState extends State<LandingPage> {
                     'Eingeloggt als',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey,
+                      color: AppColors.textDisabled,
                     ),
                   ),
                   Text(
                     authState.userEmail ?? '',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ],
@@ -466,7 +466,7 @@ class _LandingPageState extends State<LandingPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withAlpha(200),
+              color: AppColors.surface.withAlpha(200),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -479,13 +479,14 @@ class _LandingPageState extends State<LandingPage> {
                   authState.userEmail?.split('@')[0] ?? '',
                   style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.black87,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => authState.signOut(),
-                  child: const Icon(Icons.logout, size: 18, color: Colors.grey),
+                  child: const Icon(Icons.logout,
+                      size: 18, color: AppColors.textDisabled),
                 ),
               ],
             ),
@@ -544,9 +545,9 @@ class _LandingPageState extends State<LandingPage> {
           width: double.infinity,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
+            color: AppColors.grey50,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: AppColors.grey200),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -566,7 +567,7 @@ class _LandingPageState extends State<LandingPage> {
                       style: TextStyle(
                         fontSize: isLarge ? 22 : 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],
@@ -574,7 +575,7 @@ class _LandingPageState extends State<LandingPage> {
                 const SizedBox(height: 16),
                 _buildMyTournamentList(),
                 const SizedBox(height: 24),
-                Divider(color: Colors.grey.shade300),
+                const Divider(color: AppColors.grey300),
                 const SizedBox(height: 24),
               ],
               // Search sub-section
@@ -591,7 +592,7 @@ class _LandingPageState extends State<LandingPage> {
                     style: TextStyle(
                       fontSize: isLarge ? 22 : 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ],
@@ -599,7 +600,7 @@ class _LandingPageState extends State<LandingPage> {
               const SizedBox(height: 16),
               const Text(
                 'Suche nach dem Namen des Turniers dem du beitreten möchtest:',
-                style: TextStyle(color: Colors.black54),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               _buildSearchBar(),
@@ -636,17 +637,17 @@ class _LandingPageState extends State<LandingPage> {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.amber.shade50,
+              color: AppColors.cautionLight,
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.amber),
+                Icon(Icons.info_outline, color: AppColors.caution),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Du hast noch keine Turniere erstellt.',
-                    style: TextStyle(color: Colors.black87),
+                    style: TextStyle(color: AppColors.textPrimary),
                   ),
                 ),
               ],
@@ -685,7 +686,7 @@ class _LandingPageState extends State<LandingPage> {
       controller: _searchController,
       decoration: InputDecoration(
         hintText: 'Turniername eingeben...',
-        prefixIcon: const Icon(Icons.search, color: Colors.grey),
+        prefixIcon: const Icon(Icons.search, color: AppColors.textDisabled),
         suffixIcon: _searchQuery.isNotEmpty
             ? IconButton(
                 icon: const Icon(Icons.clear),
@@ -697,11 +698,11 @@ class _LandingPageState extends State<LandingPage> {
             : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: const BorderSide(color: AppColors.grey300),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: const BorderSide(color: AppColors.grey300),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -709,7 +710,7 @@ class _LandingPageState extends State<LandingPage> {
               const BorderSide(color: GroupPhaseColors.steelblue, width: 2),
         ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppColors.surface,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
@@ -736,17 +737,17 @@ class _LandingPageState extends State<LandingPage> {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.red.shade50,
+              color: AppColors.errorLight,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.red),
+                const Icon(Icons.error_outline, color: AppColors.error),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Fehler beim Laden: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.red),
+                    style: const TextStyle(color: AppColors.error),
                   ),
                 ),
               ],
@@ -764,17 +765,17 @@ class _LandingPageState extends State<LandingPage> {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.amber.shade50,
+              color: AppColors.cautionLight,
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.amber),
+                Icon(Icons.info_outline, color: AppColors.caution),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Kein Turnier gefunden.',
-                    style: TextStyle(color: Colors.black87),
+                    style: TextStyle(color: AppColors.textPrimary),
                   ),
                 ),
               ],
@@ -848,7 +849,7 @@ class _LandingPageState extends State<LandingPage> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
               child: Material(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(8),
                 child: InkWell(
                   onTap: () => _onTournamentSelected(tournamentId),
@@ -860,7 +861,7 @@ class _LandingPageState extends State<LandingPage> {
                       border: Border.all(
                         color: isCreator
                             ? GroupPhaseColors.cupred.withAlpha(100)
-                            : Colors.grey.shade300,
+                            : AppColors.grey300,
                       ),
                     ),
                     child: Row(
@@ -899,7 +900,7 @@ class _LandingPageState extends State<LandingPage> {
                                   fontSize: 12,
                                   color: isCreator
                                       ? GroupPhaseColors.cupred
-                                      : Colors.grey.shade600,
+                                      : AppColors.textSubtle,
                                 ),
                               ),
                             ],
@@ -908,7 +909,7 @@ class _LandingPageState extends State<LandingPage> {
                         Icon(
                           trailingIcon,
                           size: 16,
-                          color: Colors.grey,
+                          color: AppColors.textDisabled,
                         ),
                       ],
                     ),
@@ -931,7 +932,7 @@ class _LandingPageState extends State<LandingPage> {
         label: const Text('Neues Turnier erstellen'),
         style: ElevatedButton.styleFrom(
           backgroundColor: GroupPhaseColors.cupred,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.textOnColored,
           padding: EdgeInsets.symmetric(
             horizontal: 32,
             vertical: isLarge ? 20 : 16,

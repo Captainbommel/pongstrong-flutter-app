@@ -115,7 +115,7 @@ class _TournamentPasswordDialogState extends State<TournamentPasswordDialog> {
                       const SizedBox(height: 4),
                       Text(
                         widget.tournamentId,
-                        style: const TextStyle(color: Colors.grey),
+                        style: const TextStyle(color: AppColors.textDisabled),
                       ),
                     ],
                   ),
@@ -166,7 +166,7 @@ class _TournamentPasswordDialogState extends State<TournamentPasswordDialog> {
                 onPressed: _isLoading ? null : _verifyPassword,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: GroupPhaseColors.cupred,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.textOnColored,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -178,7 +178,7 @@ class _TournamentPasswordDialogState extends State<TournamentPasswordDialog> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: AppColors.textOnColored,
                         ),
                       )
                     : const Text(

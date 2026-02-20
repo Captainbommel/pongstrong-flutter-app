@@ -103,9 +103,9 @@ class _AppShellState extends State<AppShell> {
         (isKnockoutsOnly || isKnockoutPhase);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        shadowColor: Colors.black,
+        shadowColor: AppColors.shadow,
         elevation: 10,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -162,7 +162,7 @@ class _AppShellState extends State<AppShell> {
             ),
           ],
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
       ),
       body: _buildBodyForView(appState.currentView),
     );
@@ -175,7 +175,7 @@ class _AppShellState extends State<AppShell> {
       child: Text(
         label,
         style: const TextStyle(
-          color: Colors.black,
+          color: AppColors.shadow,
           fontSize: 16,
           decoration: TextDecoration.underline,
         ),
@@ -257,13 +257,13 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       key: appState.scaffoldKey,
       drawer: const MobileDrawer(),
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        shadowColor: Colors.black,
+        shadowColor: AppColors.shadow,
         elevation: 10,
         title: Text(selectedTournament ?? 'BMT-Cup'),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
       ),
       body: PageView(
         controller: _pageController,
@@ -303,17 +303,18 @@ class _AppShellState extends State<AppShell> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(153),
+                  color: AppColors.overlay,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.swipe, color: Colors.white, size: 16),
+                    Icon(Icons.swipe, color: AppColors.textOnColored, size: 16),
                     SizedBox(width: 8),
                     Text(
                       'Wischen zum Navigieren',
-                      style: TextStyle(color: Colors.white, fontSize: 12),
+                      style: TextStyle(
+                          color: AppColors.textOnColored, fontSize: 12),
                     ),
                   ],
                 ),

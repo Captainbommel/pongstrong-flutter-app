@@ -83,7 +83,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       child: Consumer<AdminPanelState>(
         builder: (context, state, _) {
           return Scaffold(
-            backgroundColor: Colors.grey[100],
+            backgroundColor: AppColors.grey100,
             appBar: isCompact ? _buildMobileAppBar(state) : null,
             body: Column(
               children: [
@@ -124,7 +124,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
   /// Shows a locked/access denied screen for non-admin users
   Widget _buildAccessDenied(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppColors.grey100,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -149,7 +149,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -158,7 +158,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.black54,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -179,7 +179,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         ],
       ),
       backgroundColor: GroupPhaseColors.cupred,
-      foregroundColor: Colors.white,
+      foregroundColor: AppColors.textOnColored,
       elevation: 2,
       actions: [
         IconButton(
@@ -194,13 +194,13 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
   Widget _buildDesktopHeader(BuildContext context, AdminPanelState state) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: AppColors.shadowLight,
             blurRadius: 4,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -232,7 +232,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
 
     switch (state.currentPhase) {
       case TournamentPhase.notStarted:
-        phaseColor = Colors.grey;
+        phaseColor = AppColors.textDisabled;
         phaseText = 'Nicht gestartet';
       case TournamentPhase.groupPhase:
         phaseColor = GroupPhaseColors.steelblue;

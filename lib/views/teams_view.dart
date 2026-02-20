@@ -104,7 +104,7 @@ class _GroupOverview extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: AppColors.textOnColored,
               ),
               textAlign: TextAlign.center,
             ),
@@ -182,7 +182,7 @@ class _GroupOverview extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppColors.textOnColored,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -264,7 +264,7 @@ class _GroupOverview extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppColors.textOnColored,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -407,7 +407,7 @@ class _MatchCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isDone
-              ? Colors.white
+              ? AppColors.surface
               : GroupPhaseColors.grouppurple.withAlpha(50),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
@@ -467,7 +467,7 @@ class _MatchCard extends StatelessWidget {
                 child: Text(
                   match.tableNumber.toString(),
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textOnColored,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),

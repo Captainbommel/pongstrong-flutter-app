@@ -331,7 +331,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: TreeColors.rebeccapurple,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.textOnColored,
             ),
             child: const Text('Verwerfen'),
           ),
@@ -346,7 +346,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: TreeColors.rebeccapurple,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.textOnColored,
             ),
             child: const Text('Speichern & Schließen'),
           ),
@@ -395,9 +395,9 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                     BorderSide(color: GroupPhaseColors.steelblue, width: 2),
               ),
             ),
-            textSelectionTheme: const TextSelectionThemeData(
+            textSelectionTheme: TextSelectionThemeData(
               cursorColor: GroupPhaseColors.steelblue,
-              selectionColor: Color(0x404682B4),
+              selectionColor: GroupPhaseColors.steelblue.withAlpha(64),
               selectionHandleColor: GroupPhaseColors.steelblue,
             ),
           ),
@@ -405,7 +405,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             appBar: AppBar(
               title: const Text('Teams & Gruppen'),
               backgroundColor: TreeColors.rebeccapurple,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.textOnColored,
               actions: [
                 if (_hasUnsavedChanges)
                   const Padding(
@@ -414,7 +414,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                       child: Text(
                         '• Ungespeichert',
                         style: TextStyle(
-                          color: Colors.amber,
+                          color: AppColors.caution,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -470,13 +470,13 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
     return Container(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: AppColors.shadowLight,
             blurRadius: 4,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -682,7 +682,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                       label: const Text('Gruppen würfeln'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: GroupPhaseColors.steelblue,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.textOnColored,
                       ),
                     ),
                 ],
@@ -694,18 +694,18 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
               margin: const EdgeInsets.only(top: 12),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.1),
+                color: AppColors.caution.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber),
+                border: Border.all(color: AppColors.caution),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.lock, color: Colors.amber, size: 20),
+                  Icon(Icons.lock, color: AppColors.caution, size: 20),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Turnier gestartet - Teams können nicht mehr bearbeitet werden',
-                      style: TextStyle(color: Colors.amber),
+                      style: TextStyle(color: AppColors.caution),
                     ),
                   ),
                 ],
@@ -724,11 +724,11 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.group_add, size: 64, color: Colors.grey),
+            Icon(Icons.group_add, size: 64, color: AppColors.textDisabled),
             SizedBox(height: 16),
             Text(
               'Wähle oben die Anzahl der Teams',
-              style: TextStyle(color: Colors.grey, fontSize: 18),
+              style: TextStyle(color: AppColors.textDisabled, fontSize: 18),
             ),
           ],
         ),
@@ -872,7 +872,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
               ),
               items: [
                 const DropdownMenuItem(
-                  child: Text('-', style: TextStyle(color: Colors.grey)),
+                  child: Text('-',
+                      style: TextStyle(color: AppColors.textDisabled)),
                 ),
                 ...List.generate(widget.adminState.numberOfGroups, (i) {
                   return DropdownMenuItem(
@@ -905,7 +906,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             IconButton(
               onPressed: () => _clearTeamFields(index),
               icon: const Icon(Icons.backspace_outlined),
-              color: Colors.orange,
+              color: AppColors.warning,
               tooltip: 'Felder leeren',
             ),
         ],
@@ -965,7 +966,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                   : IconButton(
                       onPressed: () => _clearTeamFields(index),
                       icon: const Icon(Icons.backspace_outlined, size: 20),
-                      color: Colors.orange,
+                      color: AppColors.warning,
                     ),
           ],
         ),
@@ -1011,8 +1012,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             ),
             items: [
               const DropdownMenuItem(
-                child:
-                    Text('Keine Gruppe', style: TextStyle(color: Colors.grey)),
+                child: Text('Keine Gruppe',
+                    style: TextStyle(color: AppColors.textDisabled)),
               ),
               ...List.generate(widget.adminState.numberOfGroups, (i) {
                 return DropdownMenuItem(
@@ -1038,13 +1039,13 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   Widget _buildBottomBar(bool isLocked) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: AppColors.shadowLight,
             blurRadius: 4,
-            offset: const Offset(0, -2),
+            offset: Offset(0, -2),
           ),
         ],
       ),
@@ -1061,7 +1062,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: AppColors.textOnColored,
                         ),
                       )
                     : const Icon(Icons.save),
@@ -1069,8 +1070,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _hasUnsavedChanges
                       ? FieldColors.springgreen
-                      : Colors.grey,
-                  foregroundColor: Colors.white,
+                      : AppColors.textDisabled,
+                  foregroundColor: AppColors.textOnColored,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 12,

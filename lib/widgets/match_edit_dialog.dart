@@ -78,19 +78,20 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
+                  color: AppColors.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange),
+                  border: Border.all(color: AppColors.warning),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.warning_amber, color: Colors.orange),
+                    Icon(Icons.warning_amber, color: AppColors.warning),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Das Bearbeiten dieses Spiels setzt alle '
                         'nachfolgenden Spiele zurück.',
-                        style: TextStyle(color: Colors.orange, fontSize: 13),
+                        style:
+                            TextStyle(color: AppColors.warning, fontSize: 13),
                       ),
                     ),
                   ],
@@ -179,7 +180,7 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
           onPressed: _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: GroupPhaseColors.cupred,
-            foregroundColor: Colors.white,
+            foregroundColor: AppColors.textOnColored,
           ),
           child: const Text('Speichern'),
         ),
@@ -212,7 +213,7 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
         ),
         contentPadding: const EdgeInsets.symmetric(vertical: 16),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: AppColors.grey50,
       ),
       validator: (value) =>
           (value == null || value.isEmpty) ? 'Erforderlich' : null,

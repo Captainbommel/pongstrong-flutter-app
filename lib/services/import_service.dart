@@ -7,6 +7,7 @@ import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
 import 'package:pongstrong/utils/app_logger.dart';
+import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
 import 'package:provider/provider.dart';
 
@@ -225,7 +226,7 @@ class ImportService {
             SnackBar(
               content: Text(
                   '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
               duration: const Duration(seconds: 3),
             ),
           );
@@ -251,7 +252,7 @@ class ImportService {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${allTeams.length} Teams importiert!'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
               duration: const Duration(seconds: 3),
             ),
           );
@@ -277,7 +278,7 @@ class ImportService {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error loading JSON: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
             duration: const Duration(seconds: 5),
           ),
         );

@@ -36,22 +36,25 @@ Future<bool?> showConfirmationDialog(
           onPressed: () => Navigator.of(context).pop(false),
           child: Text(cancelText, style: TextStyle(color: confirmColor)),
         ),
-        if (confirmIcon != null) ElevatedButton.icon(
-                onPressed: () => Navigator.of(context).pop(true),
-                icon: Icon(confirmIcon),
-                label: Text(confirmText),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: confirmColor,
-                  foregroundColor: Colors.white,
-                ),
-              ) else ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: confirmColor,
-                  foregroundColor: Colors.white,
-                ),
-                child: Text(confirmText),
-              ),
+        if (confirmIcon != null)
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: Icon(confirmIcon),
+            label: Text(confirmText),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: confirmColor,
+              foregroundColor: AppColors.textOnColored,
+            ),
+          )
+        else
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: confirmColor,
+              foregroundColor: AppColors.textOnColored,
+            ),
+            child: Text(confirmText),
+          ),
       ],
     ),
   );
@@ -72,7 +75,7 @@ class InfoBanner extends StatelessWidget {
 
   factory InfoBanner.warning(String text) => InfoBanner(
         text: text,
-        color: Colors.amber,
+        color: AppColors.caution,
       );
 
   factory InfoBanner.error(String text) => InfoBanner(
@@ -83,7 +86,7 @@ class InfoBanner extends StatelessWidget {
 
   factory InfoBanner.info(String text) => InfoBanner(
         text: text,
-        color: Colors.blue,
+        color: AppColors.info,
         icon: Icons.info_outline,
       );
 

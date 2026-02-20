@@ -84,7 +84,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Turnier "$tournamentId" wurde erstellt!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       } else {
@@ -189,13 +189,13 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.add_circle, color: Colors.white),
+                  const Icon(Icons.add_circle, color: AppColors.textOnColored),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
                       'Neues Turnier erstellen',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textOnColored,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -203,7 +203,8 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon:
+                        const Icon(Icons.close, color: AppColors.textOnColored),
                   ),
                 ],
               ),
@@ -238,17 +239,17 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
+                    color: AppColors.errorLight,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.red),
+                      const Icon(Icons.error_outline, color: AppColors.error),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _error!,
-                          style: const TextStyle(color: Colors.red),
+                          style: const TextStyle(color: AppColors.error),
                         ),
                       ),
                     ],
@@ -258,9 +259,9 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
             // Actions
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: Colors.grey.shade200),
+                  top: BorderSide(color: AppColors.grey200),
                 ),
               ),
               child: Row(
@@ -299,7 +300,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                             onPressed: _nextStep,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: GroupPhaseColors.cupred,
-                              foregroundColor: Colors.white,
+                              foregroundColor: AppColors.textOnColored,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 12),
                             ),
@@ -311,7 +312,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                             label: const Text('Weiter'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: GroupPhaseColors.cupred,
-                              foregroundColor: Colors.white,
+                              foregroundColor: AppColors.textOnColored,
                             ),
                           )
                   else
@@ -324,8 +325,8 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                                         authState)
                                     : _createTournament,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
+                              backgroundColor: AppColors.success,
+                              foregroundColor: AppColors.textOnColored,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 12),
                             ),
@@ -335,7 +336,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                                     height: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Colors.white,
+                                      color: AppColors.textOnColored,
                                     ),
                                   )
                                 : const Text('Erstellen'),
@@ -353,14 +354,14 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                                     height: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Colors.white,
+                                      color: AppColors.textOnColored,
                                     ),
                                   )
                                 : const Icon(Icons.check),
                             label: const Text('Turnier erstellen'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
+                              backgroundColor: AppColors.success,
+                              foregroundColor: AppColors.textOnColored,
                             ),
                           ),
                 ],
@@ -384,18 +385,21 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
             height: 32,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isActive ? GroupPhaseColors.cupred : Colors.grey.shade300,
+              color: isActive ? GroupPhaseColors.cupred : AppColors.grey300,
               border: isCurrent
                   ? Border.all(color: GroupPhaseColors.cupred, width: 2)
                   : null,
             ),
             child: Center(
               child: isActive && !isCurrent
-                  ? const Icon(Icons.check, color: Colors.white, size: 18)
+                  ? const Icon(Icons.check,
+                      color: AppColors.textOnColored, size: 18)
                   : Text(
                       '${step + 1}',
                       style: TextStyle(
-                        color: isActive ? Colors.white : Colors.grey,
+                        color: isActive
+                            ? AppColors.textOnColored
+                            : AppColors.textDisabled,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -406,7 +410,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: isActive ? Colors.black87 : Colors.grey,
+              color: isActive ? AppColors.textPrimary : AppColors.textDisabled,
               fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -422,7 +426,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
       width: 40,
       height: 2,
       margin: const EdgeInsets.only(bottom: 20),
-      color: isActive ? GroupPhaseColors.cupred : Colors.grey.shade300,
+      color: isActive ? GroupPhaseColors.cupred : AppColors.grey300,
     );
   }
 
@@ -489,17 +493,17 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: AppColors.infoLight,
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Row(
             children: [
-              Icon(Icons.info_outline, color: Colors.blue, size: 20),
+              Icon(Icons.info_outline, color: AppColors.info, size: 20),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Dieses Passwort teilst du mit allen Spielern, damit sie dem Turnier beitreten können.',
-                  style: TextStyle(fontSize: 12, color: Colors.blue),
+                  style: TextStyle(fontSize: 12, color: AppColors.info),
                 ),
               ),
             ],
@@ -524,13 +528,14 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green.shade50,
+            color: AppColors.successLight,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade200),
+            border: Border.all(color: AppColors.successBorder),
           ),
           child: Column(
             children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 48),
+              const Icon(Icons.check_circle,
+                  color: AppColors.success, size: 48),
               const SizedBox(height: 12),
               const Text(
                 'Bereit zum Erstellen!',
@@ -551,17 +556,17 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: AppColors.infoLight,
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Row(
             children: [
-              Icon(Icons.info_outline, color: Colors.blue, size: 20),
+              Icon(Icons.info_outline, color: AppColors.info, size: 20),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Nach dem Erstellen wirst du automatisch dem Turnier beitreten.',
-                  style: TextStyle(fontSize: 12, color: Colors.blue),
+                  style: TextStyle(fontSize: 12, color: AppColors.info),
                 ),
               ),
             ],
@@ -577,7 +582,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(label, style: const TextStyle(color: AppColors.textDisabled)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
         ],
       ),
@@ -626,7 +631,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
           _isLoginMode
               ? 'Melde dich mit deinem bestehenden Konto an'
               : 'Erstelle ein Konto um dein Turnier zu verwalten',
-          style: const TextStyle(color: Colors.grey),
+          style: const TextStyle(color: AppColors.textDisabled),
         ),
         const SizedBox(height: 24),
         TextField(
@@ -710,7 +715,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: AppColors.grey100,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(

@@ -48,14 +48,14 @@ class _LoginDialogState extends State<LoginDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Konto erfolgreich erstellt!'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(authState.error ?? 'Registrierung fehlgeschlagen'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
             ),
           );
         }
@@ -73,14 +73,14 @@ class _LoginDialogState extends State<LoginDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Erfolgreich angemeldet!'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(authState.error ?? 'Anmeldung fehlgeschlagen'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
             ),
           );
         }
@@ -93,7 +93,7 @@ class _LoginDialogState extends State<LoginDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Bitte gib deine E-Mail ein'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -108,14 +108,14 @@ class _LoginDialogState extends State<LoginDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Passwort-Reset E-Mail wurde gesendet'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(authState.error ?? 'Fehler beim Senden der E-Mail'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -171,7 +171,7 @@ class _LoginDialogState extends State<LoginDialog> {
                         _isRegisterMode
                             ? 'Erstelle ein neues Konto'
                             : 'Zugang zu deinen Turnieren',
-                        style: const TextStyle(color: Colors.grey),
+                        style: const TextStyle(color: AppColors.textDisabled),
                       ),
                     ],
                   ),
@@ -318,7 +318,7 @@ class _LoginDialogState extends State<LoginDialog> {
                 onPressed: authState.isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: GroupPhaseColors.cupred,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.textOnColored,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -330,7 +330,7 @@ class _LoginDialogState extends State<LoginDialog> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: AppColors.textOnColored,
                         ),
                       )
                     : Text(

@@ -61,7 +61,7 @@ class TournamentStatusCard extends StatelessWidget {
     // For Group+KO mode, color by phase
     switch (currentPhase) {
       case TournamentPhase.notStarted:
-        return Colors.grey;
+        return AppColors.textDisabled;
       case TournamentPhase.groupPhase:
         return GroupPhaseColors.steelblue;
       case TournamentPhase.knockoutPhase:
@@ -110,15 +110,15 @@ class TournamentStatusCard extends StatelessWidget {
               const SizedBox(height: 8),
               LinearProgressIndicator(
                 value: totalMatches > 0 ? completedMatches / totalMatches : 0,
-                backgroundColor: Colors.grey[300],
+                backgroundColor: AppColors.grey300,
                 valueColor: AlwaysStoppedAnimation<Color>(phaseColor),
               ),
               const SizedBox(height: 4),
               Text(
                 '${((completedMatches / totalMatches) * 100).toStringAsFixed(0)}% abgeschlossen',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: AppColors.textSubtle,
                 ),
               ),
             ],
@@ -129,18 +129,19 @@ class TournamentStatusCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: AppColors.infoLight,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(color: AppColors.infoBorder),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                    Icon(Icons.info_outline, size: 16, color: AppColors.info),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Abgeschlossene Spiele können durch Antippen im Spielfeld oder Turnierbaum bearbeitet werden.',
-                        style: TextStyle(fontSize: 12, color: Colors.black87),
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.textPrimary),
                       ),
                     ),
                   ],
