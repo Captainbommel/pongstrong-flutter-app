@@ -122,6 +122,31 @@ class TournamentStatusCard extends StatelessWidget {
                 ),
               ),
             ],
+            if (completedMatches > 0 &&
+                currentPhase != TournamentPhase.notStarted) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Abgeschlossene Spiele können durch Antippen im Spielfeld oder Turnierbaum bearbeitet werden.',
+                        style: TextStyle(fontSize: 12, color: Colors.black87),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),

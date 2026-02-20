@@ -9,6 +9,23 @@ import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/widgets/match_edit_dialog.dart';
 import 'package:provider/provider.dart';
 
+/// Describes one visible bracket tab.
+class _BracketEntry {
+  final String key; // 'champions', 'europa', 'conference', 'super'
+  final String name;
+  final Color color;
+  final List<List<Match>>? rounds; // null for super cup
+  final bool isSuperCup;
+
+  const _BracketEntry({
+    required this.key,
+    required this.name,
+    required this.color,
+    this.rounds,
+    this.isSuperCup = false,
+  });
+}
+
 class TreeViewPage extends StatefulWidget {
   final ValueChanged<bool>? onExploreChanged;
 
@@ -20,58 +37,117 @@ class TreeViewPage extends StatefulWidget {
 
 class TreeViewPageState extends State<TreeViewPage>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  TabController? _tabController;
   int _selectedIndex = 0;
   bool _isExploring = false;
+  int _lastBracketCount = 0;
 
   // Cached graph data to avoid rebuilding on every frame
   final Map<String, _CachedGraph> _graphCache = {};
 
-  // Colors for each tournament
-  final List<Color> _tournamentColors = [
-    TreeColors.rebeccapurple,
-    TreeColors.royalblue,
-    TreeColors.yellowgreen,
-    TreeColors.hotpink,
-  ];
-
-  final List<String> _tournamentNames = [
-    'Champions League',
-    'Europa League',
-    'Conference League',
-    'Super Cup',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(() {
-      setState(() {
-        _selectedIndex = _tabController.index;
-      });
-    });
-  }
+  // Colors for each bracket key
+  static const Map<String, Color> _bracketColors = {
+    'champions': TreeColors.rebeccapurple,
+    'europa': TreeColors.royalblue,
+    'conference': TreeColors.yellowgreen,
+    'super': TreeColors.hotpink,
+  };
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
+  }
+
+  /// Checks whether a KnockoutBracket has meaningful data.
+  bool _bracketHasData(KnockoutBracket bracket) {
+    if (bracket.rounds.isEmpty) return false;
+    if (bracket.rounds[0].isEmpty) return false;
+    return bracket.rounds[0][0].teamId1.isNotEmpty ||
+        bracket.rounds[0][0].teamId2.isNotEmpty;
+  }
+
+  /// Checks whether the Super Cup has meaningful data.
+  bool _superCupHasData(Super superCup) {
+    if (superCup.matches.length < 2) return false;
+    return superCup.matches[0].teamId1.isNotEmpty ||
+        superCup.matches[0].teamId2.isNotEmpty ||
+        superCup.matches[1].teamId1.isNotEmpty ||
+        superCup.matches[1].teamId2.isNotEmpty;
+  }
+
+  /// Builds the list of visible bracket entries based on actual data.
+  List<_BracketEntry> _getVisibleBrackets(Knockouts knockouts) {
+    final entries = <_BracketEntry>[];
+
+    // Champions is always shown if it has data
+    if (_bracketHasData(knockouts.champions)) {
+      entries.add(_BracketEntry(
+        key: 'champions',
+        name: knockouts.getBracketName('champions'),
+        color: _bracketColors['champions']!,
+        rounds: knockouts.champions.rounds,
+      ));
+    }
+
+    if (_bracketHasData(knockouts.europa)) {
+      entries.add(_BracketEntry(
+        key: 'europa',
+        name: knockouts.getBracketName('europa'),
+        color: _bracketColors['europa']!,
+        rounds: knockouts.europa.rounds,
+      ));
+    }
+
+    if (_bracketHasData(knockouts.conference)) {
+      entries.add(_BracketEntry(
+        key: 'conference',
+        name: knockouts.getBracketName('conference'),
+        color: _bracketColors['conference']!,
+        rounds: knockouts.conference.rounds,
+      ));
+    }
+
+    if (_superCupHasData(knockouts.superCup)) {
+      entries.add(_BracketEntry(
+        key: 'super',
+        name: knockouts.getBracketName('super'),
+        color: _bracketColors['super']!,
+        isSuperCup: true,
+      ));
+    }
+
+    return entries;
+  }
+
+  void _ensureTabController(int count) {
+    if (_tabController == null || _lastBracketCount != count) {
+      _tabController?.dispose();
+      _selectedIndex = _selectedIndex.clamp(0, (count - 1).clamp(0, count));
+      _tabController = TabController(
+        length: count,
+        vsync: this,
+        initialIndex: _selectedIndex,
+      );
+      _tabController!.addListener(() {
+        if (_tabController!.index != _selectedIndex) {
+          setState(() => _selectedIndex = _tabController!.index);
+        }
+      });
+      _lastBracketCount = count;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final tournamentData = Provider.of<TournamentDataState>(context);
     final knockouts = tournamentData.knockouts;
+    final isAdmin = Provider.of<AuthState>(context).isAdmin;
     final isLargeScreen = MediaQuery.sizeOf(context).width > 940;
 
-    // Check if knockouts are empty (not yet generated)
-    final hasKnockouts = knockouts.champions.rounds.isNotEmpty &&
-        knockouts.champions.rounds[0].isNotEmpty &&
-        (knockouts.champions.rounds[0][0].teamId1.isNotEmpty ||
-            knockouts.champions.rounds[0][0].teamId2.isNotEmpty);
+    final visibleBrackets = _getVisibleBrackets(knockouts);
 
-    if (!hasKnockouts) {
+    if (visibleBrackets.isEmpty) {
       return const Scaffold(
         body: Center(
           child: Text(
@@ -80,6 +156,12 @@ class TreeViewPageState extends State<TreeViewPage>
           ),
         ),
       );
+    }
+
+    _ensureTabController(visibleBrackets.length);
+    // Clamp in case brackets shrunk
+    if (_selectedIndex >= visibleBrackets.length) {
+      _selectedIndex = visibleBrackets.length - 1;
     }
 
     return Scaffold(
@@ -92,10 +174,27 @@ class TreeViewPageState extends State<TreeViewPage>
               child: TabBar(
                 controller: _tabController,
                 labelColor: Colors.black,
-                indicatorColor: _tournamentColors[_tabController.index],
+                indicatorColor: visibleBrackets[_tabController!.index].color,
                 indicatorWeight: 4,
                 tabs: [
-                  for (final name in _tournamentNames) Tab(text: name),
+                  for (final b in visibleBrackets)
+                    Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(b.name),
+                          if (isAdmin) ...[
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () =>
+                                  _showRenameDialog(b.key, b.name, b.color),
+                              child: Icon(Icons.edit,
+                                  size: 14, color: Colors.grey[500]),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                 ],
               ),
             )
@@ -117,25 +216,35 @@ class TreeViewPageState extends State<TreeViewPage>
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(
-                      color: _tournamentColors[_selectedIndex],
+                      color: visibleBrackets[_selectedIndex].color,
                       width: 2,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(
-                      color: _tournamentColors[_selectedIndex],
+                      color: visibleBrackets[_selectedIndex].color,
                       width: 2,
                     ),
                   ),
+                  suffixIcon: isAdmin
+                      ? IconButton(
+                          icon: const Icon(Icons.edit, size: 18),
+                          onPressed: () => _showRenameDialog(
+                            visibleBrackets[_selectedIndex].key,
+                            visibleBrackets[_selectedIndex].name,
+                            visibleBrackets[_selectedIndex].color,
+                          ),
+                        )
+                      : null,
                 ),
                 dropdownColor: Colors.white,
                 focusColor: Colors.transparent,
                 items: [
-                  for (int i = 0; i < _tournamentNames.length; i++)
+                  for (int i = 0; i < visibleBrackets.length; i++)
                     DropdownMenuItem(
                       value: i,
-                      child: Text(_tournamentNames[i]),
+                      child: Text(visibleBrackets[i].name),
                     ),
                 ],
                 onChanged: (value) {
@@ -152,29 +261,94 @@ class TreeViewPageState extends State<TreeViewPage>
                 ? TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildTournamentTree(
-                        'Champions League',
-                        knockouts.champions.rounds,
-                        TreeColors.rebeccapurple,
-                      ),
-                      _buildTournamentTree(
-                        'Europa League',
-                        knockouts.europa.rounds,
-                        TreeColors.royalblue,
-                      ),
-                      _buildTournamentTree(
-                        'Conference League',
-                        knockouts.conference.rounds,
-                        TreeColors.yellowgreen,
-                      ),
-                      _buildSuperCupTree(knockouts),
+                      for (final b in visibleBrackets)
+                        b.isSuperCup
+                            ? _buildSuperCupTree(knockouts)
+                            : _buildTournamentTree(b.key, b.rounds!, b.color),
                     ],
                   )
-                : _buildMobileTreeWithOverlay(knockouts),
+                : _buildMobileTreeWithOverlay(knockouts, visibleBrackets),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _showRenameDialog(
+      String bracketKey, String currentName, Color bracketColor) async {
+    final controller = TextEditingController(text: currentName);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) => Theme(
+        data: Theme.of(context).copyWith(
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: bracketColor,
+            selectionColor: bracketColor.withValues(alpha: 0.3),
+            selectionHandleColor: bracketColor,
+          ),
+        ),
+        child: AlertDialog(
+          title: Text(
+            'Liga umbenennen',
+            style: TextStyle(color: bracketColor),
+          ),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            cursorColor: bracketColor,
+            decoration: InputDecoration(
+              hintText: 'Neuer Name',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: bracketColor,
+                  width: 2,
+                ),
+              ),
+            ),
+            onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Abbrechen',
+                style: TextStyle(color: bracketColor),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: bracketColor,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () =>
+                  Navigator.of(context).pop(controller.text.trim()),
+              child: const Text('Speichern'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (newName != null && newName.isNotEmpty && newName != currentName) {
+      if (mounted) {
+        final success =
+            await Provider.of<TournamentDataState>(context, listen: false)
+                .updateBracketName(bracketKey, newName);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content:
+                  Text(success ? 'Name geändert' : 'Fehler beim Umbenennen'),
+              backgroundColor:
+                  success ? FieldColors.springgreen : GroupPhaseColors.cupred,
+            ),
+          );
+        }
+      }
+    }
   }
 
   void _setExploring(bool value) {
@@ -182,13 +356,21 @@ class TreeViewPageState extends State<TreeViewPage>
     widget.onExploreChanged?.call(value);
   }
 
-  Widget _buildMobileTreeWithOverlay(Knockouts knockouts) {
+  Widget _buildMobileTreeWithOverlay(
+      Knockouts knockouts, List<_BracketEntry> visibleBrackets) {
+    final currentBracket = visibleBrackets[_selectedIndex];
     return Stack(
       children: [
         // Tree content (always rendered, interactive only when exploring)
         IgnorePointer(
           ignoring: !_isExploring,
-          child: _buildSelectedTournament(knockouts),
+          child: currentBracket.isSuperCup
+              ? _buildSuperCupTree(knockouts)
+              : _buildTournamentTree(
+                  currentBracket.key,
+                  currentBracket.rounds!,
+                  currentBracket.color,
+                ),
         ),
         // Blur overlay when not exploring
         if (!_isExploring) ...[
@@ -209,7 +391,7 @@ class TreeViewPageState extends State<TreeViewPage>
               icon: const Icon(Icons.zoom_in),
               label: const Text('Erkunden'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _tournamentColors[_selectedIndex],
+                backgroundColor: currentBracket.color,
                 foregroundColor: Colors.white,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -238,35 +420,8 @@ class TreeViewPageState extends State<TreeViewPage>
     );
   }
 
-  Widget _buildSelectedTournament(Knockouts knockouts) {
-    switch (_selectedIndex) {
-      case 0:
-        return _buildTournamentTree(
-          'Champions League',
-          knockouts.champions.rounds,
-          TreeColors.rebeccapurple,
-        );
-      case 1:
-        return _buildTournamentTree(
-          'Europa League',
-          knockouts.europa.rounds,
-          TreeColors.royalblue,
-        );
-      case 2:
-        return _buildTournamentTree(
-          'Conference League',
-          knockouts.conference.rounds,
-          TreeColors.yellowgreen,
-        );
-      case 3:
-        return _buildSuperCupTree(knockouts);
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
   Widget _buildTournamentTree(
-    String title,
+    String cacheKey,
     List<List<Match>> rounds,
     Color color,
   ) {
@@ -281,7 +436,6 @@ class TreeViewPageState extends State<TreeViewPage>
     }
 
     // Use cached graph or build a new one
-    final cacheKey = title;
     final matchCount = rounds.fold<int>(0, (sum, round) => sum + round.length);
     var cached = _graphCache[cacheKey];
     if (cached == null || cached.matchCount != matchCount) {

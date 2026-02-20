@@ -114,15 +114,33 @@ class Knockouts {
   /// The Super Cup finals.
   Super superCup;
 
+  /// Custom display names for each bracket.
+  /// Keys: 'champions', 'europa', 'conference', 'super'.
+  Map<String, String> bracketNames;
+
+  /// Default bracket display names.
+  static const Map<String, String> defaultBracketNames = {
+    'champions': 'Gold Liga',
+    'europa': 'Silber Liga',
+    'conference': 'Bronze Liga',
+    'super': 'Extra Liga',
+  };
+
   Knockouts({
     Champions? champions,
     Europa? europa,
     Conference? conference,
     Super? superCup,
+    Map<String, String>? bracketNames,
   })  : champions = champions ?? Champions(),
         europa = europa ?? Europa(),
         conference = conference ?? Conference(),
-        superCup = superCup ?? Super();
+        superCup = superCup ?? Super(),
+        bracketNames = bracketNames ?? Map.from(defaultBracketNames);
+
+  /// Returns the display name for a bracket key.
+  String getBracketName(String key) =>
+      bracketNames[key] ?? defaultBracketNames[key] ?? key;
 
   /// Creates all match stubs across all brackets.
   void instantiate() {
@@ -392,10 +410,15 @@ class Knockouts {
         'europa': europa.toJson(),
         'conference': conference.toJson(),
         'super': superCup.toJson(),
+        'bracketNames': bracketNames,
       };
 
   /// Creates a deep copy of this Knockouts.
-  Knockouts clone() => Knockouts.fromJson(toJson());
+  Knockouts clone() {
+    final cloned = Knockouts.fromJson(toJson());
+    cloned.bracketNames = Map.from(bracketNames);
+    return cloned;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -410,13 +433,16 @@ class Knockouts {
   int get hashCode => Object.hash(champions, europa, conference, superCup);
 
   /// Creates a [Knockouts] from a Firestore JSON map.
-  factory Knockouts.fromJson(Map<String, dynamic> json) => Knockouts(
-        champions: KnockoutBracket.fromJson((json['champions'] as List?) ?? []),
-        europa: KnockoutBracket.fromJson((json['europa'] as List?) ?? []),
-        conference:
-            KnockoutBracket.fromJson((json['conference'] as List?) ?? []),
-        superCup: Super.fromJson((json['super'] as List?) ?? []),
-      );
+  factory Knockouts.fromJson(Map<String, dynamic> json) {
+    final names = json['bracketNames'] as Map<String, dynamic>?;
+    return Knockouts(
+      champions: KnockoutBracket.fromJson((json['champions'] as List?) ?? []),
+      europa: KnockoutBracket.fromJson((json['europa'] as List?) ?? []),
+      conference: KnockoutBracket.fromJson((json['conference'] as List?) ?? []),
+      superCup: Super.fromJson((json['super'] as List?) ?? []),
+      bracketNames: names?.map((k, v) => MapEntry(k, v.toString())),
+    );
+  }
 }
 
 // mapTables maps the tables to the Knockout matches

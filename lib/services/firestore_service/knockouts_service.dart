@@ -49,6 +49,7 @@ mixin KnockoutsService on FirestoreBase {
       'europa': _bracketToMap(knockouts.europa),
       'conference': _bracketToMap(knockouts.conference),
       'super': knockouts.superCup.toJson(),
+      'bracketNames': knockouts.bracketNames,
       'updatedAt': FieldValue.serverTimestamp(),
     };
     await getDoc(tournamentId, 'knockouts').set(data);
@@ -78,11 +79,15 @@ mixin KnockoutsService on FirestoreBase {
           .map((m) => Match.fromJson(m as Map<String, dynamic>))
           .toList();
 
+      final namesRaw = data['bracketNames'] as Map<String, dynamic>?;
+      final bracketNames = namesRaw?.map((k, v) => MapEntry(k, v.toString()));
+
       return Knockouts(
         champions: _parseBracket(data['champions']),
         europa: _parseBracket(data['europa']),
         conference: _parseBracket(data['conference']),
         superCup: Super(matches: superMatches),
+        bracketNames: bracketNames,
       );
     } catch (e) {
       Logger.error('Error parsing knockouts',
@@ -116,11 +121,15 @@ mixin KnockoutsService on FirestoreBase {
               .toList() ??
           [];
 
+      final namesRaw = data['bracketNames'] as Map<String, dynamic>?;
+      final bracketNames = namesRaw?.map((k, v) => MapEntry(k, v.toString()));
+
       return Knockouts(
         champions: champions,
         europa: _parseBracket(data['europa']),
         conference: _parseBracket(data['conference']),
         superCup: Super(matches: superMatches),
+        bracketNames: bracketNames,
       );
     });
   }

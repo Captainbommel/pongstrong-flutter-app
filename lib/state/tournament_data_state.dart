@@ -192,6 +192,23 @@ class TournamentDataState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Updates a bracket's display name and persists to Firestore.
+  Future<bool> updateBracketName(String bracketKey, String newName) async {
+    try {
+      _knockouts.bracketNames[bracketKey] = newName;
+      await _firestoreService.saveKnockouts(
+        _knockouts,
+        tournamentId: _currentTournamentId,
+      );
+      notifyListeners();
+      return true;
+    } catch (e) {
+      Logger.error('Error updating bracket name',
+          tag: 'TournamentData', error: e);
+      return false;
+    }
+  }
+
   /// Setup real-time streams from Firestore
   void _setupStreams() {
     _cancelStreams(); // Cancel any existing subscriptions
