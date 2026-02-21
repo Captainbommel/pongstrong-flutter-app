@@ -83,7 +83,13 @@ class AppSelector extends StatelessWidget {
       return const LandingPage();
     }
 
-    // Show the unified responsive app shell
-    return const AppShell();
+    // PopScope prevents the root route from being popped on web.
+    // Without it, an accidental double-pop (e.g. bottom-sheet dismiss
+    // racing with the auto-close timer) calls SystemNavigator.pop()
+    // which navigates the browser back to index.html.
+    return const PopScope(
+      canPop: false,
+      child: AppShell(),
+    );
   }
 }

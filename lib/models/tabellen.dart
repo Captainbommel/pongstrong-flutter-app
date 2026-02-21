@@ -1,3 +1,6 @@
+import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/models/scoring.dart';
+
 /// A single row in a group standings table.
 class TableRow {
   /// The team's unique identifier.
@@ -73,25 +76,60 @@ class Tabellen {
 
   Tabellen({List<List<TableRow>>? tables}) : tables = tables ?? [];
 
-  /// Sorts a group standings table by points, then difference, then cups.
-  static void sortTable(List<TableRow> table) {
+  /// Sorts a group standings table by points, then difference, then cups,
+  /// then head-to-head result between the two tied teams.
+  ///
+  /// When [matches] is provided, the direct match result is used as the
+  /// final tiebreaker before falling back to alphabetical team ID.
+  static void sortTable(List<TableRow> table, {List<Match>? matches}) {
     table.sort((a, b) {
       if (a.points != b.points) return b.points.compareTo(a.points);
       if (a.difference != b.difference) {
         return b.difference.compareTo(a.difference);
       }
       if (a.cups != b.cups) return b.cups.compareTo(a.cups);
-      // TODO: Better tiebreaker — use the direct comparison (head-to-head)
-      // between the two tied teams to determine who placed higher, instead of
-      // falling back to alphabetical teamId.
+      // Head-to-head: check which team won the direct match
+      if (matches != null) {
+        final h2h = headToHeadResult(a.teamId, b.teamId, matches);
+        if (h2h != 0) return h2h;
+      }
       return a.teamId.compareTo(b.teamId);
     });
   }
 
-  /// Sorts all standings tables.
-  void sortTables() {
-    for (final table in tables) {
-      sortTable(table);
+  /// Returns the head-to-head comparison result between [teamA] and [teamB]
+  /// from the given [matches].
+  ///
+  /// Returns a negative value if teamA won (should rank higher),
+  /// a positive value if teamB won, or 0 if no decisive result was found.
+  static int headToHeadResult(String teamA, String teamB, List<Match> matches) {
+    for (final match in matches) {
+      if (!match.done) continue;
+      final isMatchup = (match.teamId1 == teamA && match.teamId2 == teamB) ||
+          (match.teamId1 == teamB && match.teamId2 == teamA);
+      if (!isMatchup) continue;
+
+      final winner = determineWinner(match.score1, match.score2);
+      if (winner == null) continue;
+
+      final winnerId = winner == 1 ? match.teamId1 : match.teamId2;
+      if (winnerId == teamA) return -1; // teamA ranks higher
+      if (winnerId == teamB) return 1; // teamB ranks higher
+    }
+    return 0;
+  }
+
+  /// Sorts all standings tables using the corresponding group matches
+  /// for head-to-head tiebreaking.
+  ///
+  /// When [groupMatches] is provided, each element corresponds to the
+  /// matches of the group at the same index.
+  void sortTables({List<List<Match>>? groupMatches}) {
+    for (int i = 0; i < tables.length; i++) {
+      final matches = (groupMatches != null && i < groupMatches.length)
+          ? groupMatches[i]
+          : null;
+      sortTable(tables[i], matches: matches);
     }
   }
 

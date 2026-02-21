@@ -73,12 +73,15 @@ List<TableRow> evaluate(List<Match> matches) {
 }
 
 /// Evaluates all groups in a [Gruppenphase] and returns sorted [Tabellen].
+///
+/// Uses head-to-head match results as the final tiebreaker when points,
+/// cup difference, and total cups are all equal.
 Tabellen evalGruppen(Gruppenphase gruppenphase) {
   final tables = <List<TableRow>>[];
   for (final group in gruppenphase.groups) {
     tables.add(evaluate(group));
   }
   final tabellen = Tabellen(tables: tables);
-  tabellen.sortTables();
+  tabellen.sortTables(groupMatches: gruppenphase.groups);
   return tabellen;
 }

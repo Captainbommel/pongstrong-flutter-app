@@ -8,6 +8,24 @@ import 'package:pongstrong/utils/app_logger.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:provider/provider.dart';
 
+/// Status phases for dialog operations.
+enum _DialogStatus { idle, loading, success, error }
+
+/// Safely pops the current bottom-sheet route.
+///
+/// On Flutter web, popping the last (root) route calls
+/// `SystemNavigator.pop()` which navigates the browser back to
+/// `index.html`.  This guard ensures we only pop when the modal
+/// route is still the current one – preventing the double-pop
+/// that occurs when the user dismisses the sheet while the
+/// success timer is still running.
+void _safePop(BuildContext context) {
+  final route = ModalRoute.of(context);
+  if (route != null && route.isCurrent) {
+    Navigator.pop(context);
+  }
+}
+
 /// Shows a bottom sheet dialog to finish a match by entering scores.
 ///
 /// Controllers are managed internally and disposed when the dialog closes.
@@ -50,6 +68,8 @@ class _FinishMatchContent extends StatefulWidget {
 class _FinishMatchContentState extends State<_FinishMatchContent> {
   final _cups1 = TextEditingController();
   final _cups2 = TextEditingController();
+  _DialogStatus _status = _DialogStatus.idle;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -58,10 +78,52 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
     super.dispose();
   }
 
+  Future<void> _submit() async {
+    final authState = Provider.of<AuthState>(context, listen: false);
+    if (!authState.isParticipant && !authState.isAdmin) {
+      setState(() {
+        _status = _DialogStatus.error;
+        _errorMessage = 'Keine Berechtigung. Bitte dem Turnier beitreten.';
+      });
+      return;
+    }
+
+    setState(() {
+      _status = _DialogStatus.loading;
+      _errorMessage = null;
+    });
+
+    final score1 = int.tryParse(_cups1.text) ?? 0;
+    final score2 = int.tryParse(_cups2.text) ?? 0;
+
+    final tournamentData =
+        Provider.of<TournamentDataState>(context, listen: false);
+    final success = await tournamentData.finishMatch(
+      widget.match.id,
+      score1: score1,
+      score2: score2,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      setState(() => _status = _DialogStatus.success);
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) _safePop(context);
+    } else {
+      setState(() {
+        _status = _DialogStatus.error;
+        _errorMessage = 'Ungültiges Ergebnis oder Fehler beim Speichern.';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isLargeScreen = screenWidth > 600;
+    final isInteractive =
+        _status == _DialogStatus.idle || _status == _DialogStatus.error;
 
     return Container(
       height: MediaQuery.of(context).size.height / 3,
@@ -107,7 +169,7 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 16.0),
                       ),
-                      cupInput(_cups1),
+                      cupInput(_cups1, enabled: isInteractive),
                     ],
                   ),
                 ),
@@ -119,69 +181,63 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 16.0),
                       ),
-                      cupInput(_cups2),
+                      cupInput(_cups2, enabled: isInteractive),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final authState = Provider.of<AuthState>(context, listen: false);
-              if (!authState.isParticipant && !authState.isAdmin) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                        'Keine Berechtigung. Bitte dem Turnier beitreten.'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-
-              final score1 = int.tryParse(_cups1.text) ?? 0;
-              final score2 = int.tryParse(_cups2.text) ?? 0;
-
-              final tournamentData =
-                  Provider.of<TournamentDataState>(context, listen: false);
-              final success = await tournamentData.finishMatch(
-                widget.match.id,
-                score1: score1,
-                score2: score2,
-              );
-
-              if (!context.mounted) return;
-
-              if (!success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Fehler beim Abschließen des Spiels'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.surface,
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(color: FieldColors.skyblue, width: 3),
-                borderRadius: BorderRadius.circular(10),
+          if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: AppColors.error, fontSize: 13),
+                textAlign: TextAlign.center,
               ),
-              overlayColor: FieldColors.skyblue.withAlpha(128),
             ),
-            child: const Text(
-              'Spiel Abschließen',
-              style: TextStyle(color: AppColors.shadow),
-            ),
-          ),
+          _buildActionArea(),
         ],
       ),
     );
+  }
+
+  Widget _buildActionArea() {
+    switch (_status) {
+      case _DialogStatus.loading:
+        return const SizedBox(
+          width: 36,
+          height: 36,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            color: FieldColors.skyblue,
+          ),
+        );
+      case _DialogStatus.success:
+        return const Icon(
+          Icons.check_circle,
+          color: FieldColors.skyblue,
+          size: 36,
+        );
+      case _DialogStatus.idle:
+      case _DialogStatus.error:
+        return ElevatedButton(
+          onPressed: _submit,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(color: FieldColors.skyblue, width: 3),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            overlayColor: FieldColors.skyblue.withAlpha(128),
+          ),
+          child: const Text(
+            'Spiel Abschließen',
+            style: TextStyle(color: AppColors.shadow),
+          ),
+        );
+    }
   }
 }
 
@@ -209,11 +265,12 @@ class CupsTextInputFormatter extends TextInputFormatter {
   }
 }
 
-SizedBox cupInput(TextEditingController cups1) {
+SizedBox cupInput(TextEditingController cups1, {bool enabled = true}) {
   return SizedBox(
     width: 100,
     child: TextField(
       controller: cups1,
+      enabled: enabled,
       keyboardType: TextInputType.number,
       inputFormatters: [CupsTextInputFormatter()],
       textAlign: TextAlign.center,
@@ -250,116 +307,184 @@ Future<dynamic> startMatchDialog(
   return showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
-      final screenWidth = MediaQuery.of(context).size.width;
-      final isLargeScreen = screenWidth > 600;
-
-      Future<void> handleStartMatch() async {
-        // Verify user is participant/admin before allowing match start
-        final authState = Provider.of<AuthState>(context, listen: false);
-        if (!authState.isParticipant && !authState.isAdmin) {
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Keine Berechtigung. Bitte dem Turnier beitreten.'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-          return;
-        }
-
-        final tournamentData =
-            Provider.of<TournamentDataState>(context, listen: false);
-        final matchId = match.id;
-        Logger.debug(
-            'Starting match with ID $matchId at table ${match.tableNumber}',
-            tag: 'MatchDialog');
-
-        final success = await tournamentData.startMatch(matchId);
-
-        if (!context.mounted) return;
-
-        if (success) {
-          Navigator.pop(context);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Tisch nicht verfügbar'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-      }
-
-      return Container(
-        height: MediaQuery.of(context).size.height / 3,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: isLargeScreen
-              ? const Border(
-                  top: BorderSide(color: FieldColors.skyblue, width: 14.0),
-                  left: BorderSide(color: FieldColors.skyblue, width: 14.0),
-                  right: BorderSide(color: FieldColors.skyblue, width: 14.0),
-                )
-              : const Border(
-                  top: BorderSide(color: FieldColors.skyblue, width: 14.0),
-                ),
-          borderRadius: isLargeScreen
-              ? const BorderRadius.only(
-                  topLeft: Radius.circular(12.0),
-                  topRight: Radius.circular(12.0),
-                )
-              : BorderRadius.zero,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: <Widget>[
-            const Text(
-              'Match Info:',
-              style: TextStyle(
-                fontSize: 20.0,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Flexible(
-                  child: Column(
-                    children: [
-                      Text('$team1:'),
-                      for (final member in members1) Text(member),
-                    ],
-                  ),
-                ),
-                Flexible(
-                  child: Column(
-                    children: [
-                      Text('$team2:'),
-                      for (final member in members2) Text(member),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            ElevatedButton(
-              // autofocus: true,
-              onPressed: handleStartMatch,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.surface,
-                shape: RoundedRectangleBorder(
-                  side: const BorderSide(color: FieldColors.skyblue, width: 3),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                overlayColor: FieldColors.skyblue.withAlpha(128),
-              ),
-              child: const Text(
-                'Spiel starten',
-                style: TextStyle(color: AppColors.shadow),
-              ),
-            ),
-          ],
-        ),
+      return _StartMatchContent(
+        team1: team1,
+        team2: team2,
+        members1: members1,
+        members2: members2,
+        match: match,
       );
     },
   );
+}
+
+/// Stateful content for the start-match bottom sheet.
+class _StartMatchContent extends StatefulWidget {
+  final String team1;
+  final String team2;
+  final List<String> members1;
+  final List<String> members2;
+  final Match match;
+
+  const _StartMatchContent({
+    required this.team1,
+    required this.team2,
+    required this.members1,
+    required this.members2,
+    required this.match,
+  });
+
+  @override
+  State<_StartMatchContent> createState() => _StartMatchContentState();
+}
+
+class _StartMatchContentState extends State<_StartMatchContent> {
+  _DialogStatus _status = _DialogStatus.idle;
+  String? _errorMessage;
+
+  Future<void> _handleStartMatch() async {
+    final authState = Provider.of<AuthState>(context, listen: false);
+    if (!authState.isParticipant && !authState.isAdmin) {
+      setState(() {
+        _status = _DialogStatus.error;
+        _errorMessage = 'Keine Berechtigung. Bitte dem Turnier beitreten.';
+      });
+      return;
+    }
+
+    setState(() {
+      _status = _DialogStatus.loading;
+      _errorMessage = null;
+    });
+
+    final tournamentData =
+        Provider.of<TournamentDataState>(context, listen: false);
+    final matchId = widget.match.id;
+    Logger.debug(
+        'Starting match with ID $matchId at table ${widget.match.tableNumber}',
+        tag: 'MatchDialog');
+
+    final success = await tournamentData.startMatch(matchId);
+
+    if (!mounted) return;
+
+    if (success) {
+      setState(() => _status = _DialogStatus.success);
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) _safePop(context);
+    } else {
+      setState(() {
+        _status = _DialogStatus.error;
+        _errorMessage = 'Tisch nicht verfügbar';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 600;
+
+    return Container(
+      height: MediaQuery.of(context).size.height / 3,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: isLargeScreen
+            ? const Border(
+                top: BorderSide(color: FieldColors.skyblue, width: 14.0),
+                left: BorderSide(color: FieldColors.skyblue, width: 14.0),
+                right: BorderSide(color: FieldColors.skyblue, width: 14.0),
+              )
+            : const Border(
+                top: BorderSide(color: FieldColors.skyblue, width: 14.0),
+              ),
+        borderRadius: isLargeScreen
+            ? const BorderRadius.only(
+                topLeft: Radius.circular(12.0),
+                topRight: Radius.circular(12.0),
+              )
+            : BorderRadius.zero,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: <Widget>[
+          const Text(
+            'Match Info:',
+            style: TextStyle(
+              fontSize: 20.0,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Flexible(
+                child: Column(
+                  children: [
+                    Text('${widget.team1}:'),
+                    for (final member in widget.members1) Text(member),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: Column(
+                  children: [
+                    Text('${widget.team2}:'),
+                    for (final member in widget.members2) Text(member),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: AppColors.error, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          _buildActionArea(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionArea() {
+    switch (_status) {
+      case _DialogStatus.loading:
+        return const SizedBox(
+          width: 36,
+          height: 36,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            color: FieldColors.skyblue,
+          ),
+        );
+      case _DialogStatus.success:
+        return const Icon(
+          Icons.check_circle,
+          color: FieldColors.skyblue,
+          size: 36,
+        );
+      case _DialogStatus.idle:
+      case _DialogStatus.error:
+        return ElevatedButton(
+          onPressed: _handleStartMatch,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(color: FieldColors.skyblue, width: 3),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            overlayColor: FieldColors.skyblue.withAlpha(128),
+          ),
+          child: const Text(
+            'Spiel starten',
+            style: TextStyle(color: AppColors.shadow),
+          ),
+        );
+    }
+  }
 }

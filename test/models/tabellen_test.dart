@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pongstrong/models/match.dart';
 import 'package:pongstrong/models/tabellen.dart';
 
 void main() {
@@ -164,6 +165,164 @@ void main() {
       expect(table.length, 1);
       expect(table[0].teamId, 't1');
     });
+
+    test('uses head-to-head when all other metrics equal', () {
+      final matches = [
+        Match(
+          teamId1: 't1',
+          teamId2: 't2',
+          score1: 10,
+          score2: 5,
+          done: true,
+        ),
+      ];
+      final table = [
+        TableRow(teamId: 't1', points: 3, difference: 2, cups: 15),
+        TableRow(teamId: 't2', points: 3, difference: 2, cups: 15),
+      ];
+
+      Tabellen.sortTable(table, matches: matches);
+
+      expect(table[0].teamId, 't1'); // t1 beat t2 head-to-head
+      expect(table[1].teamId, 't2');
+    });
+
+    test('head-to-head: team2 won the direct match', () {
+      final matches = [
+        Match(
+          teamId1: 't1',
+          teamId2: 't2',
+          score1: 5,
+          score2: 10,
+          done: true,
+        ),
+      ];
+      final table = [
+        TableRow(teamId: 't1', points: 3, difference: 2, cups: 15),
+        TableRow(teamId: 't2', points: 3, difference: 2, cups: 15),
+      ];
+
+      Tabellen.sortTable(table, matches: matches);
+
+      expect(table[0].teamId, 't2'); // t2 beat t1 head-to-head
+      expect(table[1].teamId, 't1');
+    });
+
+    test('head-to-head: no direct match → falls back to alphabetical', () {
+      final matches = [
+        Match(
+          teamId1: 't1',
+          teamId2: 't3',
+          score1: 10,
+          score2: 5,
+          done: true,
+        ),
+      ];
+      final table = [
+        TableRow(teamId: 't2', points: 3, difference: 2, cups: 15),
+        TableRow(teamId: 't1', points: 3, difference: 2, cups: 15),
+      ];
+
+      Tabellen.sortTable(table, matches: matches);
+
+      expect(table[0].teamId, 't1'); // alphabetical fallback
+      expect(table[1].teamId, 't2');
+    });
+
+    test('head-to-head: unfinished direct match → falls back to alphabetical',
+        () {
+      final matches = [
+        Match(
+          teamId1: 't1',
+          teamId2: 't2',
+        ),
+      ];
+      final table = [
+        TableRow(teamId: 't2', points: 3, difference: 2, cups: 15),
+        TableRow(teamId: 't1', points: 3, difference: 2, cups: 15),
+      ];
+
+      Tabellen.sortTable(table, matches: matches);
+
+      expect(table[0].teamId, 't1'); // alphabetical fallback
+      expect(table[1].teamId, 't2');
+    });
+
+    test('head-to-head with deathcup win', () {
+      final matches = [
+        Match(
+          teamId1: 't1',
+          teamId2: 't2',
+          score1: -1,
+          score2: 5,
+          done: true,
+        ),
+      ];
+      final table = [
+        TableRow(teamId: 't2', points: 4, cups: 10),
+        TableRow(teamId: 't1', points: 4, cups: 10),
+      ];
+
+      Tabellen.sortTable(table, matches: matches);
+
+      expect(table[0].teamId, 't1'); // t1 won via deathcup
+      expect(table[1].teamId, 't2');
+    });
+
+    test('head-to-head with overtime win', () {
+      final matches = [
+        Match(
+          teamId1: 't1',
+          teamId2: 't2',
+          score1: 15,
+          score2: 16,
+          done: true,
+        ),
+      ];
+      final table = [
+        TableRow(teamId: 't1', points: 2, cups: 16),
+        TableRow(teamId: 't2', points: 2, cups: 16),
+      ];
+
+      Tabellen.sortTable(table, matches: matches);
+
+      expect(table[0].teamId, 't2'); // t2 won 16-15
+      expect(table[1].teamId, 't1');
+    });
+
+    test('head-to-head not used when points differ', () {
+      // Even though t2 beat t1 head-to-head, t1 has more points
+      final matches = [
+        Match(
+          teamId1: 't1',
+          teamId2: 't2',
+          score1: 5,
+          score2: 10,
+          done: true,
+        ),
+      ];
+      final table = [
+        TableRow(teamId: 't2', points: 3),
+        TableRow(teamId: 't1', points: 6),
+      ];
+
+      Tabellen.sortTable(table, matches: matches);
+
+      expect(table[0].teamId, 't1'); // t1 has more points
+      expect(table[1].teamId, 't2');
+    });
+
+    test('no matches provided → falls back to alphabetical', () {
+      final table = [
+        TableRow(teamId: 't2', points: 3, difference: 2, cups: 15),
+        TableRow(teamId: 't1', points: 3, difference: 2, cups: 15),
+      ];
+
+      Tabellen.sortTable(table);
+
+      expect(table[0].teamId, 't1'); // alphabetical fallback
+      expect(table[1].teamId, 't2');
+    });
   });
 
   group('sortTables', () {
@@ -191,6 +350,47 @@ void main() {
       final tabellen = Tabellen();
       tabellen.sortTables();
       expect(tabellen.tables, isEmpty);
+    });
+
+    test('applies head-to-head from groupMatches per group', () {
+      final group0Matches = [
+        Match(
+          teamId1: 't1',
+          teamId2: 't2',
+          score1: 5,
+          score2: 10,
+          done: true,
+        ),
+      ];
+      final group1Matches = [
+        Match(
+          teamId1: 't3',
+          teamId2: 't4',
+          score1: 10,
+          score2: 5,
+          done: true,
+        ),
+      ];
+
+      final tabellen = Tabellen(tables: [
+        [
+          TableRow(teamId: 't1', points: 3, cups: 10),
+          TableRow(teamId: 't2', points: 3, cups: 10),
+        ],
+        [
+          TableRow(teamId: 't4', points: 3, cups: 10),
+          TableRow(teamId: 't3', points: 3, cups: 10),
+        ],
+      ]);
+
+      tabellen.sortTables(groupMatches: [group0Matches, group1Matches]);
+
+      // Group 0: t2 beat t1 → t2 first
+      expect(tabellen.tables[0][0].teamId, 't2');
+      expect(tabellen.tables[0][1].teamId, 't1');
+      // Group 1: t3 beat t4 → t3 first
+      expect(tabellen.tables[1][0].teamId, 't3');
+      expect(tabellen.tables[1][1].teamId, 't4');
     });
   });
 
@@ -251,6 +451,68 @@ void main() {
       expect(restored.tables.length, original.tables.length);
       expect(restored.tables[0][0].teamId, original.tables[0][0].teamId);
       expect(restored.tables[0][0].points, original.tables[0][0].points);
+    });
+  });
+
+  group('headToHeadResult', () {
+    test('returns negative when teamA won', () {
+      final matches = [
+        Match(teamId1: 'A', teamId2: 'B', score1: 10, score2: 5, done: true),
+      ];
+      expect(Tabellen.headToHeadResult('A', 'B', matches), -1);
+    });
+
+    test('returns positive when teamB won', () {
+      final matches = [
+        Match(teamId1: 'A', teamId2: 'B', score1: 5, score2: 10, done: true),
+      ];
+      expect(Tabellen.headToHeadResult('A', 'B', matches), 1);
+    });
+
+    test('returns positive when teamB won (reversed order in match)', () {
+      final matches = [
+        Match(teamId1: 'B', teamId2: 'A', score1: 10, score2: 5, done: true),
+      ];
+      expect(Tabellen.headToHeadResult('A', 'B', matches), 1);
+    });
+
+    test('returns negative when teamA won (reversed order in match)', () {
+      final matches = [
+        Match(teamId1: 'B', teamId2: 'A', score1: 5, score2: 10, done: true),
+      ];
+      expect(Tabellen.headToHeadResult('A', 'B', matches), -1);
+    });
+
+    test('returns 0 when no direct match exists', () {
+      final matches = [
+        Match(teamId1: 'A', teamId2: 'C', score1: 10, score2: 5, done: true),
+      ];
+      expect(Tabellen.headToHeadResult('A', 'B', matches), 0);
+    });
+
+    test('returns 0 when direct match is unfinished', () {
+      final matches = [
+        Match(teamId1: 'A', teamId2: 'B'),
+      ];
+      expect(Tabellen.headToHeadResult('A', 'B', matches), 0);
+    });
+
+    test('returns 0 with empty matches', () {
+      expect(Tabellen.headToHeadResult('A', 'B', []), 0);
+    });
+
+    test('handles deathcup winner correctly', () {
+      final matches = [
+        Match(teamId1: 'A', teamId2: 'B', score1: -1, score2: 5, done: true),
+      ];
+      expect(Tabellen.headToHeadResult('A', 'B', matches), -1);
+    });
+
+    test('handles deathcup OT winner correctly', () {
+      final matches = [
+        Match(teamId1: 'A', teamId2: 'B', score1: 15, score2: -2, done: true),
+      ];
+      expect(Tabellen.headToHeadResult('A', 'B', matches), 1);
     });
   });
 
