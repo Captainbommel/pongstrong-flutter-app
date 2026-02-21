@@ -310,9 +310,9 @@ class _GroupOverview extends StatelessWidget {
       ),
       children: [
         _tableCell('Team', isHeader: true, alignment: Alignment.centerLeft),
-        _tableCell('Pkt', isHeader: true),
-        _tableCell('Diff', isHeader: true),
-        _tableCell('Bch', isHeader: true),
+        _tableCell('Punkte', isHeader: true),
+        _tableCell('Diff.', isHeader: true),
+        _tableCell('Becher', isHeader: true),
       ],
     );
   }

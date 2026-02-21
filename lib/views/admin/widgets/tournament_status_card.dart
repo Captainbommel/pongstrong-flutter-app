@@ -98,14 +98,8 @@ class TournamentStatusCard extends StatelessWidget {
             _buildStatusRow('Phase:', phaseDisplayName, phaseColor),
             _buildStatusRow('Teams:', '$totalTeams', null),
             _buildStatusRow('Spiele gesamt:', '$totalMatches', null),
-            _buildStatusRow(
-                'Gespielt:', '$completedMatches', FieldColors.springgreen),
-            _buildStatusRow(
-                'Ausstehend:',
-                '$remainingMatches',
-                remainingMatches > 0
-                    ? GroupPhaseColors.cupred
-                    : FieldColors.springgreen),
+            _buildStatusRow('Gespielt:', '$completedMatches', null),
+            _buildStatusRow('Ausstehend:', '$remainingMatches', null),
             if (totalMatches > 0) ...[
               const SizedBox(height: 8),
               LinearProgressIndicator(

@@ -219,55 +219,6 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
             onPressed: _loadData,
             tooltip: 'Daten neu laden',
           ),
-          const SizedBox(width: 8),
-          _buildPhaseIndicator(state),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPhaseIndicator(AdminPanelState state) {
-    Color phaseColor;
-    String phaseText;
-
-    switch (state.currentPhase) {
-      case TournamentPhase.notStarted:
-        phaseColor = AppColors.textDisabled;
-        phaseText = 'Nicht gestartet';
-      case TournamentPhase.groupPhase:
-        phaseColor = GroupPhaseColors.steelblue;
-        phaseText = 'Gruppenphase';
-      case TournamentPhase.knockoutPhase:
-        phaseColor = TreeColors.rebeccapurple;
-        phaseText = 'K.O.-Phase';
-      case TournamentPhase.finished:
-        phaseColor = FieldColors.springgreen;
-        phaseText = 'Beendet';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: phaseColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: phaseColor),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: phaseColor,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            phaseText,
-            style: TextStyle(color: phaseColor, fontWeight: FontWeight.bold),
-          ),
         ],
       ),
     );
@@ -381,22 +332,22 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
               children: [
                 controlCard,
                 const SizedBox(height: 16),
+                importExportCard,
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              children: [
+                teamsCard,
+                const SizedBox(height: 16),
                 statusCard,
               ],
             ),
           ),
           const SizedBox(width: 16),
-          Expanded(child: teamsCard),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              children: [
-                styleCard,
-                const SizedBox(height: 16),
-                importExportCard,
-              ],
-            ),
-          ),
+          Expanded(child: styleCard),
         ],
       );
     }
@@ -411,6 +362,8 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
               controlCard,
               const SizedBox(height: 16),
               statusCard,
+              const SizedBox(height: 16),
+              importExportCard,
             ],
           ),
         ),
@@ -421,8 +374,6 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
               teamsCard,
               const SizedBox(height: 16),
               styleCard,
-              const SizedBox(height: 16),
-              importExportCard,
             ],
           ),
         ),

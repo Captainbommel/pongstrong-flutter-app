@@ -65,13 +65,19 @@ class AdminPanelDialogs {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Registriert: ${state.totalTeams} Teams'),
-          const SizedBox(height: 8),
           Text('Turniermodus: ${state.styleDisplayName}'),
+          const SizedBox(height: 8),
+          Text('Teams: ${state.totalTeams}'),
+          const SizedBox(height: 8),
+          if (state.tournamentStyle == TournamentStyle.groupsAndKnockouts) ...[
+            Text('Gruppen: ${state.numberOfGroups}'),
+            const SizedBox(height: 8),
+          ],
+          Text('Tische: ${state.numberOfTables}'),
           const SizedBox(height: 16),
           const InfoBanner(
             text:
-                'Nach dem Start können keine neuen Teams mehr hinzugefügt werden und der Turniermodus kann nicht mehr geändert werden.',
+                'Nach dem Start können keine neuen Teams mehr hinzugefügt werden, der Turniermodus und die Tischanzahl können nicht mehr geändert werden.',
             color: AppColors.caution,
           ),
         ],
@@ -121,10 +127,7 @@ class AdminPanelDialogs {
     final confirmed = await showConfirmationDialog(
       context,
       title: 'Zur nächsten Phase wechseln?',
-      titleIcon: Icons.skip_next,
       confirmText: 'Zur K.O.-Phase',
-      confirmIcon: Icons.skip_next,
-      confirmColor: TreeColors.rebeccapurple,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

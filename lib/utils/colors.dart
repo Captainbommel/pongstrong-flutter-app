@@ -72,6 +72,10 @@ class AppColors {
   static const caution = Color(0xFFFFC107);
   static const cautionLight = Color(0xFFFFF8E1);
 
+  // ─── Accent: Golden yellow (UI accents, teams & groups) ──
+  static const accent = Color(0xFFE5A100);
+  static const accentLight = Color(0xFFFFF3D6);
+
   // ─── Feedback: Info (blue) ─────────────────────────────
   static const info = Color(0xFF2196F3);
   static const infoLight = Color(0xFFE3F2FD);

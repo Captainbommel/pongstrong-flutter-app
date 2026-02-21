@@ -284,28 +284,16 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   }
 
   Future<void> _assignGroupsRandomly() async {
-    if (_hasUnsavedChanges) {
-      await _saveAllTeams();
-    }
-
-    final success = await widget.adminState.assignGroupsRandomly();
-    if (success) {
+    final assignments = widget.adminState.shuffleGroupsLocally();
+    if (assignments != null) {
       for (final controller in _teamControllers) {
-        if (controller.id != null) {
-          final idx = widget.adminState.getTeamGroupIndex(controller.id!);
-          controller.groupIndex = idx == -1 ? null : idx;
+        if (controller.id != null && assignments.containsKey(controller.id)) {
+          controller.groupIndex = assignments[controller.id];
         }
       }
-      setState(() {});
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Teams wurden zufällig auf Gruppen verteilt'),
-            backgroundColor: FieldColors.springgreen,
-          ),
-        );
-      }
+      setState(() {
+        _hasUnsavedChanges = true;
+      });
     }
   }
 
@@ -323,7 +311,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             style: TextButton.styleFrom(
-              foregroundColor: GroupPhaseColors.cupred,
+              foregroundColor: TreeColors.rebeccapurple,
             ),
             child: const Text('Abbrechen'),
           ),
@@ -335,6 +323,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             ),
             child: const Text('Verwerfen'),
           ),
+          const SizedBox(width: 4),
           ElevatedButton(
             onPressed: () async {
               Navigator.of(context).pop(false);
@@ -348,7 +337,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
               backgroundColor: TreeColors.rebeccapurple,
               foregroundColor: AppColors.textOnColored,
             ),
-            child: const Text('Speichern & Schließen'),
+            child: const Text('Speichern'),
           ),
         ],
       ),
@@ -387,18 +376,17 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         child: Theme(
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: GroupPhaseColors.steelblue,
+                  primary: AppColors.accent,
                 ),
             inputDecorationTheme: const InputDecorationTheme(
               focusedBorder: OutlineInputBorder(
-                borderSide:
-                    BorderSide(color: GroupPhaseColors.steelblue, width: 2),
+                borderSide: BorderSide(color: AppColors.accent, width: 2),
               ),
             ),
             textSelectionTheme: TextSelectionThemeData(
-              cursorColor: GroupPhaseColors.steelblue,
-              selectionColor: GroupPhaseColors.steelblue.withAlpha(64),
-              selectionHandleColor: GroupPhaseColors.steelblue,
+              cursorColor: AppColors.accent,
+              selectionColor: AppColors.accent.withAlpha(64),
+              selectionHandleColor: AppColors.accent,
             ),
           ),
           child: Scaffold(
@@ -457,7 +445,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       case TournamentStyle.groupsAndKnockouts:
         modeLabel = 'Gruppenphase + K.O.';
         modeIcon = Icons.grid_view;
-        modeColor = GroupPhaseColors.steelblue;
+        modeColor = AppColors.accent;
       case TournamentStyle.knockoutsOnly:
         modeLabel = 'Nur K.O.-Phase';
         modeIcon = Icons.account_tree;
@@ -594,8 +582,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             Row(
               children: [
                 Icon(Icons.grid_view,
-                    size: isMobile ? 20 : 24,
-                    color: GroupPhaseColors.steelblue),
+                    size: isMobile ? 20 : 24, color: AppColors.accent),
                 SizedBox(width: isMobile ? 8 : 12),
                 Text(
                   'Gruppen:',
@@ -640,22 +627,21 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: GroupPhaseColors.steelblue.withValues(alpha: 0.1),
+                    color: AppColors.accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                        color:
-                            GroupPhaseColors.steelblue.withValues(alpha: 0.3)),
+                        color: AppColors.accent.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.people,
-                          size: 12, color: GroupPhaseColors.steelblue),
+                          size: 12, color: AppColors.accent),
                       const SizedBox(width: 4),
                       Text(
                         '${widget.adminState.numberOfGroups * 4} Teams',
                         style: const TextStyle(
-                          color: GroupPhaseColors.steelblue,
+                          color: AppColors.accent,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -669,21 +655,20 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                     IconButton(
                       onPressed: _assignGroupsRandomly,
                       icon: const Icon(Icons.casino, size: 20),
-                      color: GroupPhaseColors.steelblue,
+                      color: AppColors.caution,
                       tooltip: 'Gruppen würfeln',
                       padding: EdgeInsets.zero,
                       constraints:
                           const BoxConstraints(minWidth: 36, minHeight: 36),
                     )
                   else
-                    ElevatedButton.icon(
+                    ElevatedButton(
                       onPressed: _assignGroupsRandomly,
-                      icon: const Icon(Icons.casino, size: 18),
-                      label: const Text('Gruppen würfeln'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: GroupPhaseColors.steelblue,
-                        foregroundColor: AppColors.textOnColored,
+                        backgroundColor: AppColors.caution,
+                        foregroundColor: AppColors.textPrimary,
                       ),
+                      child: const Text('Gruppen würfeln'),
                     ),
                 ],
               ],

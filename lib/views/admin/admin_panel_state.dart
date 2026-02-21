@@ -208,6 +208,12 @@ class AdminPanelState extends ChangeNotifier {
           _selectedRuleset = 'bmt-cup';
         }
 
+        // Load number of tables from metadata
+        if (metadata.containsKey('numberOfTables')) {
+          _numberOfTables = (metadata['numberOfTables'] as num).toInt();
+          if (_numberOfTables < 1) _numberOfTables = 6;
+        }
+
         Logger.info(
             'Loaded tournament phase: $_currentPhase, style: $_tournamentStyle',
             tag: 'AdminPanel');
@@ -497,6 +503,22 @@ class AdminPanelState extends ChangeNotifier {
     }
   }
 
+  /// Shuffle groups locally without saving to Firebase.
+  /// Returns a map of teamId -> groupIndex for the caller to apply.
+  /// The caller is responsible for saving via the normal save flow.
+  Map<String, int>? shuffleGroupsLocally({int? numberOfGroups}) {
+    if (_teams.isEmpty) return null;
+    final groupCount = numberOfGroups ?? _numberOfGroups;
+    final teamsNeeded = groupCount * 4;
+    final shuffledTeamIds = _teams.map((t) => t.id).toList()..shuffle(Random());
+    final selectedTeams = shuffledTeamIds.take(teamsNeeded).toList();
+    final result = <String, int>{};
+    for (int i = 0; i < selectedTeams.length; i++) {
+      result[selectedTeams[i]] = i % groupCount;
+    }
+    return result;
+  }
+
   Future<bool> assignTeamToGroup(String teamId, int groupIndex) async {
     if (groupIndex < 0 || groupIndex >= _numberOfGroups) {
       _setError('Ungültiger Gruppenindex.');
@@ -548,6 +570,7 @@ class AdminPanelState extends ChangeNotifier {
     if (!isTournamentStarted && count >= 1) {
       _numberOfTables = count;
       notifyListeners();
+      _saveNumberOfTables(count);
     }
   }
 
@@ -701,6 +724,22 @@ class AdminPanelState extends ChangeNotifier {
       );
     } catch (e) {
       Logger.error('Error saving tournament style',
+          tag: 'AdminPanel', error: e);
+    }
+  }
+
+  Future<void> _saveNumberOfTables(int count) async {
+    try {
+      await _firestoreService.firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(_currentTournamentId)
+          .set({
+        'numberOfTables': count,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      Logger.info('Number of tables updated to $count', tag: 'AdminPanel');
+    } catch (e) {
+      Logger.error('Error saving number of tables',
           tag: 'AdminPanel', error: e);
     }
   }
