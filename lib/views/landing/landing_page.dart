@@ -1,10 +1,12 @@
 // Barrel export for landing page components
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/join_code.dart';
 import 'package:pongstrong/views/landing/create_tournament_dialog.dart';
 import 'package:pongstrong/views/landing/impressum_dialog.dart';
 import 'package:pongstrong/views/landing/login_dialog.dart';
@@ -24,31 +26,29 @@ class LandingPage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<LandingPage> {
-  late Future<List<String>> _tournamentsFuture;
   final FirestoreService _firestoreService = FirestoreService();
   bool _isLoadingTournament = false;
   final Map<String, Future<List<bool>>> _tournamentMetaCache = {};
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+  final TextEditingController _codeController = TextEditingController();
+  String? _codeError;
+  bool _isLookingUpCode = false;
   Future<List<String>>? _myTournamentsFuture;
   String? _myTournamentsUserId;
 
   @override
   void initState() {
     super.initState();
-    _tournamentsFuture = _firestoreService.listTournaments();
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _codeController.dispose();
     super.dispose();
   }
 
   void _refreshTournaments() {
     setState(() {
       _tournamentMetaCache.clear();
-      _tournamentsFuture = _firestoreService.listTournaments();
       _myTournamentsFuture = null;
       _myTournamentsUserId = null;
     });
@@ -562,12 +562,15 @@ class _LandingPageState extends State<LandingPage> {
                       size: isLarge ? 28 : 24,
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      'Deine Turniere',
-                      style: TextStyle(
-                        fontSize: isLarge ? 22 : 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                    Flexible(
+                      child: Text(
+                        'Deine Turniere',
+                        style: TextStyle(
+                          fontSize: isLarge ? 22 : 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -587,27 +590,22 @@ class _LandingPageState extends State<LandingPage> {
                     size: isLarge ? 28 : 24,
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    'Turnier suchen',
-                    style: TextStyle(
-                      fontSize: isLarge ? 22 : 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                  Flexible(
+                    child: Text(
+                      'Mit Code beitreten',
+                      style: TextStyle(
+                        fontSize: isLarge ? 22 : 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Suche nach dem Namen des Turniers dem du beitreten möchtest:',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
               const SizedBox(height: 16),
-              _buildSearchBar(),
-              if (_searchQuery.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _buildSearchResults(),
-              ],
+              _buildCodeInput(),
             ],
           ),
         );
@@ -681,132 +679,123 @@ class _LandingPageState extends State<LandingPage> {
     );
   }
 
-  Widget _buildSearchBar() {
-    return TextField(
-      controller: _searchController,
-      decoration: InputDecoration(
-        hintText: 'Turniername eingeben...',
-        prefixIcon: const Icon(Icons.search, color: AppColors.textDisabled),
-        suffixIcon: _searchQuery.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  _searchController.clear();
-                  setState(() => _searchQuery = '');
-                },
-              )
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.grey300),
+  Widget _buildCodeInput() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _codeController,
+            textCapitalization: TextCapitalization.characters,
+            maxLength: JoinCode.codeLength,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9]')),
+              UpperCaseTextFormatter(),
+            ],
+            cursorColor: GroupPhaseColors.steelblue,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 8,
+            ),
+            textAlign: TextAlign.center,
+            decoration: InputDecoration(
+              hintStyle: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 8,
+                color: AppColors.textDisabled.withAlpha(100),
+              ),
+              counterText: '',
+              errorText: _codeError,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.grey300),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.grey300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                    color: GroupPhaseColors.steelblue, width: 2),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.error, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.surface,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            ),
+            onSubmitted: (_) => _lookupCode(),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.grey300),
+        const SizedBox(width: 12),
+        SizedBox(
+          height: 60,
+          child: ElevatedButton(
+            onPressed: _isLookingUpCode ? null : _lookupCode,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: GroupPhaseColors.steelblue,
+              foregroundColor: AppColors.textOnColored,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+            ),
+            child: _isLookingUpCode
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.textOnColored),
+                    ),
+                  )
+                : const Text(
+                    'Beitreten',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: GroupPhaseColors.steelblue, width: 2),
-        ),
-        filled: true,
-        fillColor: AppColors.surface,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      ),
-      onChanged: (value) {
-        setState(() => _searchQuery = value.trim());
-      },
+      ],
     );
   }
 
-  Widget _buildSearchResults() {
-    return FutureBuilder<List<String>>(
-      future: _tournamentsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
+  Future<void> _lookupCode() async {
+    final code = JoinCode.normalise(_codeController.text);
+    if (!JoinCode.isValid(code)) {
+      setState(
+          () => _codeError = 'Bitte gib einen gültigen 4-stelligen Code ein');
+      return;
+    }
 
-        if (snapshot.hasError) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.errorLight,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.error_outline, color: AppColors.error),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Fehler beim Laden: ${snapshot.error}',
-                    style: const TextStyle(color: AppColors.error),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
+    setState(() {
+      _codeError = null;
+      _isLookingUpCode = true;
+    });
 
-        final allTournaments = snapshot.data ?? [];
-        final filtered = allTournaments
-            .where(
-                (id) => id.toLowerCase().contains(_searchQuery.toLowerCase()))
-            .toList();
+    final tournamentId = await _firestoreService.findTournamentByCode(code);
 
-        if (filtered.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.cautionLight,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.info_outline, color: AppColors.caution),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Kein Turnier gefunden.',
-                    style: TextStyle(color: AppColors.textPrimary),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
+    if (!mounted) return;
 
-        if (_isLoadingTournament) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      GroupPhaseColors.cupred,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Text('Turnier wird geladen...'),
-                ],
-              ),
-            ),
-          );
-        }
+    if (tournamentId == null) {
+      setState(() {
+        _isLookingUpCode = false;
+        _codeError = 'Kein Turnier mit diesem Code gefunden';
+      });
+      return;
+    }
 
-        return Column(
-          children: filtered.map((id) => _buildTournamentListItem(id)).toList(),
-        );
-      },
-    );
+    setState(() => _isLookingUpCode = false);
+    _onTournamentSelected(tournamentId);
   }
 
   Future<List<bool>> _getTournamentMeta(
@@ -836,7 +825,7 @@ class _LandingPageState extends State<LandingPage> {
             IconData trailingIcon;
 
             if (isCreator) {
-              subtitleText = 'Dein Turnier • Tippen zum Öffnen';
+              subtitleText = 'Tippen zum Öffnen';
               trailingIcon = Icons.arrow_forward_ios;
             } else if (hasPassword) {
               subtitleText = 'Tippen für Passwort-Eingabe';
@@ -947,5 +936,16 @@ class _LandingPageState extends State<LandingPage> {
         ),
       ),
     );
+  }
+}
+
+/// Converts text input to uppercase as the user types.
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }

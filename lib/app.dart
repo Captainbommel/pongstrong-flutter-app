@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pongstrong/state/app_state.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
@@ -138,6 +139,40 @@ class _AppShellState extends State<AppShell> {
                 ),
               ),
             ),
+            // Join code badge + Admin button, aligned to the right
+            if (tournamentData.joinCode != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Tooltip(
+                  message: 'Turnier-Code kopieren',
+                  child: InkWell(
+                    onTap: () {
+                      Clipboard.setData(
+                          ClipboardData(text: tournamentData.joinCode!));
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: GroupPhaseColors.cupred.withAlpha(20),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: GroupPhaseColors.cupred.withAlpha(60)),
+                      ),
+                      child: Text(
+                        tournamentData.joinCode!,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 3,
+                          color: GroupPhaseColors.cupred,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             // Admin button - only for tournament creator, aligned to the right
             Consumer<AuthState>(
               builder: (context, authState, child) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pongstrong/state/app_state.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
@@ -104,28 +105,77 @@ class MobileDrawer extends StatelessWidget {
             trailing: const Icon(Icons.swap_horiz_rounded),
           ),
           const Spacer(),
-          // Admin - only for tournament creator, pinned to bottom of screen
-          Consumer<AuthState>(
-            builder: (context, authState, child) {
-              if (!authState.isAdmin) return const SizedBox.shrink();
-              return ListTile(
-                title: const Text(
-                  'Turnierverwaltung',
-                  style: TextStyle(
-                    color: GroupPhaseColors.cupred,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                onTap: () => Provider.of<AppState>(context, listen: false)
-                    .setViewAndCloseDrawer(AppView.adminPanel),
-                trailing: const Icon(
-                  Icons.settings,
-                  color: GroupPhaseColors.cupred,
-                ),
+          // Join code + Admin, pinned to bottom
+          Consumer2<AuthState, TournamentDataState>(
+            builder: (context, authState, tournamentData, child) {
+              final code = tournamentData.joinCode;
+              final isAdmin = authState.isAdmin;
+              return Column(
+                children: [
+                  // For admins: code above Turnierverwaltung
+                  if (isAdmin && code != null)
+                    _buildJoinCodeWidget(context, code),
+                  if (isAdmin)
+                    ListTile(
+                      title: const Text(
+                        'Turnierverwaltung',
+                        style: TextStyle(
+                          color: GroupPhaseColors.cupred,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onTap: () => Provider.of<AppState>(context, listen: false)
+                          .setViewAndCloseDrawer(AppView.adminPanel),
+                      trailing: const Icon(
+                        Icons.settings,
+                        color: GroupPhaseColors.cupred,
+                      ),
+                    ),
+                  // For non-admins: code at the very bottom
+                  if (!isAdmin && code != null)
+                    _buildJoinCodeWidget(context, code),
+                ],
               );
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildJoinCodeWidget(BuildContext context, String code) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: InkWell(
+        onTap: () {
+          Clipboard.setData(ClipboardData(text: code));
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: GroupPhaseColors.cupred.withAlpha(20),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: GroupPhaseColors.cupred.withAlpha(60)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                code,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
+                  color: GroupPhaseColors.cupred,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.copy, size: 16, color: GroupPhaseColors.cupred),
+            ],
+          ),
+        ),
       ),
     );
   }

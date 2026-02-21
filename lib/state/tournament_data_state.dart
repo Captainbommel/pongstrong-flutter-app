@@ -26,6 +26,7 @@ class TournamentDataState extends ChangeNotifier {
   bool _isKnockoutMode = false;
   String _tournamentStyle = 'groupsAndKnockouts';
   String? _selectedRuleset = 'bmt-cup';
+  String? _joinCode;
 
   // Async lock to serialise match operations and prevent interleaved
   // read-modify-write on the local match queue.
@@ -76,6 +77,9 @@ class TournamentDataState extends ChangeNotifier {
   /// The selected ruleset identifier, or `null` if disabled.
   String? get selectedRuleset => _selectedRuleset;
 
+  /// The 4-char join code for this tournament, or `null` if not set.
+  String? get joinCode => _joinCode;
+
   /// Whether team data has been loaded.
   bool get hasData => _teams.isNotEmpty;
 
@@ -101,6 +105,7 @@ class TournamentDataState extends ChangeNotifier {
       // Store tournament metadata
       _tournamentStyle = (tournamentInfo['tournamentStyle'] as String?) ??
           'groupsAndKnockouts';
+      _joinCode = tournamentInfo['joinCode'] as String?;
       if (tournamentInfo.containsKey('selectedRuleset')) {
         _selectedRuleset = tournamentInfo['selectedRuleset'] as String?;
       } else {

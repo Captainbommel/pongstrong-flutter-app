@@ -116,90 +116,72 @@ class ImportExportCard extends StatelessWidget {
               ],
             ),
             const Divider(),
-
-            // ── Import section ──
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                'Import',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, color: AppColors.textDisabled),
+            SizedBox(
+              width: double.infinity,
+              child: PopupMenuButton<String>(
+                onSelected: (value) {
+                  switch (value) {
+                    case 'import_teams':
+                      onImportTeams?.call();
+                    case 'import_snapshot':
+                      onImportSnapshot?.call();
+                    case 'export_teams':
+                      _exportTeamsCsv(context);
+                    case 'export_snapshot':
+                      _exportTournamentState(context);
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(
+                    value: 'import_teams',
+                    child: ListTile(
+                      title: Text('Teams importieren (CSV)'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'import_snapshot',
+                    child: ListTile(
+                      title: Text('Snapshot importieren (JSON)'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'export_teams',
+                    child: ListTile(
+                      title: Text('Teams exportieren (CSV)'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'export_snapshot',
+                    child: ListTile(
+                      title: Text('Snapshot exportieren (JSON)'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade400),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Typ wählen'),
+                      Icon(Icons.arrow_drop_down),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onImportTeams,
-                    icon: const Icon(Icons.group_add, size: 18),
-                    label: const Text('Teams (CSV)'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: TableColors.turquoise,
-                      foregroundColor: AppColors.textOnColored,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onImportSnapshot,
-                    icon: const Icon(Icons.restore, size: 18),
-                    label: const Text('Snapshot (JSON)'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: GroupPhaseColors.steelblue,
-                      foregroundColor: AppColors.textOnColored,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // ── Export section ──
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                'Export',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, color: AppColors.textDisabled),
-              ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _exportTeamsCsv(context),
-                    label: const Text('Teams'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: TableColors.turquoise,
-                      foregroundColor: AppColors.textOnColored,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _exportTournamentState(context),
-                    label: const Text('Snapshot'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: GroupPhaseColors.steelblue,
-                      foregroundColor: AppColors.textOnColored,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ],
         ),

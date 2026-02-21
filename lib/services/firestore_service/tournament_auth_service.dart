@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pongstrong/services/firestore_service/firestore_base.dart';
 import 'package:pongstrong/utils/app_logger.dart';
+import 'package:pongstrong/utils/join_code.dart';
 import 'package:pongstrong/utils/password_hash.dart';
 
 /// Firestore operations for tournament creation, authentication,
@@ -25,6 +26,9 @@ mixin TournamentAuthService on FirestoreBase {
         return null;
       }
 
+      // Generate a unique 4-char join code
+      final joinCode = await _generateUniqueJoinCode();
+
       await firestore
           .collection(FirestoreBase.tournamentsCollection)
           .doc(tournamentId)
@@ -32,6 +36,7 @@ mixin TournamentAuthService on FirestoreBase {
         'name': tournamentName,
         'creatorId': creatorId,
         'password': PasswordHash.hash(password),
+        'joinCode': joinCode,
         'participants': [creatorId],
         'phase': 'setup',
         'createdAt': FieldValue.serverTimestamp(),
@@ -85,6 +90,7 @@ mixin TournamentAuthService on FirestoreBase {
 
   // ==================== AUTHENTICATION ====================
 
+  //TODO: Use cloud function to handle this server-side for better security
   /// Verifies if the [password] is correct for a tournament.
   Future<bool> verifyTournamentPassword(
       String tournamentId, String password) async {
@@ -168,7 +174,7 @@ mixin TournamentAuthService on FirestoreBase {
     return doc.exists;
   }
 
-  /// Gets tournament info (name, creatorId, phase, style, etc.).
+  /// Gets tournament info (name, creatorId, phase, style, joinCode, etc.).
   ///
   /// Returns `null` if the tournament does not exist. The password
   /// field is excluded from the returned map.
@@ -187,6 +193,7 @@ mixin TournamentAuthService on FirestoreBase {
         'phase': data['phase'] ?? 'groups',
         'tournamentStyle': data['tournamentStyle'] ?? 'groupsAndKnockouts',
         'createdAt': data['createdAt'],
+        if (data.containsKey('joinCode')) 'joinCode': data['joinCode'],
       };
 
       if (data.containsKey('selectedRuleset')) {
@@ -197,6 +204,50 @@ mixin TournamentAuthService on FirestoreBase {
     } catch (e) {
       return null;
     }
+  }
+
+  // ==================== JOIN CODE ====================
+
+  /// Looks up a tournament by its 4-char join code.
+  ///
+  /// Returns the tournament document ID, or `null` if no tournament
+  /// with that code exists.
+  Future<String?> findTournamentByCode(String code) async {
+    try {
+      final normalised = JoinCode.normalise(code);
+      if (!JoinCode.isValid(normalised)) return null;
+
+      final snapshot = await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .where('joinCode', isEqualTo: normalised)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+      return snapshot.docs.first.id;
+    } catch (e) {
+      Logger.error('Error finding tournament by code',
+          tag: 'TournamentService', error: e);
+      return null;
+    }
+  }
+
+  /// Generates a unique join code that doesn't collide with existing ones.
+  Future<String> _generateUniqueJoinCode() async {
+    const maxAttempts = 25;
+    for (var i = 0; i < maxAttempts; i++) {
+      final code = JoinCode.generate();
+      final existing = await firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .where('joinCode', isEqualTo: code)
+          .limit(1)
+          .get();
+      if (existing.docs.isEmpty) return code;
+    }
+    throw StateError(
+      //TODO: Handle this more gracefully
+      'Failed to generate a unique join code after $maxAttempts attempts',
+    );
   }
 
   // ==================== PARTICIPANT MANAGEMENT ====================
