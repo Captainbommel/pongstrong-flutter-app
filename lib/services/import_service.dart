@@ -444,6 +444,197 @@ class ImportService {
     );
   }
 
+  // ===================== SNAPSHOT VALIDATION =====================
+
+  /// Validates a parsed snapshot for structural integrity.
+  ///
+  /// Returns a list of human-readable error strings. An empty list means
+  /// the snapshot is valid. Checks performed:
+  ///
+  /// 1. **Knockout bracket tree structure** – each round must have exactly
+  ///    half the matches of the previous round.
+  /// 2. **Super Cup size** – must have exactly 0 or 2 matches.
+  /// 3. **Team ID referential integrity** – every non-empty team ID in
+  ///    matches (gruppenphase, knockouts, match queue) must refer to a team
+  ///    in the teams list.
+  /// 4. **Match ID uniqueness** – no duplicate IDs across all collections.
+  /// 5. **Gruppenphase / Tabellen consistency** – both must have the same
+  ///    number of groups when non-empty.
+  /// 6. **Done / score consistency** – finished matches must have valid
+  ///    scores (per [isValid]).
+  /// 7. **Match queue integrity** – no match ID may appear in both waiting
+  ///    and playing.
+  static List<String> validateSnapshot({
+    required List<Team> teams,
+    required MatchQueue matchQueue,
+    required Gruppenphase gruppenphase,
+    required Tabellen tabellen,
+    required Knockouts knockouts,
+  }) {
+    final errors = <String>[];
+
+    // ---- helpers -----------------------------------------------------------
+    final teamIds = teams.map((t) => t.id).toSet();
+
+    void checkTeamRef(String teamId, String context) {
+      if (teamId.isNotEmpty && !teamIds.contains(teamId)) {
+        errors.add('Unknown team ID "$teamId" in $context.');
+      }
+    }
+
+    void checkMatchScore(Match m, String context) {
+      if (m.done && !isValid(m.score1, m.score2)) {
+        errors.add(
+          'Match "${m.id}" in $context is marked done but has invalid '
+          'scores (${m.score1} : ${m.score2}).',
+        );
+      }
+    }
+
+    /// Validates that each round halves the previous one.
+    void checkBracketStructure(List<List<Match>> rounds, String bracketName) {
+      if (rounds.isEmpty) return;
+      for (int i = 1; i < rounds.length; i++) {
+        final expected = (rounds[i - 1].length / 2).ceil();
+        if (rounds[i].length != expected) {
+          errors.add(
+            '$bracketName round ${i + 1} has ${rounds[i].length} matches '
+            'but should have $expected (half of round $i\'s '
+            '${rounds[i - 1].length}).',
+          );
+        }
+      }
+    }
+
+    // ---- 1. Knockout bracket tree structure --------------------------------
+    checkBracketStructure(knockouts.champions.rounds, 'Champions');
+    checkBracketStructure(knockouts.europa.rounds, 'Europa');
+    checkBracketStructure(knockouts.conference.rounds, 'Conference');
+
+    // ---- 2. Super Cup size -------------------------------------------------
+    if (knockouts.superCup.matches.isNotEmpty &&
+        knockouts.superCup.matches.length != 2) {
+      errors.add(
+        'Super Cup must have exactly 2 matches but has '
+        '${knockouts.superCup.matches.length}.',
+      );
+    }
+
+    // ---- 3. Team ID referential integrity ----------------------------------
+    // Gruppenphase
+    for (int g = 0; g < gruppenphase.groups.length; g++) {
+      for (final m in gruppenphase.groups[g]) {
+        checkTeamRef(m.teamId1, 'gruppenphase group $g');
+        checkTeamRef(m.teamId2, 'gruppenphase group $g');
+      }
+    }
+    // Knockouts
+    for (final bracket in [
+      ('Champions', knockouts.champions.rounds),
+      ('Europa', knockouts.europa.rounds),
+      ('Conference', knockouts.conference.rounds),
+    ]) {
+      for (final round in bracket.$2) {
+        for (final m in round) {
+          checkTeamRef(m.teamId1, bracket.$1);
+          checkTeamRef(m.teamId2, bracket.$1);
+        }
+      }
+    }
+    for (final m in knockouts.superCup.matches) {
+      checkTeamRef(m.teamId1, 'Super Cup');
+      checkTeamRef(m.teamId2, 'Super Cup');
+    }
+    // Match queue
+    for (int w = 0; w < matchQueue.waiting.length; w++) {
+      for (final m in matchQueue.waiting[w]) {
+        checkTeamRef(m.teamId1, 'matchQueue waiting[$w]');
+        checkTeamRef(m.teamId2, 'matchQueue waiting[$w]');
+      }
+    }
+    for (final m in matchQueue.playing) {
+      checkTeamRef(m.teamId1, 'matchQueue playing');
+      checkTeamRef(m.teamId2, 'matchQueue playing');
+    }
+
+    // ---- 4. Match ID uniqueness --------------------------------------------
+    final allMatchIds = <String>{};
+    void checkUniqueId(String id, String context) {
+      if (id.isEmpty) return;
+      if (!allMatchIds.add(id)) {
+        errors.add('Duplicate match ID "$id" found in $context.');
+      }
+    }
+
+    for (int g = 0; g < gruppenphase.groups.length; g++) {
+      for (final m in gruppenphase.groups[g]) {
+        checkUniqueId(m.id, 'gruppenphase group $g');
+      }
+    }
+    for (final bracket in [
+      ('Champions', knockouts.champions.rounds),
+      ('Europa', knockouts.europa.rounds),
+      ('Conference', knockouts.conference.rounds),
+    ]) {
+      for (final round in bracket.$2) {
+        for (final m in round) {
+          checkUniqueId(m.id, bracket.$1);
+        }
+      }
+    }
+    for (final m in knockouts.superCup.matches) {
+      checkUniqueId(m.id, 'Super Cup');
+    }
+
+    // ---- 5. Gruppenphase / Tabellen consistency ----------------------------
+    if (gruppenphase.groups.isNotEmpty && tabellen.tables.isNotEmpty) {
+      if (gruppenphase.groups.length != tabellen.tables.length) {
+        errors.add(
+          'Gruppenphase has ${gruppenphase.groups.length} groups but '
+          'Tabellen has ${tabellen.tables.length} tables.',
+        );
+      }
+    }
+
+    // ---- 6. Done / score consistency ---------------------------------------
+    for (int g = 0; g < gruppenphase.groups.length; g++) {
+      for (final m in gruppenphase.groups[g]) {
+        checkMatchScore(m, 'gruppenphase group $g');
+      }
+    }
+    for (final bracket in [
+      ('Champions', knockouts.champions.rounds),
+      ('Europa', knockouts.europa.rounds),
+      ('Conference', knockouts.conference.rounds),
+    ]) {
+      for (final round in bracket.$2) {
+        for (final m in round) {
+          checkMatchScore(m, bracket.$1);
+        }
+      }
+    }
+    for (final m in knockouts.superCup.matches) {
+      checkMatchScore(m, 'Super Cup');
+    }
+
+    // ---- 7. Match queue integrity ------------------------------------------
+    final waitingIds = <String>{};
+    for (final line in matchQueue.waiting) {
+      for (final m in line) {
+        waitingIds.add(m.id);
+      }
+    }
+    for (final m in matchQueue.playing) {
+      if (waitingIds.contains(m.id)) {
+        errors.add(
+          'Match "${m.id}" appears in both waiting and playing queues.',
+        );
+      }
+    }
+
+    return errors;
+  }
+
   // ===================== FILE UPLOAD HANDLERS =====================
 
   /// Upload teams from a CSV file.
@@ -658,6 +849,20 @@ class ImportService {
       }
 
       final snapshot = parseSnapshotFromJson(jsonData);
+
+      // Validate structural integrity before restoring
+      final validationErrors = validateSnapshot(
+        teams: snapshot.teams,
+        matchQueue: snapshot.matchQueue,
+        gruppenphase: snapshot.gruppenphase,
+        tabellen: snapshot.tabellen,
+        knockouts: snapshot.knockouts,
+      );
+      if (validationErrors.isNotEmpty) {
+        throw FormatException(
+          'Snapshot-Validierung fehlgeschlagen:\n${validationErrors.join('\n')}',
+        );
+      }
 
       Logger.info(
           'Parsed snapshot with ${snapshot.teams.length} teams, style=${snapshot.tournamentStyle}',
