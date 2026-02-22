@@ -72,16 +72,16 @@ void main() {
       final json = team.toJson();
       expect(json['id'], 't1');
       expect(json['name'], 'Team Alpha');
-      expect(json['mem1'], 'Alice');
-      expect(json['mem2'], 'Bob');
+      expect(json['member1'], 'Alice');
+      expect(json['member2'], 'Bob');
     });
 
     test('fromJson creates team from JSON correctly', () {
       final json = {
         'id': 't1',
         'name': 'Team Alpha',
-        'mem1': 'Alice',
-        'mem2': 'Bob',
+        'member1': 'Alice',
+        'member2': 'Bob',
       };
 
       final team = Team.fromJson(json);

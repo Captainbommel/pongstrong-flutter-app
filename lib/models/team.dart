@@ -28,16 +28,16 @@ class Team {
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
-        'mem1': member1,
-        'mem2': member2,
+        'member1': member1,
+        'member2': member2,
       };
 
   /// Creates a [Team] from a Firestore JSON map.
   factory Team.fromJson(Map<String, dynamic> json) => Team(
         id: (json['id'] as String?) ?? '',
         name: (json['name'] as String?) ?? '',
-        member1: (json['mem1'] as String?) ?? '',
-        member2: (json['mem2'] as String?) ?? '',
+        member1: (json['member1'] as String?) ?? '',
+        member2: (json['member2'] as String?) ?? '',
       );
 
   @override

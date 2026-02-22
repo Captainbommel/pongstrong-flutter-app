@@ -13,11 +13,11 @@ void main() {
     test('parses groups of teams correctly', () {
       final jsonData = [
         [
-          {'name': 'Thunder', 'mem1': 'Alice', 'mem2': 'Bob'},
-          {'name': 'Lightning', 'mem1': 'Charlie', 'mem2': 'Diana'},
+          {'name': 'Thunder', 'member1': 'Alice', 'member2': 'Bob'},
+          {'name': 'Lightning', 'member1': 'Charlie', 'member2': 'Diana'},
         ],
         [
-          {'name': 'Storm', 'mem1': 'Eve', 'mem2': 'Frank'},
+          {'name': 'Storm', 'member1': 'Eve', 'member2': 'Frank'},
         ],
       ];
 
@@ -36,7 +36,7 @@ void main() {
       expect(groups.groups[1], ['team_1_0']);
     });
 
-    test('handles missing mem1/mem2 fields gracefully', () {
+    test('handles missing member1/member2 fields gracefully', () {
       final jsonData = [
         [
           {'name': 'Solo'},
@@ -67,9 +67,9 @@ void main() {
     test('parses teams and groups from object format', () {
       final jsonData = {
         'teams': [
-          {'id': 't1', 'name': 'Alpha', 'mem1': 'A1', 'mem2': 'A2'},
-          {'id': 't2', 'name': 'Beta', 'mem1': 'B1', 'mem2': 'B2'},
-          {'id': 't3', 'name': 'Gamma', 'mem1': 'G1', 'mem2': 'G2'},
+          {'id': 't1', 'name': 'Alpha', 'member1': 'A1', 'member2': 'A2'},
+          {'id': 't2', 'name': 'Beta', 'member1': 'B1', 'member2': 'B2'},
+          {'id': 't3', 'name': 'Gamma', 'member1': 'G1', 'member2': 'G2'},
         ],
         'groups': [
           ['t1', 't2'],
@@ -108,8 +108,8 @@ void main() {
   group('parseTeamsFlatFromJson – flat list', () {
     test('parses flat list of teams', () {
       final jsonData = [
-        {'name': 'Alpha', 'mem1': 'A1', 'mem2': 'A2'},
-        {'name': 'Beta', 'mem1': 'B1', 'mem2': 'B2'},
+        {'name': 'Alpha', 'member1': 'A1', 'member2': 'A2'},
+        {'name': 'Beta', 'member1': 'B1', 'member2': 'B2'},
       ];
 
       final teams = ImportService.parseTeamsFlatFromJson(jsonData);
@@ -123,7 +123,7 @@ void main() {
 
     test('uses id from JSON when provided', () {
       final jsonData = [
-        {'id': 'custom_id', 'name': 'Alpha', 'mem1': 'A1', 'mem2': 'A2'},
+        {'id': 'custom_id', 'name': 'Alpha', 'member1': 'A1', 'member2': 'A2'},
       ];
 
       final teams = ImportService.parseTeamsFlatFromJson(jsonData);
@@ -156,11 +156,11 @@ void main() {
     test('flattens group-structured list into flat team list', () {
       final jsonData = [
         [
-          {'name': 'A', 'mem1': 'a1', 'mem2': 'a2'},
-          {'name': 'B', 'mem1': 'b1', 'mem2': 'b2'},
+          {'name': 'A', 'member1': 'a1', 'member2': 'a2'},
+          {'name': 'B', 'member1': 'b1', 'member2': 'b2'},
         ],
         [
-          {'name': 'C', 'mem1': 'c1', 'mem2': 'c2'},
+          {'name': 'C', 'member1': 'c1', 'member2': 'c2'},
         ],
       ];
 
@@ -202,7 +202,7 @@ void main() {
 
   group('parseTeamsFromCsv – grouped format', () {
     test('parses teams with group assignments', () {
-      const csv = 'group,name,mem1,mem2\n'
+      const csv = 'group,name,member1,member2\n'
           '1,Thunder,Alice,Bob\n'
           '1,Lightning,Charlie,Diana\n'
           '2,Storm,Eve,Frank\n';
@@ -221,7 +221,7 @@ void main() {
       expect(groups.groups[1].length, 1); // group 2 has 1 team
     });
 
-    test('handles missing mem1/mem2 columns', () {
+    test('handles missing member1/member2 columns', () {
       const csv = 'group,name\n'
           '1,Solo\n';
 
@@ -254,7 +254,7 @@ void main() {
     });
 
     test('throws when group column is missing', () {
-      const csv = 'name,mem1,mem2\n'
+      const csv = 'name,member1,member2\n'
           'Thunder,Alice,Bob\n';
 
       expect(
@@ -264,7 +264,7 @@ void main() {
     });
 
     test('handles multiple groups sorted correctly', () {
-      const csv = 'group,name,mem1,mem2\n'
+      const csv = 'group,name,member1,member2\n'
           '3,Team C,c1,c2\n'
           '1,Team A,a1,a2\n'
           '2,Team B,b1,b2\n';
@@ -293,7 +293,7 @@ void main() {
       expect(groups.groups[1].length, 1); // Gruppe B
     });
 
-    test('accepts member1/member2 aliases', () {
+    test('parses member1/member2 headers', () {
       const csv = 'group,name,member1,member2\n'
           '1,Thunder,Alice,Bob\n';
 
@@ -304,7 +304,7 @@ void main() {
     });
 
     test('handles quoted fields with commas', () {
-      const csv = 'group,name,mem1,mem2\n'
+      const csv = 'group,name,member1,member2\n'
           '1,"Team, One",Alice,Bob\n';
 
       final (teams, _) = ImportService.parseTeamsFromCsv(csv);
@@ -314,7 +314,7 @@ void main() {
     });
 
     test('handles quoted fields with double quotes', () {
-      const csv = 'group,name,mem1,mem2\n'
+      const csv = 'group,name,member1,member2\n'
           '1,"Team ""Best""",Alice,Bob\n';
 
       final (teams, _) = ImportService.parseTeamsFromCsv(csv);
@@ -323,7 +323,7 @@ void main() {
     });
 
     test('handles Windows-style line endings', () {
-      const csv = 'group,name,mem1,mem2\r\n'
+      const csv = 'group,name,member1,member2\r\n'
           '1,Thunder,Alice,Bob\r\n'
           '2,Storm,Eve,Frank\r\n';
 
@@ -334,7 +334,7 @@ void main() {
     });
 
     test('skips empty lines', () {
-      const csv = 'group,name,mem1,mem2\n'
+      const csv = 'group,name,member1,member2\n'
           '\n'
           '1,Thunder,Alice,Bob\n'
           '\n'
@@ -350,7 +350,7 @@ void main() {
   // ==========================================================================
   group('parseTeamsFlatFromCsv – flat format', () {
     test('parses flat team list', () {
-      const csv = 'name,mem1,mem2\n'
+      const csv = 'name,member1,member2\n'
           'Thunder,Alice,Bob\n'
           'Lightning,Charlie,Diana\n';
 
@@ -397,7 +397,7 @@ void main() {
 
     test('ignores group column if present', () {
       // A CSV with a group column should still parse flat (without errors)
-      const csv = 'group,name,mem1,mem2\n'
+      const csv = 'group,name,member1,member2\n'
           '1,Thunder,Alice,Bob\n'
           '2,Lightning,Charlie,Diana\n';
 
@@ -409,7 +409,7 @@ void main() {
     });
 
     test('handles header with different casing', () {
-      const csv = 'NAME,MEM1,MEM2\n'
+      const csv = 'NAME,MEMBER1,MEMBER2\n'
           'Thunder,Alice,Bob\n';
 
       final teams = ImportService.parseTeamsFlatFromCsv(csv);
@@ -418,7 +418,7 @@ void main() {
       expect(teams[0].name, 'Thunder');
     });
 
-    test('accepts member1/member2 aliases', () {
+    test('parses member1/member2 headers', () {
       const csv = 'name,member1,member2\n'
           'Thunder,Alice,Bob\n';
 
@@ -602,7 +602,7 @@ void main() {
     test('parses a minimal snapshot', () {
       final data = {
         'teams': [
-          {'id': 't1', 'name': 'Alpha', 'mem1': 'A1', 'mem2': 'A2'},
+          {'id': 't1', 'name': 'Alpha', 'member1': 'A1', 'member2': 'A2'},
         ],
         'matchQueue': {'waiting': [], 'playing': []},
         'gruppenphase': [],
@@ -636,8 +636,8 @@ void main() {
     test('parses a snapshot with match data', () {
       final data = {
         'teams': [
-          {'id': 't1', 'name': 'Alpha', 'mem1': 'A1', 'mem2': 'A2'},
-          {'id': 't2', 'name': 'Beta', 'mem1': 'B1', 'mem2': 'B2'},
+          {'id': 't1', 'name': 'Alpha', 'member1': 'A1', 'member2': 'A2'},
+          {'id': 't2', 'name': 'Beta', 'member1': 'B1', 'member2': 'B2'},
         ],
         'matchQueue': {
           'waiting': [

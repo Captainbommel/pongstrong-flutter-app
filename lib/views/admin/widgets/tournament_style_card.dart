@@ -173,7 +173,9 @@ class TournamentStyleCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String?>(
-                    value: selectedRuleset,
+                    value: const {'bmt-cup'}.contains(selectedRuleset)
+                        ? selectedRuleset
+                        : null,
                     focusColor: AppColors.transparent,
                     dropdownColor: AppColors.surface,
                     decoration: InputDecoration(

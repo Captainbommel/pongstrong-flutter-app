@@ -56,7 +56,6 @@ Net Ninjas,Eve,Frank
 Spin Masters,Grace,Heidi
 ```
 
-> **Tip:** The header row is required. `mem1`/`mem2` are accepted as
-> alternatives to `member1`/`member2`. Fields containing commas or quotes
+> **Tip:** The header row is required. Fields containing commas or quotes
 > should be wrapped in double-quotes following the RFC 4180 convention
 > (e.g. `"O'Brien, Jr."`).

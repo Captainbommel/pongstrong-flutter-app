@@ -24,8 +24,8 @@ class ImportService {
   /// Expected JSON format (nested array of groups):
   /// [
   ///   [
-  ///     {"name": "Thunder", "mem1": "Alice", "mem2": "Bob"},
-  ///     {"name": "Lightning", "mem1": "Charlie", "mem2": "Diana"},
+  ///     {"name": "Thunder", "member1": "Alice", "member2": "Bob"},
+  ///     {"name": "Lightning", "member1": "Charlie", "member2": "Diana"},
   ///     ...
   ///   ],
   ///   [next group],
@@ -53,8 +53,8 @@ class ImportService {
           final team = Team(
             id: teamId,
             name: teamJson['name'] as String,
-            member1: teamJson['mem1'] as String? ?? '',
-            member2: teamJson['mem2'] as String? ?? '',
+            member1: teamJson['member1'] as String? ?? '',
+            member2: teamJson['member2'] as String? ?? '',
           );
           allTeams.add(team);
           groupIds.add(teamId);
@@ -70,8 +70,8 @@ class ImportService {
         final team = Team(
           id: teamMap['id'] as String,
           name: teamMap['name'] as String,
-          member1: teamMap['mem1'] as String? ?? '',
-          member2: teamMap['mem2'] as String? ?? '',
+          member1: teamMap['member1'] as String? ?? '',
+          member2: teamMap['member2'] as String? ?? '',
         );
         allTeams.add(team);
       }
@@ -89,7 +89,7 @@ class ImportService {
   /// Parse teams from a flat JSON array (no groups) for round-robin / KO-only
   /// Expected JSON format:
   /// [
-  ///   {"name": "Thunder", "mem1": "Alice", "mem2": "Bob"},
+  ///   {"name": "Thunder", "member1": "Alice", "member2": "Bob"},
   ///   ...
   /// ]
   /// OR: { "teams": [...] }
@@ -107,8 +107,8 @@ class ImportService {
             allTeams.add(Team(
               id: 'team_$idx',
               name: map['name'] as String,
-              member1: map['mem1'] as String? ?? '',
-              member2: map['mem2'] as String? ?? '',
+              member1: map['member1'] as String? ?? '',
+              member2: map['member2'] as String? ?? '',
             ));
             idx++;
           }
@@ -120,8 +120,8 @@ class ImportService {
           allTeams.add(Team(
             id: teamJson['id'] as String? ?? 'team_$i',
             name: teamJson['name'] as String,
-            member1: teamJson['mem1'] as String? ?? '',
-            member2: teamJson['mem2'] as String? ?? '',
+            member1: teamJson['member1'] as String? ?? '',
+            member2: teamJson['member2'] as String? ?? '',
           ));
         }
       }
@@ -132,8 +132,8 @@ class ImportService {
         allTeams.add(Team(
           id: teamJson['id'] as String? ?? 'team_$i',
           name: teamJson['name'] as String,
-          member1: teamJson['mem1'] as String? ?? '',
-          member2: teamJson['mem2'] as String? ?? '',
+          member1: teamJson['member1'] as String? ?? '',
+          member2: teamJson['member2'] as String? ?? '',
         ));
       }
     }
@@ -230,8 +230,8 @@ class ImportService {
         _parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim()).toList();
     final groupIdx = _findColumnIndex(header, ['group', 'gruppe']);
     final nameIdx = _findColumnIndex(header, ['name', 'team']);
-    final mem1Idx = _findColumnIndex(header, ['mem1', 'member1', 'spieler1']);
-    final mem2Idx = _findColumnIndex(header, ['mem2', 'member2', 'spieler2']);
+    final mem1Idx = _findColumnIndex(header, ['member1', 'spieler1']);
+    final mem2Idx = _findColumnIndex(header, ['member2', 'spieler2']);
 
     if (nameIdx == -1) {
       throw FormatException(
@@ -304,8 +304,8 @@ class ImportService {
     final header =
         _parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim()).toList();
     final nameIdx = _findColumnIndex(header, ['name', 'team']);
-    final mem1Idx = _findColumnIndex(header, ['mem1', 'member1', 'spieler1']);
-    final mem2Idx = _findColumnIndex(header, ['mem2', 'member2', 'spieler2']);
+    final mem1Idx = _findColumnIndex(header, ['member1', 'spieler1']);
+    final mem2Idx = _findColumnIndex(header, ['member2', 'spieler2']);
 
     if (nameIdx == -1) {
       throw FormatException(
