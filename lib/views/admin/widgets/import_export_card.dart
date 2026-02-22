@@ -6,6 +6,7 @@ import 'package:pongstrong/services/import_service.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/utils/file_download.dart' as file_download;
+import 'package:pongstrong/views/admin/admin_panel_state.dart';
 import 'package:provider/provider.dart';
 
 /// Card widget for import/export functionality.
@@ -45,6 +46,18 @@ class ImportExportCard extends StatelessWidget {
     try {
       final tournamentState =
           Provider.of<TournamentDataState>(context, listen: false).toJson();
+
+      // Augment with numberOfTables and groups from AdminPanelState
+      try {
+        final adminState = Provider.of<AdminPanelState>(context, listen: false);
+        tournamentState['numberOfTables'] = adminState.numberOfTables;
+        if (adminState.groups.groups.isNotEmpty) {
+          tournamentState['groups'] = adminState.groups.toJson();
+        }
+      } catch (_) {
+        // AdminPanelState may not be in the widget tree – export without
+      }
+
       final jsonString = jsonEncode(tournamentState);
 
       await file_download.downloadFile(jsonString, 'tournament_state.json');

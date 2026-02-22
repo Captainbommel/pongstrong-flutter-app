@@ -1171,4 +1171,274 @@ void main() {
       expect(errors.where((e) => e.contains('invalid scores')), isEmpty);
     });
   });
+
+  // ==========================================================================
+  // 12. NUMBER OF TABLES VALIDATION
+  // ==========================================================================
+
+  group('validateSnapshot – numberOfTables', () {
+    test('default numberOfTables (6) passes', () {
+      final s = validSnapshot();
+      final errors = ImportService.validateSnapshot(
+        teams: s.teams,
+        matchQueue: s.matchQueue,
+        gruppenphase: s.gruppenphase,
+        tabellen: s.tabellen,
+        knockouts: s.knockouts,
+      );
+      expect(errors, isEmpty);
+    });
+
+    test('explicit numberOfTables=1 passes', () {
+      final s = validSnapshot();
+      final errors = ImportService.validateSnapshot(
+        teams: s.teams,
+        matchQueue: s.matchQueue,
+        gruppenphase: s.gruppenphase,
+        tabellen: s.tabellen,
+        knockouts: s.knockouts,
+        numberOfTables: 1,
+      );
+      expect(errors, isEmpty);
+    });
+
+    test('numberOfTables=10 passes', () {
+      final s = validSnapshot();
+      final errors = ImportService.validateSnapshot(
+        teams: s.teams,
+        matchQueue: s.matchQueue,
+        gruppenphase: s.gruppenphase,
+        tabellen: s.tabellen,
+        knockouts: s.knockouts,
+        numberOfTables: 10,
+      );
+      expect(errors, isEmpty);
+    });
+
+    test('numberOfTables=0 fails', () {
+      final s = validSnapshot();
+      final errors = ImportService.validateSnapshot(
+        teams: s.teams,
+        matchQueue: s.matchQueue,
+        gruppenphase: s.gruppenphase,
+        tabellen: s.tabellen,
+        knockouts: s.knockouts,
+        numberOfTables: 0,
+      );
+      expect(errors.any((e) => e.contains('numberOfTables')), isTrue);
+    });
+
+    test('numberOfTables=-1 fails', () {
+      final s = validSnapshot();
+      final errors = ImportService.validateSnapshot(
+        teams: s.teams,
+        matchQueue: s.matchQueue,
+        gruppenphase: s.gruppenphase,
+        tabellen: s.tabellen,
+        knockouts: s.knockouts,
+        numberOfTables: -1,
+      );
+      expect(errors.any((e) => e.contains('numberOfTables')), isTrue);
+    });
+  });
+
+  // ==========================================================================
+  // 13. GROUPS / TEAMS CONSISTENCY VALIDATION
+  // ==========================================================================
+
+  group('validateSnapshot – groups consistency', () {
+    test('valid groups with matching team IDs passes', () {
+      final teams = makeTeams(4);
+      final groups = Groups(groups: [
+        ['t0', 't1'],
+        ['t2', 't3'],
+      ]);
+      final errors = ImportService.validateSnapshot(
+        teams: teams,
+        matchQueue: MatchQueue(),
+        gruppenphase: Gruppenphase(),
+        tabellen: Tabellen(),
+        knockouts: Knockouts(),
+        groups: groups,
+      );
+      expect(errors, isEmpty);
+    });
+
+    test('null groups passes', () {
+      final errors = ImportService.validateSnapshot(
+        teams: makeTeams(2),
+        matchQueue: MatchQueue(),
+        gruppenphase: Gruppenphase(),
+        tabellen: Tabellen(),
+        knockouts: Knockouts(),
+        groups: null,
+      );
+      expect(errors, isEmpty);
+    });
+
+    test('empty groups passes', () {
+      final errors = ImportService.validateSnapshot(
+        teams: makeTeams(2),
+        matchQueue: MatchQueue(),
+        gruppenphase: Gruppenphase(),
+        tabellen: Tabellen(),
+        knockouts: Knockouts(),
+        groups: Groups(),
+      );
+      expect(errors, isEmpty);
+    });
+
+    test('unknown team ID in groups fails', () {
+      final teams = makeTeams(2); // t0, t1
+      final groups = Groups(groups: [
+        ['t0', 't1', 'phantom'],
+      ]);
+      final errors = ImportService.validateSnapshot(
+        teams: teams,
+        matchQueue: MatchQueue(),
+        gruppenphase: Gruppenphase(),
+        tabellen: Tabellen(),
+        knockouts: Knockouts(),
+        groups: groups,
+      );
+      expect(errors.any((e) => e.contains('phantom')), isTrue);
+      expect(errors.any((e) => e.contains('groups group 0')), isTrue);
+    });
+
+    test('multiple unknown team IDs in different groups', () {
+      final teams = makeTeams(2); // t0, t1
+      final groups = Groups(groups: [
+        ['t0', 'fake1'],
+        ['t1', 'fake2'],
+      ]);
+      final errors = ImportService.validateSnapshot(
+        teams: teams,
+        matchQueue: MatchQueue(),
+        gruppenphase: Gruppenphase(),
+        tabellen: Tabellen(),
+        knockouts: Knockouts(),
+        groups: groups,
+      );
+      expect(errors.length, 2);
+      expect(errors.any((e) => e.contains('fake1')), isTrue);
+      expect(errors.any((e) => e.contains('fake2')), isTrue);
+    });
+
+    test('empty team ID in groups is ignored', () {
+      final teams = makeTeams(2);
+      final groups = Groups(groups: [
+        ['t0', '', 't1'],
+      ]);
+      final errors = ImportService.validateSnapshot(
+        teams: teams,
+        matchQueue: MatchQueue(),
+        gruppenphase: Gruppenphase(),
+        tabellen: Tabellen(),
+        knockouts: Knockouts(),
+        groups: groups,
+      );
+      expect(errors, isEmpty);
+    });
+  });
+
+  // ==========================================================================
+  // 14. PARSE SNAPSHOT – NEW FIELDS (numberOfTables, groups)
+  // ==========================================================================
+
+  group('parseSnapshotFromJson – numberOfTables and groups', () {
+    test('parses numberOfTables from JSON', () {
+      final json = {
+        'teams': <dynamic>[],
+        'matchQueue': MatchQueue().toJson(),
+        'gruppenphase': Gruppenphase().toJson(),
+        'tabellen': Tabellen().toJson(),
+        'knockouts': Knockouts().toJson(),
+        'numberOfTables': 8,
+      };
+      final snapshot = ImportService.parseSnapshotFromJson(json);
+      expect(snapshot.numberOfTables, 8);
+    });
+
+    test('defaults numberOfTables to 6 when missing', () {
+      final json = {
+        'teams': <dynamic>[],
+        'matchQueue': MatchQueue().toJson(),
+        'gruppenphase': Gruppenphase().toJson(),
+        'tabellen': Tabellen().toJson(),
+        'knockouts': Knockouts().toJson(),
+      };
+      final snapshot = ImportService.parseSnapshotFromJson(json);
+      expect(snapshot.numberOfTables, 6);
+    });
+
+    test('parses groups from JSON', () {
+      final groups = Groups(groups: [
+        ['t0', 't1'],
+        ['t2', 't3'],
+      ]);
+      final json = {
+        'teams': makeTeams(4).map((t) => t.toJson()).toList(),
+        'matchQueue': MatchQueue().toJson(),
+        'gruppenphase': Gruppenphase().toJson(),
+        'tabellen': Tabellen().toJson(),
+        'knockouts': Knockouts().toJson(),
+        'groups': groups.toJson(),
+      };
+      final snapshot = ImportService.parseSnapshotFromJson(json);
+      expect(snapshot.groups.groups.length, 2);
+      expect(snapshot.groups.groups[0], ['t0', 't1']);
+      expect(snapshot.groups.groups[1], ['t2', 't3']);
+    });
+
+    test('defaults groups to empty when missing', () {
+      final json = {
+        'teams': <dynamic>[],
+        'matchQueue': MatchQueue().toJson(),
+        'gruppenphase': Gruppenphase().toJson(),
+        'tabellen': Tabellen().toJson(),
+        'knockouts': Knockouts().toJson(),
+      };
+      final snapshot = ImportService.parseSnapshotFromJson(json);
+      expect(snapshot.groups.groups, isEmpty);
+    });
+
+    test('full round-trip preserves numberOfTables and groups', () {
+      final teams = makeTeams(4);
+      final groups = Groups(groups: [
+        ['t0', 't1'],
+        ['t2', 't3'],
+      ]);
+      final exported = {
+        'teams': teams.map((t) => t.toJson()).toList(),
+        'matchQueue': MatchQueue().toJson(),
+        'gruppenphase': Gruppenphase().toJson(),
+        'tabellen': Tabellen().toJson(),
+        'knockouts': Knockouts().toJson(),
+        'currentTournamentId': 'test',
+        'isKnockoutMode': false,
+        'tournamentStyle': 'groupsAndKnockouts',
+        'numberOfTables': 4,
+        'groups': groups.toJson(),
+      };
+
+      final jsonString = jsonEncode(exported);
+      final reimported = jsonDecode(jsonString) as Map<String, dynamic>;
+      final snapshot = ImportService.parseSnapshotFromJson(reimported);
+
+      expect(snapshot.numberOfTables, 4);
+      expect(snapshot.groups.groups.length, 2);
+      expect(snapshot.groups, groups);
+
+      final errors = ImportService.validateSnapshot(
+        teams: snapshot.teams,
+        matchQueue: snapshot.matchQueue,
+        gruppenphase: snapshot.gruppenphase,
+        tabellen: snapshot.tabellen,
+        knockouts: snapshot.knockouts,
+        numberOfTables: snapshot.numberOfTables,
+        groups: snapshot.groups,
+      );
+      expect(errors, isEmpty);
+    });
+  });
 }

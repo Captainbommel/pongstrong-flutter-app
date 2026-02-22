@@ -914,6 +914,8 @@ class TournamentDataState extends ChangeNotifier {
     required String tournamentStyle,
     required String? selectedRuleset,
     required String tournamentId,
+    int numberOfTables = 6,
+    Groups? groups,
   }) async {
     final service = _firestoreService;
 
@@ -923,6 +925,11 @@ class TournamentDataState extends ChangeNotifier {
     await service.saveMatchQueue(matchQueue, tournamentId: tournamentId);
     await service.saveTabellen(tabellen, tournamentId: tournamentId);
     await service.saveKnockouts(knockouts, tournamentId: tournamentId);
+
+    // Persist group assignments if provided
+    if (groups != null && groups.groups.isNotEmpty) {
+      await service.saveGroups(groups, tournamentId: tournamentId);
+    }
 
     // Determine the phase from the state
     String phase;
@@ -934,7 +941,7 @@ class TournamentDataState extends ChangeNotifier {
       phase = 'groups';
     }
 
-    // Update tournament metadata
+    // Update tournament metadata (including numberOfTables)
     await service.firestore
         .collection(FirestoreBase.tournamentsCollection)
         .doc(tournamentId)
@@ -942,6 +949,7 @@ class TournamentDataState extends ChangeNotifier {
       'phase': phase,
       'tournamentStyle': tournamentStyle,
       'selectedRuleset': selectedRuleset,
+      'numberOfTables': numberOfTables,
       'updatedAt':
           null, // will be overwritten by FieldValue.serverTimestamp() when available
     }, SetOptions(merge: true));

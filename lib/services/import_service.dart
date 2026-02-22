@@ -408,6 +408,8 @@ class ImportService {
     bool isKnockoutMode,
     String tournamentStyle,
     String? selectedRuleset,
+    int numberOfTables,
+    Groups groups,
   }) parseSnapshotFromJson(Map<String, dynamic> jsonData) {
     final teams = (jsonData['teams'] as List)
         .map((t) => Team.fromJson(t as Map<String, dynamic>))
@@ -431,6 +433,19 @@ class ImportService {
         (jsonData['tournamentStyle'] as String?) ?? 'groupsAndKnockouts';
     final selectedRuleset = jsonData['selectedRuleset'] as String?;
 
+    // numberOfTables – defaults to 6 for backward compatibility with older
+    // snapshots that didn't include this field.
+    final numberOfTables = (jsonData['numberOfTables'] as num?)?.toInt() ?? 6;
+
+    // groups – team-to-group assignments.  Older snapshots may omit this.
+    Groups groups;
+    if (jsonData.containsKey('groups') &&
+        jsonData['groups'] is Map<String, dynamic>) {
+      groups = Groups.fromJson(jsonData['groups'] as Map<String, dynamic>);
+    } else {
+      groups = Groups();
+    }
+
     return (
       teams: teams,
       matchQueue: matchQueue,
@@ -441,6 +456,8 @@ class ImportService {
       isKnockoutMode: isKnockoutMode,
       tournamentStyle: tournamentStyle,
       selectedRuleset: selectedRuleset,
+      numberOfTables: numberOfTables,
+      groups: groups,
     );
   }
 
@@ -464,12 +481,17 @@ class ImportService {
   ///    scores (per [isValid]).
   /// 7. **Match queue integrity** – no match ID may appear in both waiting
   ///    and playing.
+  /// 8. **numberOfTables** – must be at least 1.
+  /// 9. **Groups / teams consistency** – every team ID in groups must
+  ///    reference an existing team.
   static List<String> validateSnapshot({
     required List<Team> teams,
     required MatchQueue matchQueue,
     required Gruppenphase gruppenphase,
     required Tabellen tabellen,
     required Knockouts knockouts,
+    int numberOfTables = 6,
+    Groups? groups,
   }) {
     final errors = <String>[];
 
@@ -629,6 +651,26 @@ class ImportService {
         errors.add(
           'Match "${m.id}" appears in both waiting and playing queues.',
         );
+      }
+    }
+
+    // ---- 8. numberOfTables -------------------------------------------------
+    if (numberOfTables < 1) {
+      errors.add(
+        'numberOfTables must be at least 1 but is $numberOfTables.',
+      );
+    }
+
+    // ---- 9. Groups / teams consistency -------------------------------------
+    if (groups != null && groups.groups.isNotEmpty) {
+      for (int g = 0; g < groups.groups.length; g++) {
+        for (final teamId in groups.groups[g]) {
+          if (teamId.isNotEmpty && !teamIds.contains(teamId)) {
+            errors.add(
+              'Unknown team ID "$teamId" in groups group $g.',
+            );
+          }
+        }
       }
     }
 
@@ -857,6 +899,8 @@ class ImportService {
         gruppenphase: snapshot.gruppenphase,
         tabellen: snapshot.tabellen,
         knockouts: snapshot.knockouts,
+        numberOfTables: snapshot.numberOfTables,
+        groups: snapshot.groups,
       );
       if (validationErrors.isNotEmpty) {
         throw FormatException(
@@ -882,7 +926,24 @@ class ImportService {
           tournamentStyle: snapshot.tournamentStyle,
           selectedRuleset: snapshot.selectedRuleset,
           tournamentId: tournamentId,
+          numberOfTables: snapshot.numberOfTables,
+          groups: snapshot.groups,
         );
+      }
+
+      // Refresh AdminPanelState so the admin UI stays in sync
+      if (context.mounted) {
+        try {
+          final adminState =
+              Provider.of<AdminPanelState>(context, listen: false);
+          await adminState.loadTournamentMetadata();
+          await adminState.loadTeams();
+          await adminState.loadGroups();
+          Logger.info('Admin panel state refreshed after snapshot restore',
+              tag: 'ImportService');
+        } catch (_) {
+          // AdminPanelState may not be in the widget tree
+        }
       }
 
       if (context.mounted) Navigator.pop(context);
