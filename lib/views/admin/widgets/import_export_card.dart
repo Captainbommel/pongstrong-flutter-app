@@ -22,6 +22,9 @@ class ImportExportCard extends StatelessWidget {
   /// Callback triggered when the user wants to import teams (CSV).
   final VoidCallback? onImportTeams;
 
+  /// Callback triggered when the user wants to import teams (JSON).
+  final VoidCallback? onImportTeamsJson;
+
   /// Callback triggered when the user wants to import a full snapshot.
   final VoidCallback? onImportSnapshot;
 
@@ -33,6 +36,7 @@ class ImportExportCard extends StatelessWidget {
   const ImportExportCard({
     super.key,
     this.onImportTeams,
+    this.onImportTeamsJson,
     this.onImportSnapshot,
     this.isCompact = false,
   });
@@ -123,6 +127,8 @@ class ImportExportCard extends StatelessWidget {
                   switch (value) {
                     case 'import_teams':
                       onImportTeams?.call();
+                    case 'import_teams_json':
+                      onImportTeamsJson?.call();
                     case 'import_snapshot':
                       onImportSnapshot?.call();
                     case 'export_teams':
@@ -136,6 +142,14 @@ class ImportExportCard extends StatelessWidget {
                     value: 'import_teams',
                     child: ListTile(
                       title: Text('Teams importieren (CSV)'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'import_teams_json',
+                    child: ListTile(
+                      title: Text('Teams importieren (JSON)'),
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                     ),

@@ -710,7 +710,170 @@ class ImportService {
     }
   }
 
-  /// Legacy alias – delegates to [uploadTeamsFromFile].
-  static Future<void> uploadTeamsFromJson(BuildContext context) =>
-      uploadTeamsFromFile(context);
+  /// Upload teams from a JSON file.
+  /// Supports grouped format (array of groups) and flat format.
+  /// Uses the currently selected tournament ID from TournamentSelectionState.
+  static Future<void> uploadTeamsFromJson(BuildContext context) async {
+    final selectionState =
+        Provider.of<TournamentSelectionState>(context, listen: false);
+    final tournamentId = selectionState.selectedTournamentId ??
+        FirestoreBase.defaultTournamentId;
+
+    TournamentStyle? style;
+    try {
+      final adminState = Provider.of<AdminPanelState>(context, listen: false);
+      style = adminState.tournamentStyle;
+    } catch (_) {
+      style = TournamentStyle.groupsAndKnockouts;
+    }
+
+    try {
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        dialogTitle: 'Teams importieren (JSON)',
+      );
+
+      if (result == null || result.files.single.bytes == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No file selected')),
+          );
+        }
+        return;
+      }
+
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Teams werden importiert...'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      final bytes = result.files.single.bytes!;
+      final jsonString = utf8.decode(bytes);
+      final jsonData = json.decode(jsonString);
+
+      // Reject full snapshots – those should use "Snapshot importieren"
+      if (jsonData is Map<String, dynamic> && isSnapshotJson(jsonData)) {
+        if (context.mounted) Navigator.pop(context);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Diese Datei ist ein Turnier-Snapshot. Bitte "Snapshot importieren" verwenden.'),
+              backgroundColor: AppColors.error,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+        return;
+      }
+
+      final service = FirestoreService();
+
+      if (style == TournamentStyle.groupsAndKnockouts) {
+        final parsed = ImportService.parseTeamsFromJson(jsonData);
+        final allTeams = parsed.$1;
+        final groups = parsed.$2;
+
+        Logger.info(
+            'Loaded ${allTeams.length} teams from JSON in ${groups.groups.length} groups',
+            tag: 'ImportService');
+
+        await service.importTeamsAndGroups(
+          allTeams,
+          groups,
+          tournamentId: tournamentId,
+        );
+
+        if (context.mounted) Navigator.pop(context);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!'),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        final allTeams = ImportService.parseTeamsFlatFromJson(jsonData);
+
+        Logger.info(
+            'Loaded ${allTeams.length} teams from JSON (flat, no groups)',
+            tag: 'ImportService');
+
+        await service.importTeamsOnly(
+          allTeams,
+          tournamentId: tournamentId,
+        );
+
+        if (context.mounted) Navigator.pop(context);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${allTeams.length} Teams importiert!'),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+
+      // Reload tournament data into state
+      if (context.mounted) {
+        final tournamentData =
+            Provider.of<TournamentDataState>(context, listen: false);
+        await tournamentData.loadTournamentData(tournamentId);
+        Logger.info('Data loaded into app state', tag: 'ImportService');
+      }
+
+      // Also refresh AdminPanelState so dropdowns stay in sync
+      if (context.mounted) {
+        try {
+          final adminState =
+              Provider.of<AdminPanelState>(context, listen: false);
+          await adminState.loadTeams();
+          await adminState.loadGroups();
+          Logger.info('Admin panel state refreshed', tag: 'ImportService');
+        } catch (_) {
+          // AdminPanelState may not be in the widget tree
+        }
+      }
+    } catch (e) {
+      Logger.error('Error loading teams from JSON',
+          tag: 'ImportService', error: e);
+
+      if (context.mounted) Navigator.pop(context);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fehler beim Import: $e'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
 }

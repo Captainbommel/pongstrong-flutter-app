@@ -297,6 +297,10 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         await AdminPanelDialogs.handleImportTeams(context);
         await _loadData();
       },
+      onImportTeamsJson: () async {
+        await AdminPanelDialogs.handleImportTeamsJson(context);
+        await _loadData();
+      },
       onImportSnapshot: () async {
         await AdminPanelDialogs.handleImportSnapshot(context);
         await _loadData();

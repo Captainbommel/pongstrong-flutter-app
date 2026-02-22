@@ -273,10 +273,16 @@ class AdminPanelDialogs {
     }
   }
 
-  /// Handle team import (JSON or CSV)
+  /// Handle team import (CSV)
   static Future<void> handleImportTeams(BuildContext context) async {
     if (!_verifyAdmin(context)) return;
     await ImportService.uploadTeamsFromFile(context);
+  }
+
+  /// Handle team import (JSON)
+  static Future<void> handleImportTeamsJson(BuildContext context) async {
+    if (!_verifyAdmin(context)) return;
+    await ImportService.uploadTeamsFromJson(context);
   }
 
   /// Handle full tournament snapshot import (JSON)
