@@ -8,7 +8,7 @@ import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 
 @GenerateNiceMocks([MockSpec<FirestoreService>()])
-import 'tournament_data_state_mockito_test.mocks.dart';
+import 'tournament_data_state_test.mocks.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -189,7 +189,13 @@ void main() {
       // Knockouts with teams seeded (indicating active KO mode)
       final knockouts = Knockouts(
         champions: Champions(rounds: [
-          [Match(teamId1: 'team_0', teamId2: 'team_1', id: 'ko_1', tableNumber: 1)]
+          [
+            Match(
+                teamId1: 'team_0',
+                teamId2: 'team_1',
+                id: 'ko_1',
+                tableNumber: 1)
+          ]
         ]),
       );
 
