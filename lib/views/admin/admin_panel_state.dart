@@ -981,6 +981,7 @@ class AdminPanelState extends ChangeNotifier {
       await _firestoreService.transitionToKnockouts(
         tournamentId: _currentTournamentId,
         numberOfGroups: _numberOfGroups,
+        tableCount: _numberOfTables,
       );
       _currentPhase = TournamentPhase.knockoutPhase;
       Logger.info('Advanced to knockout phase', tag: 'AdminPanel');

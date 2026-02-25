@@ -451,7 +451,7 @@ void mapTablesDynamic(Knockouts knock, {int tableCount = 6}) {
 /// * The swap pass guarantees that no two members of the same group can meet
 ///   before the semi-final (e.g. not in the quarter-final of a 16-team
 ///   bracket).
-Knockouts evaluateGroups(Tabellen tabellen) {
+Knockouts evaluateGroups(Tabellen tabellen, {int tableCount = 6}) {
   tabellen.sortTables();
   final n = tabellen.tables.length;
 
@@ -561,7 +561,7 @@ Knockouts evaluateGroups(Tabellen tabellen) {
   }
 
   // ── table assignment ──────────────────────────────────────────────────
-  mapTablesDynamic(knock);
+  mapTablesDynamic(knock, tableCount: tableCount);
 
   return knock;
 }

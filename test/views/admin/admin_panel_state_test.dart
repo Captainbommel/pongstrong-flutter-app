@@ -1103,7 +1103,7 @@ void main() {
 
       expect(state.reserveTeamIds, isEmpty);
       final doc = await fs.collection('tournaments').doc('t1').get();
-      final stored = (doc.data()!['reserveTeamIds'] as List);
+      final stored = doc.data()!['reserveTeamIds'] as List;
       expect(stored, isEmpty);
     });
 
@@ -1118,7 +1118,7 @@ void main() {
     test('reserveTeamIds getter returns unmodifiable copy', () {
       final state = makeState();
       expect(
-        () => (state.reserveTeamIds as Set<String>).add('hack'),
+        () => state.reserveTeamIds.add('hack'),
         throwsUnsupportedError,
       );
     });

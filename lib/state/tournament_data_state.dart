@@ -633,7 +633,8 @@ class TournamentDataState extends ChangeNotifier {
 
   /// Transition from group phase to knockout phase
   /// This will evaluate the group standings and populate the knockout structure
-  Future<bool> transitionToKnockouts({int? numberOfGroups}) async {
+  Future<bool> transitionToKnockouts(
+      {int? numberOfGroups, int tableCount = 6}) async {
     try {
       final service = _firestoreService;
 
@@ -657,7 +658,7 @@ class TournamentDataState extends ChangeNotifier {
       final tabellen = evalGruppen(groupPhase);
 
       // Evaluate and create knockouts based on number of groups
-      final knockouts = evaluateGroups(tabellen);
+      final knockouts = evaluateGroups(tabellen, tableCount: tableCount);
 
       // Store previous state for rollback
       final previousKnockouts = _knockouts.clone();
@@ -666,7 +667,7 @@ class TournamentDataState extends ChangeNotifier {
 
       // Clear match queue and fill with knockout matches
       _matchQueue = MatchQueue(
-        waiting: List.generate(6, (_) => <Match>[]),
+        waiting: List.generate(tableCount, (_) => <Match>[]),
         playing: [],
       );
       _matchQueue.updateKnockQueue(knockouts);

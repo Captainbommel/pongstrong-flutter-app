@@ -504,6 +504,7 @@ class MockFirestoreService extends _i1.Mock implements _i3.FirestoreService {
   _i4.Future<void> transitionToKnockouts({
     String? tournamentId = 'current',
     required int? numberOfGroups,
+    int? tableCount = 6,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -512,6 +513,7 @@ class MockFirestoreService extends _i1.Mock implements _i3.FirestoreService {
           {
             #tournamentId: tournamentId,
             #numberOfGroups: numberOfGroups,
+            #tableCount: tableCount,
           },
         ),
         returnValue: _i4.Future<void>.value(),

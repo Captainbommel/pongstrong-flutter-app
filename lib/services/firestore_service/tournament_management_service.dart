@@ -348,6 +348,7 @@ mixin TournamentManagementService
   Future<void> transitionToKnockouts({
     String tournamentId = FirestoreBase.defaultTournamentId,
     required int numberOfGroups,
+    int tableCount = 6,
   }) async {
     // Load gruppenphase and calculate standings
     final gruppenphase = await loadGruppenphase(tournamentId: tournamentId);
@@ -355,7 +356,7 @@ mixin TournamentManagementService
     final tabellen = evalGruppen(gruppenphase);
 
     // Evaluate and create knockouts
-    final knockouts = evaluateGroups(tabellen);
+    final knockouts = evaluateGroups(tabellen, tableCount: tableCount);
 
     // Save knockouts
     await saveKnockouts(knockouts, tournamentId: tournamentId);
@@ -369,10 +370,10 @@ mixin TournamentManagementService
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    // Create a fresh match queue with 6 waiting slots (one per table)
+    // Create a fresh match queue with one waiting slot per table
     // instead of reusing the group-phase queue which may have fewer slots
     final queue = MatchQueue(
-      waiting: List.generate(6, (_) => <Match>[]),
+      waiting: List.generate(tableCount, (_) => <Match>[]),
       playing: [],
     );
     queue.updateKnockQueue(knockouts);
