@@ -67,6 +67,17 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     return index;
   }
 
+  /// Returns a map from group index to the number of active teams assigned.
+  Map<int, int> _groupCounts() {
+    final counts = <int, int>{};
+    for (final c in _teamControllers) {
+      if (!c.isReserve && !c.markedForRemoval && c.groupIndex != null) {
+        counts[c.groupIndex!] = (counts[c.groupIndex!] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -494,6 +505,36 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     });
   }
 
+  /// Distributes teams evenly across groups in sequential blocks:
+  /// first N teams → group A, next N → group B, etc.
+  void _distributeGroupsEvenly() {
+    final groupCount = widget.adminState.numberOfGroups;
+    final activeControllers = _teamControllers
+        .where((c) => !c.isReserve && !c.markedForRemoval)
+        .toList();
+
+    final teamCount = activeControllers.length;
+    final baseSize = teamCount ~/ groupCount;
+    final remainder = teamCount % groupCount;
+
+    int index = 0;
+    for (int g = 0; g < groupCount; g++) {
+      // First `remainder` groups get one extra team
+      final size = baseSize + (g < remainder ? 1 : 0);
+      for (int t = 0; t < size; t++) {
+        activeControllers[index].groupIndex = g;
+        index++;
+      }
+    }
+    // Ensure reserve controllers have no group
+    for (final c in _teamControllers) {
+      if (c.isReserve) c.groupIndex = null;
+    }
+    setState(() {
+      _hasUnsavedChanges = true;
+    });
+  }
+
   Future<bool> _onWillPop() async {
     if (!_hasUnsavedChanges) return true;
 
@@ -853,7 +894,16 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                 ),
                 const Spacer(),
                 if (!isLocked) ...[
-                  if (isMobile)
+                  if (isMobile) ...[
+                    IconButton(
+                      onPressed: _distributeGroupsEvenly,
+                      icon: const Icon(Icons.view_module, size: 20),
+                      color: AppColors.caution,
+                      tooltip: 'Gleichmäßig verteilen',
+                      padding: EdgeInsets.zero,
+                      constraints:
+                          const BoxConstraints(minWidth: 36, minHeight: 36),
+                    ),
                     IconButton(
                       onPressed: _assignGroupsRandomly,
                       icon: const Icon(Icons.casino, size: 20),
@@ -862,15 +912,29 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                       padding: EdgeInsets.zero,
                       constraints:
                           const BoxConstraints(minWidth: 36, minHeight: 36),
-                    )
-                  else
-                    ElevatedButton(
-                      onPressed: _assignGroupsRandomly,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.caution,
-                        foregroundColor: AppColors.textPrimary,
-                      ),
-                      child: const Text('Gruppen würfeln'),
+                    ),
+                  ] else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        ElevatedButton(
+                          onPressed: _distributeGroupsEvenly,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.caution,
+                            foregroundColor: AppColors.textPrimary,
+                          ),
+                          child: const Text('Gleichmäßig verteilen'),
+                        ),
+                        const SizedBox(height: 6),
+                        ElevatedButton(
+                          onPressed: _assignGroupsRandomly,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.caution,
+                            foregroundColor: AppColors.textPrimary,
+                          ),
+                          child: const Text('Gruppen würfeln'),
+                        ),
+                      ],
                     ),
                 ],
               ],
@@ -1148,37 +1212,55 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         if (showGroups && !isReserve) ...[
           const SizedBox(width: 12),
           SizedBox(
-            width: 120,
-            child: DropdownButtonFormField<int?>(
-              value: _clampedGroupIndex(controller.groupIndex),
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Gruppe',
-                border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              ),
-              items: [
-                const DropdownMenuItem(
-                  child: Text('-',
-                      style: TextStyle(color: AppColors.textDisabled)),
+            width: 140,
+            child: Builder(builder: (context) {
+              final counts = _groupCounts();
+              final groupCount = widget.adminState.numberOfGroups;
+              final activeTeams = _teamControllers
+                  .where((c) => !c.isReserve && !c.markedForRemoval)
+                  .length;
+              final idealSize =
+                  groupCount > 0 ? (activeTeams / groupCount).ceil() : 0;
+              final currentGroup = _clampedGroupIndex(controller.groupIndex);
+              return DropdownButtonFormField<int?>(
+                value: currentGroup,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Gruppe',
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                 ),
-                ...List.generate(widget.adminState.numberOfGroups, (i) {
-                  return DropdownMenuItem(
-                    value: i,
-                    child: Text('Gruppe ${String.fromCharCode(65 + i)}'),
-                  );
-                }),
-              ],
-              onChanged: isLocked
-                  ? null
-                  : (value) {
-                      setState(() {
-                        controller.groupIndex = value;
-                        _hasUnsavedChanges = true;
-                      });
-                    },
-            ),
+                items: [
+                  const DropdownMenuItem(
+                    child: Text('-',
+                        style: TextStyle(color: AppColors.textDisabled)),
+                  ),
+                  ...List.generate(groupCount, (i) {
+                    final count = counts[i] ?? 0;
+                    final isFull = count >= idealSize && currentGroup != i;
+                    return DropdownMenuItem(
+                      value: i,
+                      enabled: !isFull,
+                      child: Text(
+                        '${String.fromCharCode(65 + i)} ($count/$idealSize)',
+                        style: TextStyle(
+                          color: isFull ? AppColors.textDisabled : null,
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+                onChanged: isLocked
+                    ? null
+                    : (value) {
+                        setState(() {
+                          controller.groupIndex = value;
+                          _hasUnsavedChanges = true;
+                        });
+                      },
+              );
+            }),
           ),
         ],
         if (!isLocked) ...[
@@ -1342,35 +1424,53 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         ),
         if (showGroups && !isReserve) ...[
           const SizedBox(height: 8),
-          DropdownButtonFormField<int?>(
-            value: _clampedGroupIndex(controller.groupIndex),
-            decoration: const InputDecoration(
-              labelText: 'Gruppe',
-              border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-            items: [
-              const DropdownMenuItem(
-                child: Text('Keine Gruppe',
-                    style: TextStyle(color: AppColors.textDisabled)),
+          Builder(builder: (context) {
+            final counts = _groupCounts();
+            final groupCount = widget.adminState.numberOfGroups;
+            final activeTeams = _teamControllers
+                .where((c) => !c.isReserve && !c.markedForRemoval)
+                .length;
+            final idealSize =
+                groupCount > 0 ? (activeTeams / groupCount).ceil() : 0;
+            final currentGroup = _clampedGroupIndex(controller.groupIndex);
+            return DropdownButtonFormField<int?>(
+              value: currentGroup,
+              decoration: const InputDecoration(
+                labelText: 'Gruppe',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
-              ...List.generate(widget.adminState.numberOfGroups, (i) {
-                return DropdownMenuItem(
-                  value: i,
-                  child: Text('Gruppe ${String.fromCharCode(65 + i)}'),
-                );
-              }),
-            ],
-            onChanged: isLocked
-                ? null
-                : (value) {
-                    setState(() {
-                      controller.groupIndex = value;
-                      _hasUnsavedChanges = true;
-                    });
-                  },
-          ),
+              items: [
+                const DropdownMenuItem(
+                  child: Text('Keine Gruppe',
+                      style: TextStyle(color: AppColors.textDisabled)),
+                ),
+                ...List.generate(groupCount, (i) {
+                  final count = counts[i] ?? 0;
+                  final isFull = count >= idealSize && currentGroup != i;
+                  return DropdownMenuItem(
+                    value: i,
+                    enabled: !isFull,
+                    child: Text(
+                      'Gruppe ${String.fromCharCode(65 + i)} ($count/$idealSize)',
+                      style: TextStyle(
+                        color: isFull ? AppColors.textDisabled : null,
+                      ),
+                    ),
+                  );
+                }),
+              ],
+              onChanged: isLocked
+                  ? null
+                  : (value) {
+                      setState(() {
+                        controller.groupIndex = value;
+                        _hasUnsavedChanges = true;
+                      });
+                    },
+            );
+          }),
         ],
       ],
     );
