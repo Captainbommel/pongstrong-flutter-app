@@ -23,6 +23,7 @@ class AdminPanelState extends ChangeNotifier {
 
   // Tournament info
   String _currentTournamentId = FirestoreBase.defaultTournamentId;
+  String _tournamentName = '';
 
   // Tournament status
   TournamentPhase _currentPhase = TournamentPhase.notStarted;
@@ -60,6 +61,7 @@ class AdminPanelState extends ChangeNotifier {
 
   // Getters
   String get currentTournamentId => _currentTournamentId;
+  String get tournamentName => _tournamentName;
   TournamentPhase get currentPhase => _currentPhase;
   TournamentStyle get tournamentStyle => _tournamentStyle;
   List<Team> get teams => List.unmodifiable(_teams);
@@ -180,6 +182,7 @@ class AdminPanelState extends ChangeNotifier {
       final metadata = await _firestoreService.getTournamentMetadata(
           tournamentId: _currentTournamentId);
       if (metadata != null) {
+        _tournamentName = (metadata['name'] as String?) ?? '';
         final phase = metadata['phase'] as String?;
         if (phase != null) {
           switch (phase) {

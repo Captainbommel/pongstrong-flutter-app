@@ -170,12 +170,19 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
 
   PreferredSizeWidget _buildMobileAppBar(AdminPanelState state) {
     return AppBar(
-      title: const Row(
+      title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.admin_panel_settings, size: 24),
-          SizedBox(width: 8),
-          Text('Turnierverwaltung'),
+          const Icon(Icons.admin_panel_settings, size: 24),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              state.tournamentName.isEmpty
+                  ? 'Turnierverwaltung'
+                  : 'Turnierverwaltung – ${state.tournamentName}',
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
       backgroundColor: GroupPhaseColors.cupred,
@@ -209,9 +216,11 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
           const Icon(Icons.admin_panel_settings,
               size: 24, color: GroupPhaseColors.cupred),
           const SizedBox(width: 8),
-          const Text(
-            'Turnierverwaltung',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          Text(
+            state.tournamentName.isEmpty
+                ? 'Turnierverwaltung'
+                : 'Turnierverwaltung – ${state.tournamentName}',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
           IconButton(

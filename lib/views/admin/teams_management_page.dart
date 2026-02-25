@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -25,6 +26,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   int _targetTeamCount = 24;
   bool _hasUnsavedChanges = false;
   bool _isSaving = false;
+  bool _showSaveSuccess = false;
+  Timer? _saveSuccessTimer;
 
   TournamentStyle get _style => widget.adminState.tournamentStyle;
   bool get _isGroupPhase => _style == TournamentStyle.groupsAndKnockouts;
@@ -441,12 +444,17 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       _initializeControllers(preserveTargetCount: _targetTeamCount);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Teams erfolgreich gespeichert'),
-            backgroundColor: FieldColors.springgreen,
-          ),
-        );
+        setState(() {
+          _showSaveSuccess = true;
+        });
+        _saveSuccessTimer?.cancel();
+        _saveSuccessTimer = Timer(const Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              _showSaveSuccess = false;
+            });
+          }
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -537,6 +545,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
   @override
   void dispose() {
+    _saveSuccessTimer?.cancel();
     for (final controller in _teamControllers) {
       controller.dispose();
     }
@@ -1386,7 +1395,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             const Spacer(),
             if (!isLocked)
               ElevatedButton.icon(
-                onPressed: _isSaving ? null : _saveAllTeams,
+                onPressed:
+                    (_isSaving || _showSaveSuccess) ? null : _saveAllTeams,
                 icon: _isSaving
                     ? const SizedBox(
                         width: 18,
@@ -1396,10 +1406,16 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                           color: AppColors.textOnColored,
                         ),
                       )
-                    : const Icon(Icons.save),
-                label: Text(_isSaving ? 'Speichern...' : 'Alle speichern'),
+                    : _showSaveSuccess
+                        ? const Icon(Icons.check)
+                        : const Icon(Icons.save),
+                label: Text(_isSaving
+                    ? 'Speichern...'
+                    : _showSaveSuccess
+                        ? 'Gespeichert'
+                        : 'Alle speichern'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _hasUnsavedChanges
+                  backgroundColor: _hasUnsavedChanges && !_showSaveSuccess
                       ? FieldColors.springgreen
                       : AppColors.textDisabled,
                   foregroundColor: AppColors.textOnColored,
