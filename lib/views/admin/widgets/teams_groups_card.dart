@@ -68,11 +68,25 @@ class TeamsAndGroupsNavigationCard extends StatelessWidget {
   }
 
   String get _teamCountLabel {
-    if (_isGroupPhase) return '$totalTeams / ${numberOfGroups * 4} Teams';
+    if (_isGroupPhase) {
+      final needed = numberOfGroups * 4;
+      // Show active/target count; if there are reserves, note them
+      final activeTeams = totalTeams <= needed ? totalTeams : needed;
+      final reserveTeams = totalTeams > needed ? totalTeams - needed : 0;
+      return reserveTeams > 0
+          ? '$activeTeams / $needed Teams (+$reserveTeams Ersatz)'
+          : '$activeTeams / $needed Teams';
+    }
     if (_isKOOnly) {
       final validCounts = [8, 16, 32, 64];
       final isValid = validCounts.contains(targetTeamCount);
-      return '$targetTeamCount Teams${isValid ? '' : ' (benötigt: 8/16/32/64)'}';
+      final activeTeams =
+          totalTeams <= targetTeamCount ? totalTeams : targetTeamCount;
+      final reserveTeams =
+          totalTeams > targetTeamCount ? totalTeams - targetTeamCount : 0;
+      final base =
+          '$activeTeams / $targetTeamCount Teams${isValid ? '' : ' (benötigt: 8/16/32/64)'}';
+      return reserveTeams > 0 ? '$base (+$reserveTeams Ersatz)' : base;
     }
     return '$totalTeams Teams';
   }

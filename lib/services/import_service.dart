@@ -521,7 +521,7 @@ class ImportService {
         if (rounds[i].length != expected) {
           errors.add(
             '$bracketName round ${i + 1} has ${rounds[i].length} matches '
-            'but should have $expected (half of round $i\'s '
+            "but should have $expected (half of round $i's "
             '${rounds[i - 1].length}).',
           );
         }

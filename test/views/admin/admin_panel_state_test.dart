@@ -971,6 +971,57 @@ void main() {
       state.setTargetTeamCount(8);
       expect(calls, 0);
     });
+
+    test('does not update koTargetTeamCount when not in KO mode', () {
+      final state = makeState();
+      // Default style is groupsAndKnockouts
+      state.setTargetTeamCount(16);
+      expect(state.targetTeamCount, 16);
+
+      // Switch to KO — should still have default koTargetTeamCount (8)
+      state.setTournamentStyle(TournamentStyle.knockoutsOnly);
+      expect(state.targetTeamCount, 8);
+    });
+
+    test('does not auto-save to Firestore', () async {
+      final fs = FakeFirebaseFirestore();
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+
+      state.setTargetTeamCount(32);
+
+      // Check Firestore: the doc should not have targetTeamCount since
+      // setTargetTeamCount no longer auto-saves
+      final snap = await fs.collection('tournaments').doc('t1').get();
+      expect(snap.exists, isFalse);
+    });
+  });
+
+  // =========================================================================
+  group('saveTargetTeamCount', () {
+    test('writes targetTeamCount to Firestore', () async {
+      final fs = FakeFirebaseFirestore();
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+
+      await state.saveTargetTeamCount(16);
+
+      final snap = await fs.collection('tournaments').doc('t1').get();
+      expect(snap.exists, isTrue);
+      expect(snap.data()!['targetTeamCount'], 16);
+    });
+
+    test('overwrites previous value on subsequent call', () async {
+      final fs = FakeFirebaseFirestore();
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+
+      await state.saveTargetTeamCount(16);
+      await state.saveTargetTeamCount(32);
+
+      final snap = await fs.collection('tournaments').doc('t1').get();
+      expect(snap.data()!['targetTeamCount'], 32);
+    });
   });
 
   // =========================================================================
@@ -1012,6 +1063,348 @@ void main() {
       );
       // Currently allowed — the production code does not block updates after start.
       expect(ok, isTrue);
+    });
+  });
+
+  // =========================================================================
+  group('Reserve (bench) – saveReserveTeamIds', () {
+    test('reserveTeamIds is empty by default', () {
+      final state = makeState();
+      expect(state.reserveTeamIds, isEmpty);
+    });
+
+    test('saveReserveTeamIds updates local state immediately', () async {
+      final state = makeState();
+      await state.saveReserveTeamIds({'id_a', 'id_b'});
+      expect(state.reserveTeamIds, {'id_a', 'id_b'});
+    });
+
+    test('saveReserveTeamIds persists to Firestore', () async {
+      final fs = FakeFirebaseFirestore();
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+      await state.saveReserveTeamIds({'r1', 'r2', 'r3'});
+
+      // Read the Firestore doc directly
+      final doc = await fs.collection('tournaments').doc('t1').get();
+      expect(doc.exists, isTrue);
+      final data = doc.data()!;
+      expect(data.containsKey('reserveTeamIds'), isTrue);
+      final stored = (data['reserveTeamIds'] as List).cast<String>().toSet();
+      expect(stored, {'r1', 'r2', 'r3'});
+    });
+
+    test('saveReserveTeamIds with empty set clears reserve', () async {
+      final fs = FakeFirebaseFirestore();
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+      await state.saveReserveTeamIds({'r1', 'r2'});
+      await state.saveReserveTeamIds({});
+
+      expect(state.reserveTeamIds, isEmpty);
+      final doc = await fs.collection('tournaments').doc('t1').get();
+      final stored = (doc.data()!['reserveTeamIds'] as List);
+      expect(stored, isEmpty);
+    });
+
+    test('saveReserveTeamIds notifies listeners', () async {
+      final state = makeState();
+      int calls = 0;
+      state.addListener(() => calls++);
+      await state.saveReserveTeamIds({'x'});
+      expect(calls, greaterThan(0));
+    });
+
+    test('reserveTeamIds getter returns unmodifiable copy', () {
+      final state = makeState();
+      expect(
+        () => (state.reserveTeamIds as Set<String>).add('hack'),
+        throwsUnsupportedError,
+      );
+    });
+  });
+
+  // =========================================================================
+  group('Reserve (bench) – loadTournamentMetadata round-trip', () {
+    test('loads persisted reserveTeamIds from metadata', () async {
+      final fs = FakeFirebaseFirestore();
+      // Seed metadata doc with reserveTeamIds
+      await fs.collection('tournaments').doc('t1').set({
+        'reserveTeamIds': ['team_a', 'team_b'],
+      });
+
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+      await state.loadTournamentMetadata();
+
+      expect(state.reserveTeamIds, {'team_a', 'team_b'});
+    });
+
+    test('loads empty set when reserveTeamIds absent in metadata', () async {
+      final fs = FakeFirebaseFirestore();
+      await fs.collection('tournaments').doc('t1').set({
+        'phase': 'notStarted',
+      });
+
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+      await state.loadTournamentMetadata();
+
+      expect(state.reserveTeamIds, isEmpty);
+    });
+
+    test('loads targetTeamCount from metadata', () async {
+      final fs = FakeFirebaseFirestore();
+      await fs.collection('tournaments').doc('t1').set({
+        'targetTeamCount': 32,
+      });
+
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+      await state.loadTournamentMetadata();
+
+      expect(state.targetTeamCount, 32);
+    });
+
+    test('loads targetTeamCount and restores koTargetTeamCount in KO mode',
+        () async {
+      final fs = FakeFirebaseFirestore();
+      await fs.collection('tournaments').doc('t1').set({
+        'targetTeamCount': 16,
+        'tournamentStyle': 'knockoutsOnly',
+      });
+
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+      await state.loadTournamentMetadata();
+
+      expect(state.targetTeamCount, 16);
+      // Switch away and back to verify koTargetTeamCount was set
+      state.setTournamentStyle(TournamentStyle.groupsAndKnockouts);
+      state.setTournamentStyle(TournamentStyle.knockoutsOnly);
+      expect(state.targetTeamCount, 16);
+    });
+
+    test('defaults targetTeamCount when absent in metadata', () async {
+      final fs = FakeFirebaseFirestore();
+      await fs.collection('tournaments').doc('t1').set({
+        'phase': 'notStarted',
+      });
+
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+      await state.loadTournamentMetadata();
+
+      // Should remain at the default (8)
+      expect(state.targetTeamCount, 8);
+    });
+
+    test('save then load round-trip preserves reserve IDs', () async {
+      final fs = FakeFirebaseFirestore();
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+
+      final ids = await addTeams(state, 10);
+      final reserveSet = {ids[8], ids[9]};
+      await state.saveReserveTeamIds(reserveSet);
+
+      // Simulate leaving the page: create fresh state from same Firestore
+      final state2 = makeState(fs: fs);
+      state2.setTournamentId('t1');
+      await state2.loadTournamentMetadata();
+
+      expect(state2.reserveTeamIds, reserveSet);
+    });
+
+    test('save then load round-trip preserves targetTeamCount', () async {
+      final fs = FakeFirebaseFirestore();
+      final state = makeState(fs: fs);
+      state.setTournamentId('t1');
+
+      state.setTargetTeamCount(32);
+      await state.saveTargetTeamCount(32);
+
+      // Simulate page reload
+      final state2 = makeState(fs: fs);
+      state2.setTournamentId('t1');
+      await state2.loadTournamentMetadata();
+
+      expect(state2.targetTeamCount, 32);
+    });
+  });
+
+  // =========================================================================
+  group('Reserve (bench) – reorderTeams', () {
+    test('reorderTeams puts active teams first, reserve last', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 5);
+      // Mark teams 0,1,2 as active, 3,4 as reserve
+      final activeIds = {ids[0], ids[1], ids[2]};
+      await state.reorderTeams(activeIds);
+
+      final teamIds = state.teams.map((t) => t.id).toList();
+      // First 3 should be the active ones
+      expect(teamIds.sublist(0, 3).toSet(), activeIds);
+      // Last 2 should be the reserve ones
+      expect(teamIds.sublist(3).toSet(), {ids[3], ids[4]});
+    });
+
+    test('reorderTeams preserves all teams (no data loss)', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 6);
+      final activeIds = {ids[0], ids[3], ids[5]};
+      await state.reorderTeams(activeIds);
+
+      expect(state.teams.length, 6);
+      expect(state.teams.map((t) => t.id).toSet(), ids.toSet());
+    });
+
+    test('reorderTeams handles all-active case (no reserve)', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 4);
+      await state.reorderTeams(ids.toSet());
+
+      expect(state.teams.length, 4);
+    });
+
+    test('reorderTeams handles all-reserve case (empty active set)', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 4);
+      await state.reorderTeams(<String>{});
+
+      // All 4 teams should still exist
+      expect(state.teams.length, 4);
+      // All teams are in the reserve section
+      final teamIds = state.teams.map((t) => t.id).toSet();
+      expect(teamIds, ids.toSet());
+    });
+  });
+
+  // =========================================================================
+  group('Reserve (bench) – removeTeamFromGroup', () {
+    test('removes a team from its assigned group', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 8);
+      state.setNumberOfGroups(2);
+      // Assign 4 teams per group
+      for (int i = 0; i < 4; i++) {
+        await state.assignTeamToGroup(ids[i], 0);
+      }
+      for (int i = 4; i < 8; i++) {
+        await state.assignTeamToGroup(ids[i], 1);
+      }
+
+      // Team 0 should be in group 0
+      expect(state.getTeamGroupIndex(ids[0]), 0);
+
+      // Remove team 0 from its group
+      final ok = await state.removeTeamFromGroup(ids[0]);
+      expect(ok, isTrue);
+      expect(state.getTeamGroupIndex(ids[0]), -1);
+    });
+
+    test('returns true if team is not in any group (no-op)', () async {
+      final state = makeState();
+      await addTeams(state, 2);
+      final ok = await state.removeTeamFromGroup('nonexistent_id');
+      expect(ok, isTrue);
+    });
+
+    test('returns true when groups are empty', () async {
+      final state = makeState();
+      final ok = await state.removeTeamFromGroup('any_id');
+      expect(ok, isTrue);
+    });
+
+    test('only removes the specified team, others stay', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 8);
+      state.setNumberOfGroups(2);
+      for (int i = 0; i < 4; i++) {
+        await state.assignTeamToGroup(ids[i], 0);
+      }
+      for (int i = 4; i < 8; i++) {
+        await state.assignTeamToGroup(ids[i], 1);
+      }
+
+      await state.removeTeamFromGroup(ids[2]);
+
+      // Team 2 is gone
+      expect(state.getTeamGroupIndex(ids[2]), -1);
+      // Other teams in group 0 are still there
+      expect(state.getTeamGroupIndex(ids[0]), 0);
+      expect(state.getTeamGroupIndex(ids[1]), 0);
+      expect(state.getTeamGroupIndex(ids[3]), 0);
+      // Group 1 is untouched
+      expect(state.getTeamGroupIndex(ids[4]), 1);
+    });
+
+    test('reserve team removed from group makes validation fail', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 8);
+      state.setNumberOfGroups(2);
+      for (int i = 0; i < 4; i++) {
+        await state.assignTeamToGroup(ids[i], 0);
+      }
+      for (int i = 4; i < 8; i++) {
+        await state.assignTeamToGroup(ids[i], 1);
+      }
+
+      // Valid before removal
+      expect(state.canStartTournament, isTrue);
+
+      // Remove a team (simulating moving to bench) — group now has 3 teams
+      await state.removeTeamFromGroup(ids[0]);
+
+      // Can no longer start because group 0 only has 3 teams
+      expect(state.canStartTournament, isFalse);
+    });
+  });
+
+  // =========================================================================
+  group('Reserve (bench) – group assignment exclusion', () {
+    test('assignGroupsRandomly excludes reserve teams', () async {
+      final state = makeState();
+      // Create 10 teams, mark 2 as reserve
+      final ids = await addTeams(state, 10);
+      await state.saveReserveTeamIds({ids[8], ids[9]});
+      state.setNumberOfGroups(2); // needs 8 teams
+
+      final ok = await state.assignGroupsRandomly();
+      expect(ok, isTrue);
+
+      // Reserve teams should NOT be in any group
+      expect(state.getTeamGroupIndex(ids[8]), -1);
+      expect(state.getTeamGroupIndex(ids[9]), -1);
+    });
+
+    test('shuffleGroupsLocally excludes reserve teams', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 10);
+      await state.saveReserveTeamIds({ids[8], ids[9]});
+      state.setNumberOfGroups(2);
+
+      final assignments = state.shuffleGroupsLocally();
+      expect(assignments, isNotNull);
+      // Reserve team IDs should not appear in the assignment map
+      expect(assignments!.containsKey(ids[8]), isFalse);
+      expect(assignments.containsKey(ids[9]), isFalse);
+      // Should have exactly 8 assignments (2 groups × 4)
+      expect(assignments.length, 8);
+    });
+
+    test('assignGroupsRandomly with all teams reserve fails gracefully',
+        () async {
+      final state = makeState();
+      final ids = await addTeams(state, 4);
+      await state.saveReserveTeamIds(ids.toSet());
+      state.setNumberOfGroups(1); // needs 4, but all are reserve
+
+      final ok = await state.assignGroupsRandomly();
+      // Should still "succeed" structurally but groups won't be full
+      // (validation will fail at start time)
+      expect(ok, isTrue);
+      expect(state.canStartTournament, isFalse);
     });
   });
 }

@@ -46,6 +46,9 @@ class AdminPanelState extends ChangeNotifier {
   // Rules configuration
   String? _selectedRuleset = 'bmt-cup';
 
+  // Reserve (bench) team IDs – persisted in tournament metadata
+  Set<String> _reserveTeamIds = {};
+
   // Match statistics
   int _totalMatches = 0;
   int _completedMatches = 0;
@@ -71,6 +74,7 @@ class AdminPanelState extends ChangeNotifier {
   int get remainingMatches => _remainingMatches;
   bool get rulesEnabled => _selectedRuleset != null;
   String? get selectedRuleset => _selectedRuleset;
+  Set<String> get reserveTeamIds => Set.unmodifiable(_reserveTeamIds);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isTournamentStarted => _currentPhase != TournamentPhase.notStarted;
@@ -212,6 +216,25 @@ class AdminPanelState extends ChangeNotifier {
         if (metadata.containsKey('numberOfTables')) {
           _numberOfTables = (metadata['numberOfTables'] as num).toInt();
           if (_numberOfTables < 1) _numberOfTables = 6;
+        }
+
+        // Load target team count (persisted for KO-only mode)
+        if (metadata.containsKey('targetTeamCount')) {
+          final tc = (metadata['targetTeamCount'] as num).toInt();
+          _targetTeamCount = tc;
+          if (_tournamentStyle == TournamentStyle.knockoutsOnly) {
+            _koTargetTeamCount = tc;
+          }
+        }
+
+        // Load reserve (bench) team IDs from metadata
+        if (metadata.containsKey('reserveTeamIds')) {
+          final reserveList = metadata['reserveTeamIds'];
+          if (reserveList is List) {
+            _reserveTeamIds = reserveList.cast<String>().toSet();
+          }
+        } else {
+          _reserveTeamIds = {};
         }
 
         Logger.info(
@@ -471,9 +494,13 @@ class AdminPanelState extends ChangeNotifier {
     _clearError();
     final groupCount = numberOfGroups ?? _numberOfGroups;
     final teamsNeeded = groupCount * 4;
-    final shuffledTeamIds = _teams.map((t) => t.id).toList()..shuffle(Random());
-    // Only use the first teamsNeeded teams (4 per group)
-    final selectedTeams = shuffledTeamIds.take(teamsNeeded).toList();
+    // Exclude reserve (bench) teams from group assignment
+    final eligibleIds = _teams
+        .where((t) => !_reserveTeamIds.contains(t.id))
+        .map((t) => t.id)
+        .toList()
+      ..shuffle(Random());
+    final selectedTeams = eligibleIds.take(teamsNeeded).toList();
     final newGroups = List.generate(groupCount, (_) => <String>[]);
     for (int i = 0; i < selectedTeams.length; i++) {
       newGroups[i % groupCount].add(selectedTeams[i]);
@@ -503,6 +530,35 @@ class AdminPanelState extends ChangeNotifier {
     }
   }
 
+  /// Reorder teams so that active (tournament) teams come first in the list.
+  /// This ensures `_teams.take(targetTeamCount)` selects the correct teams
+  /// when starting a KO-only tournament.
+  Future<void> reorderTeams(Set<String> activeTeamIds) async {
+    final activeTeams = <Team>[];
+    final reserveTeams = <Team>[];
+    for (final team in _teams) {
+      if (activeTeamIds.contains(team.id)) {
+        activeTeams.add(team);
+      } else {
+        reserveTeams.add(team);
+      }
+    }
+    final reordered = [...activeTeams, ...reserveTeams];
+    if (_teams.length == reordered.length) {
+      _teams = reordered;
+      try {
+        await _firestoreService.saveTeams(_teams,
+            tournamentId: _currentTournamentId);
+        Logger.debug(
+            'Teams reordered: ${activeTeams.length} active, ${reserveTeams.length} reserve',
+            tag: 'AdminPanel');
+      } catch (e) {
+        Logger.error('Error reordering teams', tag: 'AdminPanel', error: e);
+      }
+      notifyListeners();
+    }
+  }
+
   /// Shuffle groups locally without saving to Firebase.
   /// Returns a map of teamId -> groupIndex for the caller to apply.
   /// The caller is responsible for saving via the normal save flow.
@@ -510,8 +566,13 @@ class AdminPanelState extends ChangeNotifier {
     if (_teams.isEmpty) return null;
     final groupCount = numberOfGroups ?? _numberOfGroups;
     final teamsNeeded = groupCount * 4;
-    final shuffledTeamIds = _teams.map((t) => t.id).toList()..shuffle(Random());
-    final selectedTeams = shuffledTeamIds.take(teamsNeeded).toList();
+    // Exclude reserve (bench) teams from group shuffle
+    final eligibleIds = _teams
+        .where((t) => !_reserveTeamIds.contains(t.id))
+        .map((t) => t.id)
+        .toList()
+      ..shuffle(Random());
+    final selectedTeams = eligibleIds.take(teamsNeeded).toList();
     final result = <String, int>{};
     for (int i = 0; i < selectedTeams.length; i++) {
       result[selectedTeams[i]] = i % groupCount;
@@ -554,6 +615,27 @@ class AdminPanelState extends ChangeNotifier {
       return false;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  /// Remove a team from whichever group it is in (if any) and persist.
+  Future<bool> removeTeamFromGroup(String teamId) async {
+    if (_groups.groups.isEmpty) return true;
+    bool found = false;
+    for (final group in _groups.groups) {
+      if (group.remove(teamId)) found = true;
+    }
+    if (!found) return true; // nothing to do
+    notifyListeners();
+    try {
+      await _firestoreService.saveGroups(_groups,
+          tournamentId: _currentTournamentId);
+      Logger.debug('Team $teamId removed from group', tag: 'AdminPanel');
+      return true;
+    } catch (e) {
+      Logger.error('Error removing team from group',
+          tag: 'AdminPanel', error: e);
+      return false;
     }
   }
 
@@ -740,6 +822,43 @@ class AdminPanelState extends ChangeNotifier {
       Logger.info('Number of tables updated to $count', tag: 'AdminPanel');
     } catch (e) {
       Logger.error('Error saving number of tables',
+          tag: 'AdminPanel', error: e);
+    }
+  }
+
+  Future<void> saveTargetTeamCount(int count) async {
+    try {
+      await _firestoreService.firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(_currentTournamentId)
+          .set({
+        'targetTeamCount': count,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      Logger.debug('Target team count saved: $count', tag: 'AdminPanel');
+    } catch (e) {
+      Logger.error('Error saving target team count',
+          tag: 'AdminPanel', error: e);
+    }
+  }
+
+  /// Persist the set of reserve (bench) team IDs to tournament metadata.
+  Future<void> saveReserveTeamIds(Set<String> reserveIds) async {
+    _reserveTeamIds = reserveIds;
+    notifyListeners();
+    try {
+      await _firestoreService.firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(_currentTournamentId)
+          .set({
+        'reserveTeamIds': reserveIds.toList(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      Logger.debug(
+          'Reserve team IDs saved (${reserveIds.length} teams on bench)',
+          tag: 'AdminPanel');
+    } catch (e) {
+      Logger.error('Error saving reserve team IDs',
           tag: 'AdminPanel', error: e);
     }
   }

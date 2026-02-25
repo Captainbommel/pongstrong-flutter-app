@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
@@ -29,6 +31,19 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   bool get _isKOOnly => _style == TournamentStyle.knockoutsOnly;
   bool get _isRoundRobin => _style == TournamentStyle.everyoneVsEveryone;
 
+  /// Whether any team is marked as reserve (on the bench)
+  bool get _hasReserveTeams =>
+      !_isRoundRobin &&
+      _teamControllers.any((c) => c.isReserve && !c.markedForRemoval);
+
+  /// Number of active (non-reserve) teams with data filled in
+  int get _activeFilledCount => _teamControllers
+      .where((c) =>
+          !c.isReserve &&
+          !c.markedForRemoval &&
+          c.nameController.text.isNotEmpty)
+      .length;
+
   /// Returns the allowed team counts for the dropdown based on tournament style
   List<int> get _allowedTeamCounts {
     switch (_style) {
@@ -39,6 +54,14 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       case TournamentStyle.everyoneVsEveryone:
         return List.generate(63, (i) => i + 2); // 2..64
     }
+  }
+
+  /// Safely clamp a group index: return null if it's out of range for the
+  /// current number of groups, so the dropdown never receives a stale value.
+  int? _clampedGroupIndex(int? index) {
+    if (index == null) return null;
+    if (index < 0 || index >= widget.adminState.numberOfGroups) return null;
+    return index;
   }
 
   @override
@@ -53,6 +76,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     }
     _teamControllers.clear();
 
+    final maxGroupIndex = widget.adminState.numberOfGroups - 1;
     for (final team in widget.adminState.teams) {
       final groupIndex = widget.adminState.getTeamGroupIndex(team.id);
       _teamControllers.add(TeamEditController(
@@ -60,7 +84,9 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         name: team.name,
         member1: team.member1,
         member2: team.member2,
-        groupIndex: groupIndex >= 0 ? groupIndex : null,
+        // Clamp: ignore stale group indices that exceed current group count
+        groupIndex:
+            groupIndex >= 0 && groupIndex <= maxGroupIndex ? groupIndex : null,
         isNew: false,
       ));
     }
@@ -75,6 +101,9 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
               : preserveTargetCount >= 2)) {
         // Post-save: restore the user's in-page selection
         _targetTeamCount = preserveTargetCount;
+      } else if (_isGroupPhase) {
+        // Groups+KO: target is always numberOfGroups * 4
+        _targetTeamCount = widget.adminState.numberOfGroups * 4;
       } else if (_isKOOnly && validKo.contains(stateCount)) {
         // First open in KO-only: use the value already chosen in the admin panel
         _targetTeamCount = stateCount;
@@ -92,17 +121,10 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           );
         }
       }
-      // Grow controller list to fill selected slots
-      while (_teamControllers.length < _targetTeamCount) {
-        _teamControllers.add(TeamEditController());
-      }
-      // For KO-only: trim the visible list to targetTeamCount
-      if (_isKOOnly && _teamControllers.length > _targetTeamCount) {
-        while (_teamControllers.length > _targetTeamCount) {
-          final last = _teamControllers.removeLast();
-          last.dispose();
-        }
-      }
+      // Apply active/reserve categorization instead of trimming.
+      // On initial load (no preserveTargetCount), use persisted reserve IDs
+      // from Firestore so the bench survives page reloads.
+      _applyReserveMarking(usePersistedIds: preserveTargetCount == null);
     } else {
       // No registered teams yet — seed with admin state count or mode default
       final stateCount = widget.adminState.targetTeamCount;
@@ -139,18 +161,151 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     }
   }
 
+  /// Categorize team controllers as active or reserve based on _targetTeamCount.
+  /// In round-robin mode, all teams are active (no reserve concept).
+  /// When persisted reserve IDs exist (from Firestore), those are used instead
+  /// of position-based marking so that the bench survives page reloads.
+  void _applyReserveMarking({bool usePersistedIds = false}) {
+    if (_isRoundRobin) {
+      for (final c in _teamControllers) {
+        c.isReserve = false;
+      }
+      return;
+    }
+
+    final persistedReserveIds = widget.adminState.reserveTeamIds;
+
+    // Use persisted IDs when caller requests it AND there are persisted IDs
+    if (usePersistedIds && persistedReserveIds.isNotEmpty) {
+      for (final c in _teamControllers) {
+        if (c.markedForRemoval) continue;
+        c.isReserve = c.id != null && persistedReserveIds.contains(c.id);
+        if (c.isReserve && _isGroupPhase) c.groupIndex = null;
+      }
+      // After applying persisted IDs, pad active zone to _targetTeamCount
+      final activeCount = _teamControllers
+          .where((c) => !c.isReserve && !c.markedForRemoval)
+          .length;
+      for (int i = activeCount; i < _targetTeamCount; i++) {
+        _teamControllers.add(TeamEditController());
+      }
+    } else {
+      final filledCount = _teamControllers
+          .where((c) => !c.markedForRemoval && c.nameController.text.isNotEmpty)
+          .length;
+
+      if (filledCount <= _targetTeamCount) {
+        // All filled teams fit in active zone
+        for (final c in _teamControllers) {
+          c.isReserve = false;
+        }
+        // Trim excess empty slots that would overflow the active zone
+        final nonRemoved =
+            _teamControllers.where((c) => !c.markedForRemoval).length;
+        if (nonRemoved > _targetTeamCount) {
+          // Dispose & remove empty-unnamed controllers from the end
+          int excess = nonRemoved - _targetTeamCount;
+          for (int i = _teamControllers.length - 1; i >= 0 && excess > 0; i--) {
+            final c = _teamControllers[i];
+            if (!c.markedForRemoval &&
+                c.nameController.text.isEmpty &&
+                c.id == null) {
+              c.dispose();
+              _teamControllers.removeAt(i);
+              excess--;
+            }
+          }
+        }
+        // Pad with empty slots if needed
+        while (_teamControllers.where((c) => !c.markedForRemoval).length <
+            _targetTeamCount) {
+          _teamControllers.add(TeamEditController());
+        }
+      } else {
+        // More teams than target: split into active + reserve
+        int activeCount = 0;
+        for (final c in _teamControllers) {
+          if (c.markedForRemoval) continue;
+          if (activeCount < _targetTeamCount) {
+            c.isReserve = false;
+            activeCount++;
+          } else {
+            c.isReserve = true;
+            if (_isGroupPhase) c.groupIndex = null;
+          }
+        }
+      }
+    }
+
+    // Clamp stale group indices that exceed the current number of groups
+    // (e.g. after switching from 10 → 9 groups)
+    if (_isGroupPhase) {
+      final maxIndex = widget.adminState.numberOfGroups - 1;
+      for (final c in _teamControllers) {
+        if (c.groupIndex != null && c.groupIndex! > maxIndex) {
+          c.groupIndex = null;
+        }
+      }
+    }
+  }
+
+  /// Move a team from the active zone to the reserve (bench).
+  void _moveToReserve(int index) {
+    setState(() {
+      final controller = _teamControllers[index];
+      controller.isReserve = true;
+      controller.groupIndex = null;
+      _hasUnsavedChanges = true;
+    });
+  }
+
+  /// Promote a team from the reserve zone into the active tournament.
+  void _promoteToActive(int index) {
+    final controller = _teamControllers[index];
+    final activeCount = _teamControllers
+        .where((c) => !c.isReserve && !c.markedForRemoval)
+        .length;
+
+    if (activeCount >= _targetTeamCount) {
+      // Try to replace an empty active slot
+      final emptySlotIndex = _teamControllers.indexWhere((c) =>
+          !c.isReserve &&
+          !c.markedForRemoval &&
+          c.nameController.text.isEmpty &&
+          c.id == null);
+
+      if (emptySlotIndex >= 0) {
+        setState(() {
+          final empty = _teamControllers.removeAt(emptySlotIndex);
+          empty.dispose();
+          controller.isReserve = false;
+          _hasUnsavedChanges = true;
+        });
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Kein Platz im Turnier. Verschiebe zuerst ein Team auf die Ersatzbank.'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      controller.isReserve = false;
+      _hasUnsavedChanges = true;
+    });
+  }
+
   /// Update team slot count (for KO-only and Group+KO modes with fixed slots)
   void _updateTargetTeamCount(int count) {
     setState(() {
       _targetTeamCount = count;
-      // Grow or shrink the controller list
-      while (_teamControllers.length < count) {
-        _teamControllers.add(TeamEditController());
-      }
-      while (_teamControllers.length > count) {
-        final last = _teamControllers.removeLast();
-        last.dispose();
-      }
+      // Re-categorize controllers as active/reserve based on the new count
+      _applyReserveMarking();
       _hasUnsavedChanges = true;
     });
     // Sync with admin state so startTournament knows the selected count
@@ -167,13 +322,17 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     });
   }
 
-  /// Remove a team entry entirely (for round-robin mode)
+  /// Remove a team entry entirely (round-robin: adjusts count; other modes: just marks for removal)
   void _removeTeamEntry(int index) {
     setState(() {
       final controller = _teamControllers[index];
       controller.markedForRemoval = true;
-      _targetTeamCount =
-          _teamControllers.where((c) => !c.markedForRemoval).length;
+      // Only adjust target count in round-robin (dynamic count);
+      // In KO/Group modes the target is fixed.
+      if (_isRoundRobin) {
+        _targetTeamCount =
+            _teamControllers.where((c) => !c.markedForRemoval).length;
+      }
       _hasUnsavedChanges = true;
     });
   }
@@ -241,10 +400,20 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             if (controller.groupIndex != null) {
               await state.assignTeamToGroup(
                   controller.id!, controller.groupIndex!);
+            } else if (currentGroupIndex >= 0) {
+              // Reserve team still in a group — remove it so it won't
+              // count toward the group phase when starting the tournament.
+              await state.removeTeamFromGroup(controller.id!);
             }
           }
         }
       }
+
+      // Capture active team IDs before cleanup for reorder
+      final activeIds = _teamControllers
+          .where((c) => !c.isReserve && !c.markedForRemoval && c.id != null)
+          .map((c) => c.id!)
+          .toSet();
 
       _teamControllers.removeWhere((c) => c.markedForRemoval);
 
@@ -256,6 +425,19 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       if (state.numberOfGroups != preservedGroupCount) {
         state.setNumberOfGroups(preservedGroupCount);
       }
+      // Reorder teams: active (tournament) teams first
+      if (activeIds.isNotEmpty) {
+        await state.reorderTeams(activeIds);
+      }
+
+      // Persist reserve team IDs so the bench survives page reloads
+      final reserveIds = _teamControllers
+          .where((c) => c.isReserve && !c.markedForRemoval && c.id != null)
+          .map((c) => c.id!)
+          .toSet();
+      await state.saveReserveTeamIds(reserveIds);
+      await state.saveTargetTeamCount(_targetTeamCount);
+
       _initializeControllers(preserveTargetCount: _targetTeamCount);
 
       if (mounted) {
@@ -284,17 +466,24 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   }
 
   Future<void> _assignGroupsRandomly() async {
-    final assignments = widget.adminState.shuffleGroupsLocally();
-    if (assignments != null) {
-      for (final controller in _teamControllers) {
-        if (controller.id != null && assignments.containsKey(controller.id)) {
-          controller.groupIndex = assignments[controller.id];
-        }
-      }
-      setState(() {
-        _hasUnsavedChanges = true;
-      });
+    final groupCount = widget.adminState.numberOfGroups;
+    // Collect all non-reserve, non-removed controllers (includes unsaved new ones)
+    final activeControllers = _teamControllers
+        .where((c) => !c.isReserve && !c.markedForRemoval)
+        .toList()
+      ..shuffle(Random());
+
+    // Assign each controller a group index round-robin
+    for (int i = 0; i < activeControllers.length; i++) {
+      activeControllers[i].groupIndex = i % groupCount;
     }
+    // Ensure reserve controllers have no group
+    for (final c in _teamControllers) {
+      if (c.isReserve) c.groupIndex = null;
+    }
+    setState(() {
+      _hasUnsavedChanges = true;
+    });
   }
 
   Future<bool> _onWillPop() async {
@@ -427,10 +616,14 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
   Widget _buildTopControls(bool isLocked, bool showGroups, bool isMobile) {
     final filledCount = _teamControllers
-        .where((c) => !c.markedForRemoval && c.nameController.text.isNotEmpty)
+        .where((c) =>
+            !c.markedForRemoval &&
+            !c.isReserve &&
+            c.nameController.text.isNotEmpty)
         .length;
-    final activeCount =
-        _teamControllers.where((c) => !c.markedForRemoval).length;
+    final activeCount = _teamControllers
+        .where((c) => !c.markedForRemoval && !c.isReserve)
+        .length;
     final allowed = _allowedTeamCounts;
     final isDropdownEnabled =
         !isLocked && (_isKOOnly || _isRoundRobin) && !_isGroupPhase;
@@ -702,9 +895,16 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   }
 
   Widget _buildTeamsList(bool showGroups, bool isLocked, bool isMobile) {
-    final activeControllers =
-        _teamControllers.where((c) => !c.markedForRemoval).toList();
-    if (activeControllers.isEmpty && !_isRoundRobin) {
+    final activeControllers = _teamControllers
+        .where((c) => !c.markedForRemoval && !c.isReserve)
+        .toList();
+    final reserveControllers = _teamControllers
+        .where((c) => !c.markedForRemoval && c.isReserve)
+        .toList();
+
+    if (activeControllers.isEmpty &&
+        reserveControllers.isEmpty &&
+        !_isRoundRobin) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -720,13 +920,23 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       );
     }
 
-    return ListView.builder(
+    return ListView(
       padding: const EdgeInsets.all(16),
-      itemCount: _teamControllers.length + (_isRoundRobin && !isLocked ? 1 : 0),
-      itemBuilder: (context, index) {
-        // "Add Team" button at the end for round-robin
-        if (index == _teamControllers.length) {
-          return Padding(
+      children: [
+        // Active team cards
+        for (int i = 0; i < activeControllers.length; i++)
+          _buildTeamRow(
+            _teamControllers.indexOf(activeControllers[i]),
+            activeControllers[i],
+            showGroups,
+            isLocked,
+            isMobile,
+            displayNumber: i + 1,
+          ),
+
+        // Add team button for round-robin
+        if (_isRoundRobin && !isLocked)
+          Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: OutlinedButton.icon(
               onPressed: _addTeamEntry,
@@ -742,15 +952,85 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                 ),
               ),
             ),
-          );
-        }
+          ),
 
-        final controller = _teamControllers[index];
-        if (controller.markedForRemoval) {
-          return const SizedBox.shrink();
-        }
-        return _buildTeamRow(index, controller, showGroups, isLocked, isMobile);
-      },
+        // Reserve section
+        if (reserveControllers.isNotEmpty) ...[
+          _buildReserveDivider(),
+          for (int i = 0; i < reserveControllers.length; i++)
+            _buildTeamRow(
+              _teamControllers.indexOf(reserveControllers[i]),
+              reserveControllers[i],
+              showGroups,
+              isLocked,
+              isMobile,
+              displayNumber: i + 1,
+            ),
+        ],
+      ],
+    );
+  }
+
+  /// Visual divider between active tournament teams and the reserve bench.
+  Widget _buildReserveDivider() {
+    final reserveCount = _teamControllers
+        .where((c) => c.isReserve && !c.markedForRemoval)
+        .length;
+    final spotsAvailable = _targetTeamCount - _activeFilledCount;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                  child: Divider(thickness: 2, color: AppColors.grey400)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.grey200,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.grey400),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.inventory_2_outlined,
+                          size: 18, color: AppColors.textSecondary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Ersatzbank ($reserveCount)',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Expanded(
+                  child: Divider(thickness: 2, color: AppColors.grey400)),
+            ],
+          ),
+          if (spotsAvailable > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'Noch $spotsAvailable ${spotsAvailable == 1 ? 'Platz' : 'Plätze'} im Turnier frei \u2013 Teams mit \u2191 hochstufen',
+                style: const TextStyle(
+                  color: AppColors.textSubtle,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -759,17 +1039,27 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     TeamEditController controller,
     bool showGroups,
     bool isLocked,
-    bool isMobile,
-  ) {
+    bool isMobile, {
+    int? displayNumber,
+  }) {
+    final isReserve = controller.isReserve;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: isReserve ? 1 : 2,
+      color: isReserve ? AppColors.grey50 : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isReserve
+            ? const BorderSide(color: AppColors.grey300)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: isMobile
-            ? _buildMobileTeamRow(index, controller, showGroups, isLocked)
-            : _buildDesktopTeamRow(index, controller, showGroups, isLocked),
+            ? _buildMobileTeamRow(index, controller, showGroups, isLocked,
+                displayNumber: displayNumber)
+            : _buildDesktopTeamRow(index, controller, showGroups, isLocked,
+                displayNumber: displayNumber),
       ),
     );
   }
@@ -778,22 +1068,26 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     int index,
     TeamEditController controller,
     bool showGroups,
-    bool isLocked,
-  ) {
+    bool isLocked, {
+    int? displayNumber,
+  }) {
+    final isReserve = controller.isReserve;
+    final badgeColor = isReserve ? AppColors.grey500 : TreeColors.rebeccapurple;
+
     return Row(
       children: [
         Container(
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: TreeColors.rebeccapurple.withValues(alpha: 0.1),
+            color: badgeColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Center(
             child: Text(
-              '${index + 1}',
-              style: const TextStyle(
-                color: TreeColors.rebeccapurple,
+              '${displayNumber ?? (index + 1)}',
+              style: TextStyle(
+                color: badgeColor,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -842,12 +1136,12 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             onChanged: (_) => _onFieldChanged(),
           ),
         ),
-        if (showGroups) ...[
+        if (showGroups && !isReserve) ...[
           const SizedBox(width: 12),
           SizedBox(
             width: 120,
             child: DropdownButtonFormField<int?>(
-              value: controller.groupIndex,
+              value: _clampedGroupIndex(controller.groupIndex),
               isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Gruppe',
@@ -880,20 +1174,45 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         ],
         if (!isLocked) ...[
           const SizedBox(width: 8),
-          if (_isRoundRobin)
+          if (isReserve) ...[
+            // Reserve team: promote to active
+            IconButton(
+              onPressed: () => _promoteToActive(index),
+              icon: const Icon(Icons.arrow_upward),
+              color: FieldColors.springgreen,
+              tooltip: 'Ins Turnier hochstufen',
+            ),
+            // Delete reserve team
             IconButton(
               onPressed: () => _removeTeamEntry(index),
               icon: const Icon(Icons.delete_outline),
               color: GroupPhaseColors.cupred,
-              tooltip: 'Team löschen',
-            )
-          else
-            IconButton(
-              onPressed: () => _clearTeamFields(index),
-              icon: const Icon(Icons.backspace_outlined),
-              color: AppColors.warning,
-              tooltip: 'Felder leeren',
+              tooltip: 'Entfernen',
             ),
+          ] else ...[
+            // Active team: optionally move to reserve
+            if (_hasReserveTeams)
+              IconButton(
+                onPressed: () => _moveToReserve(index),
+                icon: const Icon(Icons.arrow_downward),
+                color: AppColors.warning,
+                tooltip: 'Auf Ersatzbank',
+              ),
+            if (_isRoundRobin)
+              IconButton(
+                onPressed: () => _removeTeamEntry(index),
+                icon: const Icon(Icons.delete_outline),
+                color: GroupPhaseColors.cupred,
+                tooltip: 'Team löschen',
+              )
+            else
+              IconButton(
+                onPressed: () => _clearTeamFields(index),
+                icon: const Icon(Icons.backspace_outlined),
+                color: AppColors.warning,
+                tooltip: 'Felder leeren',
+              ),
+          ],
         ],
       ],
     );
@@ -903,8 +1222,12 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     int index,
     TeamEditController controller,
     bool showGroups,
-    bool isLocked,
-  ) {
+    bool isLocked, {
+    int? displayNumber,
+  }) {
+    final isReserve = controller.isReserve;
+    final badgeColor = isReserve ? AppColors.grey500 : TreeColors.rebeccapurple;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -914,14 +1237,14 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: TreeColors.rebeccapurple.withValues(alpha: 0.1),
+                color: badgeColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Center(
                 child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(
-                    color: TreeColors.rebeccapurple,
+                  '${displayNumber ?? (index + 1)}',
+                  style: TextStyle(
+                    color: badgeColor,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -941,18 +1264,41 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                 onChanged: (_) => _onFieldChanged(),
               ),
             ),
-            if (!isLocked)
-              _isRoundRobin
-                  ? IconButton(
-                      onPressed: () => _removeTeamEntry(index),
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      color: GroupPhaseColors.cupred,
-                    )
-                  : IconButton(
-                      onPressed: () => _clearTeamFields(index),
-                      icon: const Icon(Icons.backspace_outlined, size: 20),
-                      color: AppColors.warning,
-                    ),
+            if (!isLocked) ...[
+              if (isReserve) ...[
+                IconButton(
+                  onPressed: () => _promoteToActive(index),
+                  icon: const Icon(Icons.arrow_upward, size: 20),
+                  color: FieldColors.springgreen,
+                  tooltip: 'Ins Turnier',
+                ),
+                IconButton(
+                  onPressed: () => _removeTeamEntry(index),
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  color: GroupPhaseColors.cupred,
+                ),
+              ] else ...[
+                if (_hasReserveTeams)
+                  IconButton(
+                    onPressed: () => _moveToReserve(index),
+                    icon: const Icon(Icons.arrow_downward, size: 20),
+                    color: AppColors.warning,
+                    tooltip: 'Auf Ersatzbank',
+                  ),
+                if (_isRoundRobin)
+                  IconButton(
+                    onPressed: () => _removeTeamEntry(index),
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    color: GroupPhaseColors.cupred,
+                  )
+                else
+                  IconButton(
+                    onPressed: () => _clearTeamFields(index),
+                    icon: const Icon(Icons.backspace_outlined, size: 20),
+                    color: AppColors.warning,
+                  ),
+              ],
+            ],
           ],
         ),
         const SizedBox(height: 8),
@@ -985,10 +1331,10 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             ),
           ],
         ),
-        if (showGroups) ...[
+        if (showGroups && !isReserve) ...[
           const SizedBox(height: 8),
           DropdownButtonFormField<int?>(
-            value: controller.groupIndex,
+            value: _clampedGroupIndex(controller.groupIndex),
             decoration: const InputDecoration(
               labelText: 'Gruppe',
               border: OutlineInputBorder(),

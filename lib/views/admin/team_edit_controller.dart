@@ -12,6 +12,7 @@ class TeamEditController {
   int? groupIndex;
   bool isNew;
   bool markedForRemoval;
+  bool isReserve;
 
   TeamEditController({
     this.id,
@@ -21,6 +22,7 @@ class TeamEditController {
     this.groupIndex,
     this.isNew = true,
     this.markedForRemoval = false,
+    this.isReserve = false,
   })  : nameController = TextEditingController(text: name),
         member1Controller = TextEditingController(text: member1),
         member2Controller = TextEditingController(text: member2);

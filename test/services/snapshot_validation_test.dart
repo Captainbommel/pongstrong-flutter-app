@@ -56,11 +56,11 @@ void main() {
     final tabellen = Tabellen(tables: [
       [
         TableRow(teamId: 't0', points: 3),
-        TableRow(teamId: 't1', points: 0),
+        TableRow(teamId: 't1'),
       ],
       [
         TableRow(teamId: 't2', points: 3),
-        TableRow(teamId: 't3', points: 0),
+        TableRow(teamId: 't3'),
       ],
     ]);
     final matchQueue = MatchQueue(waiting: [], playing: []);
@@ -107,14 +107,7 @@ void main() {
       final teams = makeTeams(2);
       final gruppenphase = Gruppenphase(groups: [
         [
-          Match(
-              id: 'g11',
-              teamId1: 't0',
-              teamId2: 't1',
-              tableNumber: 1,
-              score1: 0,
-              score2: 0,
-              done: false),
+          Match(id: 'g11', teamId1: 't0', teamId2: 't1', tableNumber: 1),
         ],
       ]);
       final tabellen = Tabellen(tables: [
@@ -457,7 +450,7 @@ void main() {
       final teams = makeTeams(2);
       final knockouts = Knockouts(
         champions: KnockoutBracket(rounds: [
-          [Match(id: 'c11', teamId1: 't0', teamId2: '')],
+          [Match(id: 'c11', teamId1: 't0')],
         ]),
         europa: KnockoutBracket(),
         conference: KnockoutBracket(),
@@ -548,7 +541,7 @@ void main() {
     test('empty match IDs are ignored', () {
       final knockouts = Knockouts(
         champions: KnockoutBracket(rounds: [
-          [Match(id: ''), Match(id: '')],
+          [Match(), Match()],
           [Match(id: 'c21')],
         ]),
         europa: KnockoutBracket(),
@@ -698,13 +691,7 @@ void main() {
       final teams = makeTeams(2);
       final gruppenphase = Gruppenphase(groups: [
         [
-          Match(
-              id: 'g11',
-              teamId1: 't0',
-              teamId2: 't1',
-              score1: 0,
-              score2: 0,
-              done: false),
+          Match(id: 'g11', teamId1: 't0', teamId2: 't1'),
         ],
       ]);
 
@@ -1030,6 +1017,7 @@ void main() {
       final jsonString = jsonEncode(exported);
       final reimported = jsonDecode(jsonString) as Map<String, dynamic>;
       // Remove last 2 entries from champions round 0
+      // ignore: avoid_dynamic_calls
       final champRounds = reimported['knockouts']['champions'] as List;
       (champRounds[0] as List).removeLast();
       (champRounds[0] as List).removeLast();
@@ -1271,7 +1259,6 @@ void main() {
         gruppenphase: Gruppenphase(),
         tabellen: Tabellen(),
         knockouts: Knockouts(),
-        groups: null,
       );
       expect(errors, isEmpty);
     });
