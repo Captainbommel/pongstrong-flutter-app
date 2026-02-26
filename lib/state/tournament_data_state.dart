@@ -199,7 +199,7 @@ class TournamentDataState extends ChangeNotifier {
   }
 
   /// Updates a bracket's display name and persists to Firestore.
-  Future<bool> updateBracketName(String bracketKey, String newName) async {
+  Future<bool> updateBracketName(BracketKey bracketKey, String newName) async {
     try {
       _knockouts.bracketNames[bracketKey] = newName;
       await _firestoreService.saveKnockouts(

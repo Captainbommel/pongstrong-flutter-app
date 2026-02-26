@@ -1,4 +1,5 @@
 import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/models/tournament_enums.dart';
 
 /// A generic knockout bracket with N rounds, each containing progressively
 /// fewer matches (e.g. [8, 4, 2, 1] for a Champions-style bracket).
@@ -115,15 +116,11 @@ class Knockouts {
   Super superCup;
 
   /// Custom display names for each bracket.
-  /// Keys: 'champions', 'europa', 'conference', 'super'.
-  Map<String, String> bracketNames;
+  Map<BracketKey, String> bracketNames;
 
   /// Default bracket display names.
-  static const Map<String, String> defaultBracketNames = {
-    'champions': 'Gold Liga',
-    'europa': 'Silber Liga',
-    'conference': 'Bronze Liga',
-    'super': 'Extra Liga',
+  static final Map<BracketKey, String> defaultBracketNames = {
+    for (final key in BracketKey.values) key: key.defaultDisplayName,
   };
 
   Knockouts({
@@ -131,7 +128,7 @@ class Knockouts {
     Europa? europa,
     Conference? conference,
     Super? superCup,
-    Map<String, String>? bracketNames,
+    Map<BracketKey, String>? bracketNames,
   })  : champions = champions ?? Champions(),
         europa = europa ?? Europa(),
         conference = conference ?? Conference(),
@@ -139,8 +136,8 @@ class Knockouts {
         bracketNames = bracketNames ?? Map.from(defaultBracketNames);
 
   /// Returns the display name for a bracket key.
-  String getBracketName(String key) =>
-      bracketNames[key] ?? defaultBracketNames[key] ?? key;
+  String getBracketName(BracketKey key) =>
+      bracketNames[key] ?? key.defaultDisplayName;
 
   /// Creates all match stubs across all brackets.
   void instantiate() {
@@ -406,11 +403,13 @@ class Knockouts {
 
   /// Serialises all knockout brackets to a JSON-compatible map.
   Map<String, dynamic> toJson() => {
-        'champions': champions.toJson(),
-        'europa': europa.toJson(),
-        'conference': conference.toJson(),
-        'super': superCup.toJson(),
-        'bracketNames': bracketNames,
+        BracketKey.gold.name: champions.toJson(),
+        BracketKey.silver.name: europa.toJson(),
+        BracketKey.bronze.name: conference.toJson(),
+        BracketKey.extra.name: superCup.toJson(),
+        'bracketNames': {
+          for (final entry in bracketNames.entries) entry.key.name: entry.value,
+        },
       };
 
   /// Creates a deep copy of this Knockouts.
@@ -435,12 +434,25 @@ class Knockouts {
   /// Creates a [Knockouts] from a Firestore JSON map.
   factory Knockouts.fromJson(Map<String, dynamic> json) {
     final names = json['bracketNames'] as Map<String, dynamic>?;
+    Map<BracketKey, String>? parsedNames;
+    if (names != null) {
+      parsedNames = {};
+      for (final entry in names.entries) {
+        final key = BracketKey.values.where((k) => k.name == entry.key);
+        if (key.isNotEmpty) {
+          parsedNames[key.first] = entry.value.toString();
+        }
+      }
+    }
     return Knockouts(
-      champions: KnockoutBracket.fromJson((json['champions'] as List?) ?? []),
-      europa: KnockoutBracket.fromJson((json['europa'] as List?) ?? []),
-      conference: KnockoutBracket.fromJson((json['conference'] as List?) ?? []),
-      superCup: Super.fromJson((json['super'] as List?) ?? []),
-      bracketNames: names?.map((k, v) => MapEntry(k, v.toString())),
+      champions:
+          KnockoutBracket.fromJson((json[BracketKey.gold.name] as List?) ?? []),
+      europa: KnockoutBracket.fromJson(
+          (json[BracketKey.silver.name] as List?) ?? []),
+      conference: KnockoutBracket.fromJson(
+          (json[BracketKey.bronze.name] as List?) ?? []),
+      superCup: Super.fromJson((json[BracketKey.extra.name] as List?) ?? []),
+      bracketNames: parsedNames,
     );
   }
 }

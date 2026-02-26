@@ -119,7 +119,7 @@ class TreeColors {
   static const cornsilk = Color.fromARGB(255, 255, 248, 220);
   static const rebeccapurple = Color.fromARGB(255, 102, 51, 153);
   static const royalblue = Color.fromARGB(255, 65, 105, 225);
-  static const yellowgreen = Color.fromARGB(255, 154, 205, 50);
+  static const bronze = Color.fromARGB(255, 205, 127, 50);
   static const hotpink = Color.fromARGB(255, 255, 105, 180);
 }
 

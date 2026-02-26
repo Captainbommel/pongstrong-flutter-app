@@ -7,3 +7,4 @@ export 'match.dart';
 export 'match_queue.dart';
 export 'tabellen.dart';
 export 'team.dart';
+export 'tournament_enums.dart';

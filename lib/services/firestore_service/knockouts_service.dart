@@ -39,17 +39,34 @@ KnockoutBracket _parseBracket(dynamic raw) {
 
 /// Service for managing knockout phase data in Firestore
 mixin KnockoutsService on FirestoreBase {
+  /// Parses bracket names from a Firestore map into [Map<BracketKey, String>].
+  static Map<BracketKey, String>? _parseBracketNames(
+      Map<String, dynamic>? raw) {
+    if (raw == null) return null;
+    final result = <BracketKey, String>{};
+    for (final entry in raw.entries) {
+      final key = BracketKey.values.where((k) => k.name == entry.key);
+      if (key.isNotEmpty) {
+        result[key.first] = entry.value.toString();
+      }
+    }
+    return result;
+  }
+
   /// Saves knockout phase data to Firestore
   Future<void> saveKnockouts(
     Knockouts knockouts, {
     String tournamentId = FirestoreBase.defaultTournamentId,
   }) async {
     final data = {
-      'champions': _bracketToMap(knockouts.champions),
-      'europa': _bracketToMap(knockouts.europa),
-      'conference': _bracketToMap(knockouts.conference),
-      'super': knockouts.superCup.toJson(),
-      'bracketNames': knockouts.bracketNames,
+      BracketKey.gold.name: _bracketToMap(knockouts.champions),
+      BracketKey.silver.name: _bracketToMap(knockouts.europa),
+      BracketKey.bronze.name: _bracketToMap(knockouts.conference),
+      BracketKey.extra.name: knockouts.superCup.toJson(),
+      'bracketNames': {
+        for (final entry in knockouts.bracketNames.entries)
+          entry.key.name: entry.value,
+      },
       'updatedAt': FieldValue.serverTimestamp(),
     };
     await getDoc(tournamentId, 'knockouts').set(data);
@@ -68,24 +85,24 @@ mixin KnockoutsService on FirestoreBase {
 
     // Check if this is a placeholder document (setup phase)
     if (data['initialized'] == true) {
-      final championsData = data['champions'] as Map<String, dynamic>?;
+      final championsData = data[BracketKey.gold.name] as Map<String, dynamic>?;
       if (championsData == null || championsData['numberOfRounds'] == null) {
         return Knockouts();
       }
     }
 
     try {
-      final superMatches = (data['super'] as List)
+      final superMatches = (data[BracketKey.extra.name] as List)
           .map((m) => Match.fromJson(m as Map<String, dynamic>))
           .toList();
 
       final namesRaw = data['bracketNames'] as Map<String, dynamic>?;
-      final bracketNames = namesRaw?.map((k, v) => MapEntry(k, v.toString()));
+      final bracketNames = _parseBracketNames(namesRaw);
 
       return Knockouts(
-        champions: _parseBracket(data['champions']),
-        europa: _parseBracket(data['europa']),
-        conference: _parseBracket(data['conference']),
+        champions: _parseBracket(data[BracketKey.gold.name]),
+        europa: _parseBracket(data[BracketKey.silver.name]),
+        conference: _parseBracket(data[BracketKey.bronze.name]),
         superCup: Super(matches: superMatches),
         bracketNames: bracketNames,
       );
@@ -106,28 +123,29 @@ mixin KnockoutsService on FirestoreBase {
 
       // Check if this is a placeholder document (setup phase)
       if (data['initialized'] == true) {
-        final championsData = data['champions'] as Map<String, dynamic>?;
+        final championsData =
+            data[BracketKey.gold.name] as Map<String, dynamic>?;
         if (championsData == null || championsData['numberOfRounds'] == null) {
           return Knockouts();
         }
       }
 
-      final champions = _parseBracket(data['champions']);
+      final champions = _parseBracket(data[BracketKey.gold.name]);
       if (champions.rounds.isEmpty) return Knockouts();
 
-      final superList = data['super'] as List?;
+      final superList = data[BracketKey.extra.name] as List?;
       final superMatches = superList
               ?.map((m) => Match.fromJson(m as Map<String, dynamic>))
               .toList() ??
           [];
 
       final namesRaw = data['bracketNames'] as Map<String, dynamic>?;
-      final bracketNames = namesRaw?.map((k, v) => MapEntry(k, v.toString()));
+      final bracketNames = _parseBracketNames(namesRaw);
 
       return Knockouts(
         champions: champions,
-        europa: _parseBracket(data['europa']),
-        conference: _parseBracket(data['conference']),
+        europa: _parseBracket(data[BracketKey.silver.name]),
+        conference: _parseBracket(data[BracketKey.bronze.name]),
         superCup: Super(matches: superMatches),
         bracketNames: bracketNames,
       );

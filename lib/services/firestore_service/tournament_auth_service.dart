@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pongstrong/models/tournament_enums.dart';
 import 'package:pongstrong/services/firestore_service/firestore_base.dart';
 import 'package:pongstrong/utils/app_logger.dart';
 import 'package:pongstrong/utils/join_code.dart';
@@ -78,7 +79,7 @@ mixin TournamentAuthService on FirestoreBase {
         'createdAt': FieldValue.serverTimestamp(),
       });
       batch.set(getDoc(tournamentId, 'knockouts'), {
-        'champions': {'rounds': []},
+        BracketKey.gold.name: {'rounds': []},
         'losers': {'rounds': []},
         'initialized': true,
         'createdAt': FieldValue.serverTimestamp(),

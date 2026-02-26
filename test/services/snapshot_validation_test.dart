@@ -1018,7 +1018,7 @@ void main() {
       final reimported = jsonDecode(jsonString) as Map<String, dynamic>;
       // Remove last 2 entries from champions round 0
       // ignore: avoid_dynamic_calls
-      final champRounds = reimported['knockouts']['champions'] as List;
+      final champRounds = reimported['knockouts']['gold'] as List;
       (champRounds[0] as List).removeLast();
       (champRounds[0] as List).removeLast();
       // Now round 0 has 6 matches, round 1 still expects 4 → should fail

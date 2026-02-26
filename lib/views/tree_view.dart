@@ -12,7 +12,7 @@ import 'package:provider/provider.dart';
 
 /// Describes one visible bracket tab.
 class _BracketEntry {
-  final String key; // 'champions', 'europa', 'conference', 'super'
+  final BracketKey key;
   final String name;
   final Color color;
   final List<List<Match>>? rounds; // null for super cup
@@ -48,11 +48,11 @@ class TreeViewPageState extends State<TreeViewPage>
   final Map<String, _CachedGraph> _graphCache = {};
 
   // Colors for each bracket key
-  static const Map<String, Color> _bracketColors = {
-    'champions': TreeColors.rebeccapurple,
-    'europa': TreeColors.royalblue,
-    'conference': TreeColors.yellowgreen,
-    'super': TreeColors.hotpink,
+  static const Map<BracketKey, Color> _bracketColors = {
+    BracketKey.gold: TreeColors.rebeccapurple,
+    BracketKey.silver: TreeColors.royalblue,
+    BracketKey.bronze: TreeColors.bronze,
+    BracketKey.extra: TreeColors.hotpink,
   };
 
   @override
@@ -85,36 +85,36 @@ class TreeViewPageState extends State<TreeViewPage>
     // Champions is always shown if it has data
     if (_bracketHasData(knockouts.champions)) {
       entries.add(_BracketEntry(
-        key: 'champions',
-        name: knockouts.getBracketName('champions'),
-        color: _bracketColors['champions']!,
+        key: BracketKey.gold,
+        name: knockouts.getBracketName(BracketKey.gold),
+        color: _bracketColors[BracketKey.gold]!,
         rounds: knockouts.champions.rounds,
       ));
     }
 
     if (_bracketHasData(knockouts.europa)) {
       entries.add(_BracketEntry(
-        key: 'europa',
-        name: knockouts.getBracketName('europa'),
-        color: _bracketColors['europa']!,
+        key: BracketKey.silver,
+        name: knockouts.getBracketName(BracketKey.silver),
+        color: _bracketColors[BracketKey.silver]!,
         rounds: knockouts.europa.rounds,
       ));
     }
 
     if (_bracketHasData(knockouts.conference)) {
       entries.add(_BracketEntry(
-        key: 'conference',
-        name: knockouts.getBracketName('conference'),
-        color: _bracketColors['conference']!,
+        key: BracketKey.bronze,
+        name: knockouts.getBracketName(BracketKey.bronze),
+        color: _bracketColors[BracketKey.bronze]!,
         rounds: knockouts.conference.rounds,
       ));
     }
 
     if (_superCupHasData(knockouts.superCup)) {
       entries.add(_BracketEntry(
-        key: 'super',
-        name: knockouts.getBracketName('super'),
-        color: _bracketColors['super']!,
+        key: BracketKey.extra,
+        name: knockouts.getBracketName(BracketKey.extra),
+        color: _bracketColors[BracketKey.extra]!,
         isSuperCup: true,
       ));
     }
@@ -376,7 +376,7 @@ class TreeViewPageState extends State<TreeViewPage>
   }
 
   Future<void> _showRenameDialog(
-      String bracketKey, String currentName, Color bracketColor) async {
+      BracketKey bracketKey, String currentName, Color bracketColor) async {
     final controller = TextEditingController(text: currentName);
     final newName = await showDialog<String>(
       context: context,
@@ -519,7 +519,7 @@ class TreeViewPageState extends State<TreeViewPage>
   }
 
   Widget _buildTournamentTree(
-    String cacheKey,
+    BracketKey bracketKey,
     List<List<Match>> rounds,
     Color color,
   ) {
@@ -534,6 +534,7 @@ class TreeViewPageState extends State<TreeViewPage>
     }
 
     // Use cached graph or build a new one
+    final cacheKey = bracketKey.name;
     final matchCount = rounds.fold<int>(0, (sum, round) => sum + round.length);
     var cached = _graphCache[cacheKey];
     if (cached == null || cached.matchCount != matchCount) {
