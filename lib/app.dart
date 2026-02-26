@@ -30,6 +30,7 @@ class _AppShellState extends State<AppShell> {
   late PageController _pageController;
   bool _showSwipeHint = true;
   bool _isTreeExploring = false;
+  bool _wasLargeScreen = false;
 
   @override
   void initState() {
@@ -69,9 +70,53 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final isLargeScreen = MediaQuery.sizeOf(context).width > 940;
 
+    // When transitioning from desktop to mobile, recreate the PageController
+    // with the correct initial page to avoid a 1-frame flash of page 0.
+    if (_wasLargeScreen && !isLargeScreen) {
+      final appState = Provider.of<AppState>(context, listen: false);
+      final tournamentData =
+          Provider.of<TournamentDataState>(context, listen: false);
+      final authState = Provider.of<AuthState>(context, listen: false);
+
+      final availableViews = _getAvailableViews(tournamentData, authState);
+      final targetPage = availableViews.contains(appState.currentView)
+          ? availableViews.indexOf(appState.currentView)
+          : 0;
+
+      _pageController.dispose();
+      _pageController = PageController(initialPage: targetPage);
+    }
+    _wasLargeScreen = isLargeScreen;
+
     return isLargeScreen
         ? _buildDesktopShell(context)
         : _buildMobileShell(context);
+  }
+
+  /// Returns the list of available views based on tournament state.
+  List<AppView> _getAvailableViews(
+    TournamentDataState tournamentData,
+    AuthState authState,
+  ) {
+    final isKnockoutsOnly = tournamentData.tournamentStyle == 'knockoutsOnly';
+    final isEveryoneVsEveryone =
+        tournamentData.tournamentStyle == 'everyoneVsEveryone';
+    final isKnockoutPhase = tournamentData.isKnockoutMode;
+    final rulesEnabled = tournamentData.rulesEnabled;
+    final hasStarted = tournamentData.hasData;
+
+    final showGroupPhase = hasStarted && !isKnockoutsOnly;
+    final showTournamentTree = hasStarted &&
+        !isEveryoneVsEveryone &&
+        (isKnockoutsOnly || isKnockoutPhase);
+
+    return <AppView>[
+      AppView.playingField,
+      if (showGroupPhase) AppView.groupPhase,
+      if (showTournamentTree) AppView.tournamentTree,
+      if (rulesEnabled) AppView.rules,
+      if (authState.isAdmin) AppView.adminPanel,
+    ];
   }
 
   // ---------- Desktop Layout ----------
@@ -230,6 +275,7 @@ class _AppShellState extends State<AppShell> {
     final isAdmin = authState.isAdmin;
 
     // Determine which tabs to show
+    final availableViews = _getAvailableViews(tournamentData, authState);
     final isKnockoutsOnly = tournamentData.tournamentStyle == 'knockoutsOnly';
     final isEveryoneVsEveryone =
         tournamentData.tournamentStyle == 'everyoneVsEveryone';
@@ -243,13 +289,7 @@ class _AppShellState extends State<AppShell> {
         (isKnockoutsOnly || isKnockoutPhase);
 
     // Build view list that matches the pages being displayed
-    final availableViews = <AppView>[
-      AppView.playingField,
-      if (showGroupPhase) AppView.groupPhase,
-      if (showTournamentTree) AppView.tournamentTree,
-      if (rulesEnabled) AppView.rules,
-      if (isAdmin) AppView.adminPanel,
-    ];
+    // (availableViews already computed above)
 
     // Build page list dynamically (must match availableViews order)
     final pages = <Widget>[
