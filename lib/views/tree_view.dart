@@ -541,6 +541,10 @@ class TreeViewPageState extends State<TreeViewPage>
       final graph = Graph()..isTree = true;
       final nodes = <String, Node>{};
 
+      // Winner node (new root of the tree)
+      const winnerNodeId = 'winner';
+      nodes[winnerNodeId] = Node.Id(winnerNodeId);
+
       for (int roundIndex = 0; roundIndex < rounds.length; roundIndex++) {
         for (int matchIndex = 0;
             matchIndex < rounds[roundIndex].length;
@@ -549,6 +553,10 @@ class TreeViewPageState extends State<TreeViewPage>
           nodes[matchId] = Node.Id(matchId);
         }
       }
+
+      // Connect winner node to the final match
+      final lastRoundIndex = rounds.length - 1;
+      graph.addEdge(nodes[winnerNodeId]!, nodes['r${lastRoundIndex}_m0']!);
 
       for (int roundIndex = 0; roundIndex < rounds.length - 1; roundIndex++) {
         for (int matchIndex = 0;
@@ -588,6 +596,11 @@ class TreeViewPageState extends State<TreeViewPage>
             ..style = PaintingStyle.stroke,
           builder: (Node node) {
             final nodeId = node.key?.value as String;
+
+            if (nodeId == 'winner') {
+              final finalMatch = rounds[rounds.length - 1][0];
+              return _buildWinnerNode(finalMatch, color);
+            }
 
             final parts = nodeId.split('_');
             final roundIndex = int.parse(parts[0].substring(1));
@@ -719,6 +732,70 @@ class TreeViewPageState extends State<TreeViewPage>
     );
   }
 
+  Widget _buildWinnerNode(Match finalMatch, Color bracketColor) {
+    final tournamentData =
+        Provider.of<TournamentDataState>(context, listen: false);
+
+    final winnerId = finalMatch.done ? finalMatch.getWinnerId() : null;
+    final winnerName = winnerId != null && winnerId.isNotEmpty
+        ? (tournamentData.getTeam(winnerId)?.name ?? winnerId)
+        : null;
+
+    final bool hasWinner = winnerName != null;
+
+    // Use fully opaque background so the graph edge line is hidden behind it
+    final bgColor = hasWinner
+        ? Color.alphaBlend(bracketColor.withAlpha(25), AppColors.surface)
+        : AppColors.surface;
+
+    return Container(
+      width: 180,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: hasWinner ? bracketColor : bracketColor.withAlpha(76),
+          width: hasWinner ? 3 : 2,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            hasWinner ? Icons.emoji_events : Icons.emoji_events_outlined,
+            color: hasWinner ? bracketColor : bracketColor.withAlpha(100),
+            size: 32,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            hasWinner ? winnerName : '???',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: hasWinner ? 15 : 13,
+              fontWeight: hasWinner ? FontWeight.bold : FontWeight.normal,
+              color: hasWinner ? bracketColor : AppColors.textDisabled,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+          ),
+          if (hasWinner)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'Sieger',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: bracketColor.withAlpha(180),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _onEditKnockoutMatch(
     BuildContext context,
     Match match,
@@ -766,9 +843,11 @@ class TreeViewPageState extends State<TreeViewPage>
     final graph = Graph()..isTree = true;
     final builder = BuchheimWalkerConfiguration();
 
+    final winnerNode = Node.Id('winner');
     final semiFinalNode = Node.Id('semi_final');
     final finalNode = Node.Id('final');
 
+    graph.addEdge(winnerNode, finalNode);
     graph.addEdge(finalNode, semiFinalNode);
 
     builder
@@ -793,7 +872,10 @@ class TreeViewPageState extends State<TreeViewPage>
             ..strokeWidth = 2
             ..style = PaintingStyle.stroke,
           builder: (Node node) {
-            if (node.key?.value == 'semi_final') {
+            if (node.key?.value == 'winner') {
+              return _buildWinnerNode(
+                  knockouts.superCup.matches[1], TreeColors.hotpink);
+            } else if (node.key?.value == 'semi_final') {
               return _buildMatchNode(
                   knockouts.superCup.matches[0], TreeColors.hotpink);
             } else if (node.key?.value == 'final') {
