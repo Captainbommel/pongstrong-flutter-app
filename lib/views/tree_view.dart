@@ -40,6 +40,7 @@ class TreeViewPageState extends State<TreeViewPage>
   TabController? _tabController;
   int _selectedIndex = 0;
   bool _isExploring = false;
+  bool _showTableNumbers = false;
   int _lastBracketCount = 0;
 
   // Cached graph data to avoid rebuilding on every frame
@@ -171,30 +172,37 @@ class TreeViewPageState extends State<TreeViewPage>
             // Desktop: Show TabBar
             ColoredBox(
               color: AppColors.grey100,
-              child: TabBar(
-                controller: _tabController,
-                labelColor: AppColors.shadow,
-                indicatorColor: visibleBrackets[_tabController!.index].color,
-                indicatorWeight: 4,
-                tabs: [
-                  for (final b in visibleBrackets)
-                    Tab(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(b.name),
-                          if (isAdmin) ...[
-                            const SizedBox(width: 4),
-                            GestureDetector(
-                              onTap: () =>
-                                  _showRenameDialog(b.key, b.name, b.color),
-                              child: const Icon(Icons.edit,
-                                  size: 14, color: AppColors.grey500),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TabBar(
+                      controller: _tabController,
+                      labelColor: AppColors.shadow,
+                      indicatorColor:
+                          visibleBrackets[_tabController!.index].color,
+                      indicatorWeight: 4,
+                      tabs: [
+                        for (final b in visibleBrackets)
+                          Tab(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(b.name),
+                                if (isAdmin) ...[
+                                  const SizedBox(width: 4),
+                                  GestureDetector(
+                                    onTap: () => _showRenameDialog(
+                                        b.key, b.name, b.color),
+                                    child: const Icon(Icons.edit,
+                                        size: 14, color: AppColors.grey500),
+                                  ),
+                                ],
+                              ],
                             ),
-                          ],
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
+                  ),
                 ],
               ),
             )
@@ -237,6 +245,7 @@ class TreeViewPageState extends State<TreeViewPage>
                           ),
                         )
                       : null,
+                  suffixIconConstraints: const BoxConstraints(minWidth: 72),
                 ),
                 dropdownColor: AppColors.surface,
                 focusColor: AppColors.transparent,
@@ -256,15 +265,106 @@ class TreeViewPageState extends State<TreeViewPage>
                 },
               ),
             ),
+          // Table numbers toggle (mobile)
+          if (!isLargeScreen)
+            Container(
+              color: AppColors.grey100,
+              padding: const EdgeInsets.only(left: 8, bottom: 4),
+              child: Row(
+                children: [
+                  const SizedBox(width: 7),
+                  SizedBox(
+                    height: 28,
+                    width: 28,
+                    child: Checkbox(
+                      value: _showTableNumbers,
+                      activeColor: visibleBrackets[_selectedIndex].color,
+                      onChanged: (v) {
+                        setState(() => _showTableNumbers = v ?? false);
+                      },
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () =>
+                        setState(() => _showTableNumbers = !_showTableNumbers),
+                    child: const Text(
+                      'Tische anzeigen',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: isLargeScreen
-                ? TabBarView(
-                    controller: _tabController,
+                ? Stack(
                     children: [
-                      for (final b in visibleBrackets)
-                        b.isSuperCup
-                            ? _buildSuperCupTree(knockouts)
-                            : _buildTournamentTree(b.key, b.rounds!, b.color),
+                      TabBarView(
+                        controller: _tabController,
+                        children: [
+                          for (final b in visibleBrackets)
+                            b.isSuperCup
+                                ? _buildSuperCupTree(knockouts)
+                                : _buildTournamentTree(
+                                    b.key, b.rounds!, b.color),
+                        ],
+                      ),
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: Material(
+                          elevation: 2,
+                          borderRadius: BorderRadius.circular(8),
+                          color: AppColors.surface,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: visibleBrackets[_tabController!.index]
+                                    .color
+                                    .withAlpha(120),
+                              ),
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () => setState(
+                                  () => _showTableNumbers = !_showTableNumbers),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      height: 24,
+                                      width: 24,
+                                      child: Checkbox(
+                                        value: _showTableNumbers,
+                                        activeColor: visibleBrackets[
+                                                _tabController!.index]
+                                            .color,
+                                        onChanged: (v) => setState(() =>
+                                            _showTableNumbers = v ?? false),
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Text(
+                                      'Tische anzeigen',
+                                      style: TextStyle(fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   )
                 : _buildMobileTreeWithOverlay(knockouts, visibleBrackets),
@@ -542,6 +642,35 @@ class TreeViewPageState extends State<TreeViewPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (_showTableNumbers && match.tableNumber > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: TableColors.forIndex(match.tableNumber - 1)
+                            .withAlpha(38),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: TableColors.forIndex(match.tableNumber - 1),
+                        ),
+                      ),
+                      child: Text(
+                        'Tisch ${match.tableNumber}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: TableColors.forIndex(match.tableNumber - 1),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
