@@ -190,13 +190,6 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       backgroundColor: GroupPhaseColors.cupred,
       foregroundColor: AppColors.textOnColored,
       elevation: 2,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.refresh),
-          onPressed: _loadData,
-          tooltip: 'Aktualisieren',
-        ),
-      ],
     );
   }
 
@@ -225,11 +218,6 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-            tooltip: 'Daten neu laden',
-          ),
         ],
       ),
     );
