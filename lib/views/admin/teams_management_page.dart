@@ -1210,6 +1210,19 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                 ),
+                selectedItemBuilder: (context) => [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('-',
+                        style: TextStyle(color: AppColors.textDisabled)),
+                  ),
+                  ...List.generate(groupCount, (i) {
+                    return Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(String.fromCharCode(65 + i)),
+                    );
+                  }),
+                ],
                 items: [
                   const DropdownMenuItem(
                     child: Text('-',
@@ -1420,6 +1433,19 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
+              selectedItemBuilder: (context) => [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Keine Gruppe',
+                      style: TextStyle(color: AppColors.textDisabled)),
+                ),
+                ...List.generate(groupCount, (i) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Gruppe ${String.fromCharCode(65 + i)}'),
+                  );
+                }),
+              ],
               items: [
                 const DropdownMenuItem(
                   child: Text('Keine Gruppe',
