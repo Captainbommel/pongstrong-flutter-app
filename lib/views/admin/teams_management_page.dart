@@ -35,11 +35,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   bool get _isKOOnly => _style == TournamentStyle.knockoutsOnly;
   bool get _isRoundRobin => _style == TournamentStyle.everyoneVsEveryone;
 
-  /// Whether any team is marked as reserve (on the bench)
-  bool get _hasReserveTeams =>
-      !_isRoundRobin &&
-      _teamControllers.any((c) => c.isReserve && !c.markedForRemoval);
-
   /// Number of active (non-reserve) teams with data filled in
   int get _activeFilledCount => _teamControllers
       .where((c) =>
@@ -137,9 +132,9 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         }
       }
       // Apply active/reserve categorization instead of trimming.
-      // On initial load (no preserveTargetCount), use persisted reserve IDs
-      // from Firestore so the bench survives page reloads.
-      _applyReserveMarking(usePersistedIds: preserveTargetCount == null);
+      // Always use persisted reserve IDs when available so the bench
+      // survives both page reloads and post-save re-initialization.
+      _applyReserveMarking(usePersistedIds: true);
     } else {
       // No registered teams yet — seed with admin state count or mode default
       final stateCount = widget.adminState.targetTeamCount;
@@ -168,14 +163,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     _hasUnsavedChanges = false;
   }
 
-  void _onFieldChanged() {
-    if (!_hasUnsavedChanges) {
-      setState(() {
-        _hasUnsavedChanges = true;
-      });
-    }
-  }
-
   /// Categorize team controllers as active or reserve based on _targetTeamCount.
   /// In round-robin mode, all teams are active (no reserve concept).
   /// When persisted reserve IDs exist (from Firestore), those are used instead
@@ -191,7 +178,14 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     final persistedReserveIds = widget.adminState.reserveTeamIds;
 
     // Use persisted IDs when caller requests it AND there are persisted IDs
-    if (usePersistedIds && persistedReserveIds.isNotEmpty) {
+    // that actually match current controllers (after a fresh import all IDs
+    // are new, so stale persisted IDs must be ignored).
+    final hasMatchingReserveIds = usePersistedIds &&
+        persistedReserveIds.isNotEmpty &&
+        _teamControllers
+            .any((c) => c.id != null && persistedReserveIds.contains(c.id));
+
+    if (hasMatchingReserveIds) {
       for (final c in _teamControllers) {
         if (c.markedForRemoval) continue;
         c.isReserve = c.id != null && persistedReserveIds.contains(c.id);
@@ -322,13 +316,208 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     widget.adminState.setTargetTeamCount(count);
   }
 
-  /// Add a single new team entry (for round-robin mode)
-  void _addTeamEntry() {
+  /// Show a dialog to add a single team by name and members.
+  /// In non-round-robin modes, the team is added to an empty active slot
+  /// or placed on the bench if the active zone is full.
+  Future<void> _showAddTeamDialog() async {
+    final nameController = TextEditingController();
+    final member1Controller = TextEditingController();
+    final member2Controller = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Team hinzufügen'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Teamname',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: member1Controller,
+              decoration: const InputDecoration(
+                labelText: 'Spieler 1 (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: member2Controller,
+              decoration: const InputDecoration(
+                labelText: 'Spieler 2 (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: TreeColors.rebeccapurple,
+              foregroundColor: AppColors.textOnColored,
+            ),
+            child: const Text('Hinzufügen'),
+          ),
+        ],
+      ),
+    );
+
+    // Capture values immediately; defer disposal so controllers are still
+    // alive while the dialog exit animation is running.
+    final name = nameController.text.trim();
+    final m1 = member1Controller.text.trim();
+    final m2 = member2Controller.text.trim();
+    void disposeDialogControllers() {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        nameController.dispose();
+        member1Controller.dispose();
+        member2Controller.dispose();
+      });
+    }
+
+    if (confirmed != true) {
+      disposeDialogControllers();
+      return;
+    }
+
+    if (name.isEmpty) {
+      disposeDialogControllers();
+      if (mounted) {
+        SnackBarHelper.showWarning(context, 'Teamname darf nicht leer sein.');
+      }
+      return;
+    }
+
     setState(() {
-      _teamControllers.add(TeamEditController());
-      _targetTeamCount =
-          _teamControllers.where((c) => !c.markedForRemoval).length;
+      if (_isRoundRobin) {
+        // Round-robin: just append
+        _teamControllers.add(TeamEditController(
+          name: name,
+          member1: m1,
+          member2: m2,
+        ));
+        _targetTeamCount =
+            _teamControllers.where((c) => !c.markedForRemoval).length;
+      } else {
+        // Try to fill an empty active slot first
+        final emptySlotIndex = _teamControllers.indexWhere((c) =>
+            !c.isReserve &&
+            !c.markedForRemoval &&
+            c.nameController.text.isEmpty &&
+            c.id == null);
+
+        if (emptySlotIndex >= 0) {
+          final slot = _teamControllers[emptySlotIndex];
+          slot.nameController.text = name;
+          slot.member1Controller.text = m1;
+          slot.member2Controller.text = m2;
+        } else {
+          // Active zone full — add to bench
+          _teamControllers.add(TeamEditController(
+            name: name,
+            member1: m1,
+            member2: m2,
+            isReserve: true,
+          ));
+        }
+      }
       _hasUnsavedChanges = true;
+    });
+
+    disposeDialogControllers();
+  }
+
+  /// Show a dialog to edit an existing team's name and members.
+  Future<void> _showEditTeamDialog(int index) async {
+    final controller = _teamControllers[index];
+    final nameCtrl =
+        TextEditingController(text: controller.nameController.text);
+    final m1Ctrl =
+        TextEditingController(text: controller.member1Controller.text);
+    final m2Ctrl =
+        TextEditingController(text: controller.member2Controller.text);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Team bearbeiten'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Teamname',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: m1Ctrl,
+              decoration: const InputDecoration(
+                labelText: 'Spieler 1 (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: m2Ctrl,
+              decoration: const InputDecoration(
+                labelText: 'Spieler 2 (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: TreeColors.rebeccapurple,
+              foregroundColor: AppColors.textOnColored,
+            ),
+            child: const Text('Übernehmen'),
+          ),
+        ],
+      ),
+    );
+
+    // Capture values immediately; defer disposal so controllers are still
+    // alive while the dialog exit animation is running.
+    final nameVal = nameCtrl.text.trim();
+    final m1Val = m1Ctrl.text.trim();
+    final m2Val = m2Ctrl.text.trim();
+
+    if (confirmed == true) {
+      setState(() {
+        controller.nameController.text = nameVal;
+        controller.member1Controller.text = m1Val;
+        controller.member2Controller.text = m2Val;
+        _hasUnsavedChanges = true;
+      });
+    }
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      nameCtrl.dispose();
+      m1Ctrl.dispose();
+      m2Ctrl.dispose();
     });
   }
 
@@ -991,7 +1180,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: OutlinedButton.icon(
-              onPressed: _addTeamEntry,
+              onPressed: _showAddTeamDialog,
               icon: const Icon(Icons.add),
               label: const Text('Team hinzufügen'),
               style: OutlinedButton.styleFrom(
@@ -1125,6 +1314,11 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   }) {
     final isReserve = controller.isReserve;
     final badgeColor = isReserve ? AppColors.grey500 : TreeColors.rebeccapurple;
+    final hasName = controller.nameController.text.isNotEmpty;
+    final member1 = controller.member1Controller.text;
+    final member2 = controller.member2Controller.text;
+    final membersText =
+        [member1, member2].where((s) => s.isNotEmpty).join(' & ');
 
     return Row(
       children: [
@@ -1146,46 +1340,63 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           ),
         ),
         const SizedBox(width: 12),
+        // Team info (read-only, tap to edit)
         Expanded(
-          flex: 3,
-          child: TextField(
-            controller: controller.nameController,
-            enabled: !isLocked,
-            decoration: const InputDecoration(
-              labelText: 'Teamname',
-              hintText: 'z.B. Die Ballkünstler',
-              border: OutlineInputBorder(),
-              isDense: true,
+          flex: 5,
+          child: InkWell(
+            onTap: isLocked ? null : () => _showEditTeamDialog(index),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: hasName ? AppColors.grey300 : AppColors.grey200,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                color: isReserve ? AppColors.grey50 : null,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: hasName
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                controller.nameController.text,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (membersText.isNotEmpty)
+                                Text(
+                                  membersText,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          )
+                        : const Text(
+                            'Leerer Slot – tippen zum Bearbeiten',
+                            style: TextStyle(
+                              color: AppColors.textDisabled,
+                              fontStyle: FontStyle.italic,
+                              fontSize: 13,
+                            ),
+                          ),
+                  ),
+                  if (!isLocked)
+                    const Icon(Icons.edit,
+                        size: 16, color: AppColors.textSubtle),
+                ],
+              ),
             ),
-            onChanged: (_) => _onFieldChanged(),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: TextField(
-            controller: controller.member1Controller,
-            enabled: !isLocked,
-            decoration: const InputDecoration(
-              labelText: 'Spieler 1',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            onChanged: (_) => _onFieldChanged(),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: TextField(
-            controller: controller.member2Controller,
-            enabled: !isLocked,
-            decoration: const InputDecoration(
-              labelText: 'Spieler 2',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            onChanged: (_) => _onFieldChanged(),
           ),
         ),
         if (showGroups && !isReserve) ...[
@@ -1273,8 +1484,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
               tooltip: 'Entfernen',
             ),
           ] else ...[
-            // Active team: optionally move to reserve
-            if (_hasReserveTeams)
+            // Active team: move to reserve (bench)
+            if (!_isRoundRobin)
               IconButton(
                 onPressed: () => _moveToReserve(index),
                 icon: const Icon(Icons.arrow_downward),
@@ -1310,6 +1521,11 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   }) {
     final isReserve = controller.isReserve;
     final badgeColor = isReserve ? AppColors.grey500 : TreeColors.rebeccapurple;
+    final hasName = controller.nameController.text.isNotEmpty;
+    final member1 = controller.member1Controller.text;
+    final member2 = controller.member2Controller.text;
+    final membersText =
+        [member1, member2].where((s) => s.isNotEmpty).join(' & ');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1334,17 +1550,64 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
+            // Team info (read-only, tap to edit)
             Expanded(
-              child: TextField(
-                controller: controller.nameController,
-                enabled: !isLocked,
-                decoration: const InputDecoration(
-                  labelText: 'Teamname',
-                  border: OutlineInputBorder(),
-                  isDense: true,
+              child: InkWell(
+                onTap: isLocked ? null : () => _showEditTeamDialog(index),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: hasName ? AppColors.grey300 : AppColors.grey200,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    color: isReserve ? AppColors.grey50 : null,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: hasName
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    controller.nameController.text,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (membersText.isNotEmpty)
+                                    Text(
+                                      membersText,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              )
+                            : const Text(
+                                'Leerer Slot – tippen',
+                                style: TextStyle(
+                                  color: AppColors.textDisabled,
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 13,
+                                ),
+                              ),
+                      ),
+                      if (!isLocked)
+                        const Icon(Icons.edit,
+                            size: 14, color: AppColors.textSubtle),
+                    ],
+                  ),
                 ),
-                onChanged: (_) => _onFieldChanged(),
               ),
             ),
             if (!isLocked) ...[
@@ -1354,64 +1617,49 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                   icon: const Icon(Icons.arrow_upward, size: 20),
                   color: FieldColors.springgreen,
                   tooltip: 'Ins Turnier',
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 32, minHeight: 32),
                 ),
                 IconButton(
                   onPressed: () => _removeTeamEntry(index),
                   icon: const Icon(Icons.delete_outline, size: 20),
                   color: GroupPhaseColors.cupred,
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 32, minHeight: 32),
                 ),
               ] else ...[
-                if (_hasReserveTeams)
+                if (!_isRoundRobin)
                   IconButton(
                     onPressed: () => _moveToReserve(index),
                     icon: const Icon(Icons.arrow_downward, size: 20),
                     color: AppColors.warning,
                     tooltip: 'Auf Ersatzbank',
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
                   ),
                 if (_isRoundRobin)
                   IconButton(
                     onPressed: () => _removeTeamEntry(index),
                     icon: const Icon(Icons.delete_outline, size: 20),
                     color: GroupPhaseColors.cupred,
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
                   )
                 else
                   IconButton(
                     onPressed: () => _clearTeamFields(index),
                     icon: const Icon(Icons.backspace_outlined, size: 20),
                     color: AppColors.warning,
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
                   ),
               ],
             ],
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller.member1Controller,
-                enabled: !isLocked,
-                decoration: const InputDecoration(
-                  labelText: 'Spieler 1',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                onChanged: (_) => _onFieldChanged(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: controller.member2Controller,
-                enabled: !isLocked,
-                decoration: const InputDecoration(
-                  labelText: 'Spieler 2',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                onChanged: (_) => _onFieldChanged(),
-              ),
-            ),
           ],
         ),
         if (showGroups && !isReserve) ...[
@@ -1497,6 +1745,13 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       child: SafeArea(
         child: Row(
           children: [
+            if (!isLocked)
+              IconButton(
+                onPressed: _showAddTeamDialog,
+                icon: const Icon(Icons.person_add),
+                color: TreeColors.rebeccapurple,
+                tooltip: 'Team hinzufügen',
+              ),
             const Spacer(),
             if (!isLocked)
               SizedBox(
