@@ -93,7 +93,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         builder: (context, state, _) {
           return Scaffold(
             backgroundColor: AppColors.grey100,
-            appBar: isCompact ? _buildMobileAppBar(state) : null,
+            appBar: isCompact ? _buildMobileAppBar() : null,
             body: Column(
               children: [
                 // Desktop header (hidden on mobile where AppBar is used)
@@ -177,21 +177,14 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     );
   }
 
-  PreferredSizeWidget _buildMobileAppBar(AdminPanelState state) {
+  PreferredSizeWidget _buildMobileAppBar() {
     return AppBar(
-      title: Row(
+      title: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.admin_panel_settings, size: 24),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              state.tournamentName.isEmpty
-                  ? 'Turnierverwaltung'
-                  : 'Turnierverwaltung – ${state.tournamentName}',
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          Icon(Icons.admin_panel_settings, size: 24),
+          SizedBox(width: 8),
+          Text('Turnierverwaltung'),
         ],
       ),
       backgroundColor: GroupPhaseColors.cupred,

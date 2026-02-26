@@ -6,6 +6,143 @@ import 'package:pongstrong/models/knockouts.dart';
 import 'package:pongstrong/models/match.dart';
 import 'package:pongstrong/models/tabellen.dart';
 
+// Legacy 6-group transition (moved from bracket_seeding.dart, test-only).
+Knockouts evaluateGroups6(Tabellen tabellen) {
+  tabellen.sortTables();
+
+  final teamIds = tabellen.tables
+      .map((table) => table.map((row) => row.teamId).toList())
+      .toList();
+
+  final knock = Knockouts();
+  knock.instantiate();
+
+  // CHAMP
+  const firstsSlotPattern = [
+    [1, 0],
+    [4, 0],
+    [2, 0],
+    [5, 0],
+    [3, 0],
+    [6, 0],
+  ];
+
+  for (int j = 0; j < 6; j++) {
+    knock.champions.rounds[0][firstsSlotPattern[j][0]].teamId1 = teamIds[j][0];
+  }
+
+  const secondsSlotPattern = [
+    [7, 0],
+    [0, 0],
+    [5, 1],
+    [2, 1],
+    [7, 1],
+    [0, 1]
+  ];
+  for (int j = 0; j < 6; j++) {
+    final idx = secondsSlotPattern[j][0];
+    final slot = secondsSlotPattern[j][1];
+
+    if (slot == 0) {
+      knock.champions.rounds[0][idx].teamId1 = teamIds[j][1];
+    } else {
+      knock.champions.rounds[0][idx].teamId2 = teamIds[j][1];
+    }
+  }
+
+  // Find best thirds
+  final allThirds = <TableRow>[];
+  for (int i = 0; i < 6; i++) {
+    allThirds.add(tabellen.tables[i][2]);
+  }
+  Tabellen.sortTable(allThirds);
+
+  final thirdIds = allThirds.map((row) => row.teamId).toList();
+  final bestThirdIds = thirdIds.sublist(0, 4);
+
+  const bestThirdsSlotPattern = [
+    [
+      [1],
+      [2, 3, 4]
+    ],
+    [
+      [3],
+      [0, 1, 5]
+    ],
+    [
+      [4],
+      [0, 4, 5]
+    ],
+    [
+      [6],
+      [1, 2, 3]
+    ]
+  ];
+  for (int i = 0; i < 4; i++) {
+    final remainingThirds = List.of(bestThirdIds);
+
+    for (int j = 0; j < remainingThirds.length; j++) {
+      final origin = tabellen.tables.indexWhere(
+        (table) => table.any((row) => row.teamId == remainingThirds[j]),
+      );
+
+      for (int k = 0; k < 3; k++) {
+        if (bestThirdsSlotPattern[i][1][k] == origin + 1) {
+          knock.champions.rounds[0][bestThirdsSlotPattern[i][0][0]].teamId2 =
+              remainingThirds[j];
+          remainingThirds.removeAt(j);
+          break;
+        }
+      }
+    }
+
+    if (remainingThirds.isEmpty) {
+      break;
+    }
+
+    bestThirdIds.insertAll(0, bestThirdIds.sublist(3));
+    bestThirdIds.removeRange(3, bestThirdIds.length);
+  }
+
+  // EUROPA
+  final allFourth = <TableRow>[];
+  for (int i = 0; i < 6; i++) {
+    allFourth.add(tabellen.tables[i][3]);
+  }
+
+  Tabellen.sortTable(allFourth);
+
+  final fourthIds = allFourth.map((row) => row.teamId).toList();
+
+  final euroTeamIds = <String>[
+    thirdIds[4],
+    thirdIds[5],
+    fourthIds[0],
+    fourthIds[1],
+  ];
+
+  knock.europa.rounds[1][0].teamId1 = euroTeamIds[0];
+  knock.europa.rounds[1][0].teamId2 = euroTeamIds[1];
+  knock.europa.rounds[1][1].teamId1 = euroTeamIds[2];
+  knock.europa.rounds[1][1].teamId2 = euroTeamIds[3];
+
+  // CONFERENCE
+  final confTeamIds = <String>[
+    fourthIds[2],
+    fourthIds[3],
+    fourthIds[4],
+    fourthIds[5],
+  ];
+
+  knock.conference.rounds[1][0].teamId1 = confTeamIds[0];
+  knock.conference.rounds[1][0].teamId2 = confTeamIds[1];
+  knock.conference.rounds[1][1].teamId1 = confTeamIds[2];
+  knock.conference.rounds[1][1].teamId2 = confTeamIds[3];
+
+  mapTables(knock);
+  return knock;
+}
+
 void main() {
   group('isValid', () {
     test('validates deathcup scenarios', () {
