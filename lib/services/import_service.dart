@@ -7,7 +7,7 @@ import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
 import 'package:pongstrong/utils/app_logger.dart';
-import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
 import 'package:provider/provider.dart';
 
@@ -708,11 +708,6 @@ class ImportService {
       );
 
       if (result == null || result.files.single.bytes == null) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No file selected')),
-          );
-        }
         return;
       }
 
@@ -762,14 +757,8 @@ class ImportService {
         if (context.mounted) Navigator.pop(context);
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!'),
-              backgroundColor: AppColors.success,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          SnackBarHelper.showSuccess(context,
+              '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!');
         }
       } else {
         final allTeams = ImportService.parseTeamsFlatFromCsv(csvContent);
@@ -786,13 +775,8 @@ class ImportService {
         if (context.mounted) Navigator.pop(context);
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${allTeams.length} Teams importiert!'),
-              backgroundColor: AppColors.success,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          SnackBarHelper.showSuccess(
+              context, '${allTeams.length} Teams importiert!');
         }
       }
 
@@ -825,13 +809,7 @@ class ImportService {
 
       // Show error message
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Fehler beim Import: $e'),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        SnackBarHelper.showError(context, 'Fehler beim Import: $e');
       }
     }
   }
@@ -851,11 +829,6 @@ class ImportService {
       );
 
       if (result == null || result.files.single.bytes == null) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No file selected')),
-          );
-        }
         return;
       }
 
@@ -949,14 +922,8 @@ class ImportService {
       if (context.mounted) Navigator.pop(context);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Turnier-Snapshot wiederhergestellt (${snapshot.teams.length} Teams)'),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        SnackBarHelper.showSuccess(context,
+            'Turnier-Snapshot wiederhergestellt (${snapshot.teams.length} Teams)');
       }
     } catch (e) {
       Logger.error('Error restoring tournament snapshot',
@@ -965,13 +932,7 @@ class ImportService {
       if (context.mounted) Navigator.pop(context);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Fehler beim Snapshot-Import: $e'),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        SnackBarHelper.showError(context, 'Fehler beim Snapshot-Import: $e');
       }
     }
   }
@@ -1001,11 +962,6 @@ class ImportService {
       );
 
       if (result == null || result.files.single.bytes == null) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No file selected')),
-          );
-        }
         return;
       }
 
@@ -1039,14 +995,8 @@ class ImportService {
       if (jsonData is Map<String, dynamic> && isSnapshotJson(jsonData)) {
         if (context.mounted) Navigator.pop(context);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'Diese Datei ist ein Turnier-Snapshot. Bitte "Snapshot importieren" verwenden.'),
-              backgroundColor: AppColors.error,
-              duration: Duration(seconds: 5),
-            ),
-          );
+          SnackBarHelper.showError(context,
+              'Diese Datei ist ein Turnier-Snapshot. Bitte "Snapshot importieren" verwenden.');
         }
         return;
       }
@@ -1071,14 +1021,8 @@ class ImportService {
         if (context.mounted) Navigator.pop(context);
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!'),
-              backgroundColor: AppColors.success,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          SnackBarHelper.showSuccess(context,
+              '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!');
         }
       } else {
         final allTeams = ImportService.parseTeamsFlatFromJson(jsonData);
@@ -1095,13 +1039,8 @@ class ImportService {
         if (context.mounted) Navigator.pop(context);
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${allTeams.length} Teams importiert!'),
-              backgroundColor: AppColors.success,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          SnackBarHelper.showSuccess(
+              context, '${allTeams.length} Teams importiert!');
         }
       }
 
@@ -1132,13 +1071,7 @@ class ImportService {
       if (context.mounted) Navigator.pop(context);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Fehler beim Import: $e'),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        SnackBarHelper.showError(context, 'Fehler beim Import: $e');
       }
     }
   }

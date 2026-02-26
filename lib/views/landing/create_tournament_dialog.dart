@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:provider/provider.dart';
 
 /// Dialog for creating a new tournament
@@ -81,12 +82,8 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
       if (tournamentId != null) {
         Navigator.pop(context);
         widget.onTournamentCreated(tournamentId);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Turnier "$tournamentId" wurde erstellt!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        SnackBarHelper.showSuccess(
+            context, 'Turnier "$tournamentId" wurde erstellt!');
       } else {
         setState(() {
           _isLoading = false;

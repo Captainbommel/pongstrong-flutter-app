@@ -4,6 +4,7 @@ import 'package:pongstrong/models/tabellen.dart' as tabellen;
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:pongstrong/widgets/match_edit_dialog.dart';
 import 'package:provider/provider.dart';
 
@@ -369,14 +370,11 @@ Future<void> _onEditGroupMatch(
       isKnockout: false,
     );
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              success ? 'Ergebnis aktualisiert' : 'Fehler beim Aktualisieren'),
-          backgroundColor:
-              success ? FieldColors.springgreen : GroupPhaseColors.cupred,
-        ),
-      );
+      if (success) {
+        SnackBarHelper.showSuccess(context, 'Ergebnis aktualisiert');
+      } else {
+        SnackBarHelper.showError(context, 'Fehler beim Aktualisieren');
+      }
     }
   }
 }

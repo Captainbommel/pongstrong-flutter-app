@@ -3,6 +3,7 @@ import 'package:pongstrong/services/import_service.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
 import 'package:pongstrong/widgets/confirmation_dialog.dart';
 import 'package:provider/provider.dart';
@@ -17,12 +18,7 @@ class AdminPanelDialogs {
   static bool _verifyAdmin(BuildContext context) {
     final authState = Provider.of<AuthState>(context, listen: false);
     if (!authState.isAdmin) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Keine Berechtigung für diese Aktion.'),
-          backgroundColor: GroupPhaseColors.cupred,
-        ),
-      );
+      SnackBarHelper.showError(context, 'Keine Berechtigung für diese Aktion.');
       return false;
     }
     return true;
@@ -36,12 +32,7 @@ class AdminPanelDialogs {
     if (!_verifyAdmin(context)) return;
     final validationMessage = state.startValidationMessage;
     if (validationMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(validationMessage),
-          backgroundColor: GroupPhaseColors.cupred,
-        ),
-      );
+      SnackBarHelper.showError(context, validationMessage);
       return;
     }
 
@@ -87,15 +78,12 @@ class AdminPanelDialogs {
     if (confirmed == true && context.mounted) {
       final success = await state.startTournament();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success
-                ? successMessage
-                : state.errorMessage ?? 'Fehler beim Starten des Turniers'),
-            backgroundColor:
-                success ? FieldColors.springgreen : GroupPhaseColors.cupred,
-          ),
-        );
+        if (success) {
+          SnackBarHelper.showSuccess(context, successMessage);
+        } else {
+          SnackBarHelper.showError(context,
+              state.errorMessage ?? 'Fehler beim Starten des Turniers');
+        }
         if (success) {
           final tournamentData =
               Provider.of<TournamentDataState>(context, listen: false);
@@ -113,12 +101,8 @@ class AdminPanelDialogs {
     if (!_verifyAdmin(context)) return;
 
     if (state.currentPhase != TournamentPhase.groupPhase) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Phasenwechsel ist nur von der Gruppenphase möglich.'),
-          backgroundColor: GroupPhaseColors.cupred,
-        ),
-      );
+      SnackBarHelper.showError(
+          context, 'Phasenwechsel ist nur von der Gruppenphase möglich.');
       return;
     }
 
@@ -153,15 +137,12 @@ class AdminPanelDialogs {
     if (confirmed == true && context.mounted) {
       final success = await state.advancePhase();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success
-                ? 'Phase erfolgreich gewechselt!'
-                : state.errorMessage ?? 'Fehler beim Phasenwechsel'),
-            backgroundColor:
-                success ? FieldColors.springgreen : GroupPhaseColors.cupred,
-          ),
-        );
+        if (success) {
+          SnackBarHelper.showSuccess(context, 'Phase erfolgreich gewechselt!');
+        } else {
+          SnackBarHelper.showError(
+              context, state.errorMessage ?? 'Fehler beim Phasenwechsel');
+        }
         if (success) {
           final tournamentData =
               Provider.of<TournamentDataState>(context, listen: false);
@@ -204,15 +185,12 @@ class AdminPanelDialogs {
     if (confirmed == true && context.mounted) {
       final success = await state.resetTournament();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success
-                ? 'Turnier wurde zurückgesetzt'
-                : state.errorMessage ?? 'Fehler beim Zurücksetzen'),
-            backgroundColor:
-                success ? FieldColors.springgreen : GroupPhaseColors.cupred,
-          ),
-        );
+        if (success) {
+          SnackBarHelper.showSuccess(context, 'Turnier wurde zurückgesetzt');
+        } else {
+          SnackBarHelper.showError(
+              context, state.errorMessage ?? 'Fehler beim Zurücksetzen');
+        }
         if (success) {
           onResetComplete?.call();
           final tournamentData =
@@ -254,15 +232,12 @@ class AdminPanelDialogs {
     if (confirmed == true && context.mounted) {
       final success = await state.revertToGroupPhase();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success
-                ? 'Zurück zur Gruppenphase'
-                : state.errorMessage ?? 'Fehler beim Zurücksetzen'),
-            backgroundColor:
-                success ? FieldColors.springgreen : GroupPhaseColors.cupred,
-          ),
-        );
+        if (success) {
+          SnackBarHelper.showSuccess(context, 'Zurück zur Gruppenphase');
+        } else {
+          SnackBarHelper.showError(
+              context, state.errorMessage ?? 'Fehler beim Zurücksetzen');
+        }
         if (success) {
           onRevertComplete?.call();
           final tournamentData =

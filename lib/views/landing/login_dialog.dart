@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:provider/provider.dart';
 
 /// Login dialog for returning tournament creators
@@ -45,19 +46,10 @@ class _LoginDialogState extends State<LoginDialog> {
         if (success) {
           Navigator.pop(context);
           widget.onLoginSuccess?.call();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Konto erfolgreich erstellt!'),
-              backgroundColor: AppColors.success,
-            ),
-          );
+          SnackBarHelper.showSuccess(context, 'Konto erfolgreich erstellt!');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(authState.error ?? 'Registrierung fehlgeschlagen'),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          SnackBarHelper.showError(
+              context, authState.error ?? 'Registrierung fehlgeschlagen');
         }
       }
     } else {
@@ -70,19 +62,10 @@ class _LoginDialogState extends State<LoginDialog> {
         if (success) {
           Navigator.pop(context);
           widget.onLoginSuccess?.call();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erfolgreich angemeldet!'),
-              backgroundColor: AppColors.success,
-            ),
-          );
+          SnackBarHelper.showSuccess(context, 'Erfolgreich angemeldet!');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(authState.error ?? 'Anmeldung fehlgeschlagen'),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          SnackBarHelper.showError(
+              context, authState.error ?? 'Anmeldung fehlgeschlagen');
         }
       }
     }
@@ -90,12 +73,7 @@ class _LoginDialogState extends State<LoginDialog> {
 
   Future<void> _forgotPassword() async {
     if (_emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bitte gib deine E-Mail ein'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
+      SnackBarHelper.showWarning(context, 'Bitte gib deine E-Mail ein');
       return;
     }
 
@@ -105,19 +83,11 @@ class _LoginDialogState extends State<LoginDialog> {
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Passwort-Reset E-Mail wurde gesendet'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        SnackBarHelper.showSuccess(
+            context, 'Passwort-Reset E-Mail wurde gesendet');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authState.error ?? 'Fehler beim Senden der E-Mail'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        SnackBarHelper.showError(
+            context, authState.error ?? 'Fehler beim Senden der E-Mail');
       }
     }
   }

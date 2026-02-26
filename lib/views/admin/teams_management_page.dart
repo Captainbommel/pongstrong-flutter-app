@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
 import 'package:pongstrong/views/admin/team_edit_controller.dart';
 import 'package:provider/provider.dart';
@@ -298,13 +299,8 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Kein Platz im Turnier. Verschiebe zuerst ein Team auf die Ersatzbank.'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
+      SnackBarHelper.showWarning(context,
+          'Kein Platz im Turnier. Verschiebe zuerst ein Team auf die Ersatzbank.');
       return;
     }
 
@@ -469,12 +465,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Fehler beim Speichern: $e'),
-            backgroundColor: GroupPhaseColors.cupred,
-          ),
-        );
+        SnackBarHelper.showError(context, 'Fehler beim Speichern: $e');
       }
     } finally {
       setState(() {

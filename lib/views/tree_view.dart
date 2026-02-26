@@ -6,6 +6,7 @@ import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:pongstrong/widgets/match_edit_dialog.dart';
 import 'package:provider/provider.dart';
 
@@ -438,14 +439,11 @@ class TreeViewPageState extends State<TreeViewPage>
             await Provider.of<TournamentDataState>(context, listen: false)
                 .updateBracketName(bracketKey, newName);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content:
-                  Text(success ? 'Name geändert' : 'Fehler beim Umbenennen'),
-              backgroundColor:
-                  success ? FieldColors.springgreen : GroupPhaseColors.cupred,
-            ),
-          );
+          if (success) {
+            SnackBarHelper.showSuccess(context, 'Name geändert');
+          } else {
+            SnackBarHelper.showError(context, 'Fehler beim Umbenennen');
+          }
         }
       }
     }
@@ -744,15 +742,11 @@ class TreeViewPageState extends State<TreeViewPage>
         isKnockout: true,
       );
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success
-                ? 'Ergebnis aktualisiert'
-                : 'Fehler beim Aktualisieren'),
-            backgroundColor:
-                success ? FieldColors.springgreen : GroupPhaseColors.cupred,
-          ),
-        );
+        if (success) {
+          SnackBarHelper.showSuccess(context, 'Ergebnis aktualisiert');
+        } else {
+          SnackBarHelper.showError(context, 'Fehler beim Aktualisieren');
+        }
       }
     }
   }

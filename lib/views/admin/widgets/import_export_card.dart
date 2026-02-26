@@ -6,6 +6,7 @@ import 'package:pongstrong/services/import_service.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/utils/file_download.dart' as file_download;
+import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
 import 'package:provider/provider.dart';
 
@@ -64,15 +65,11 @@ class ImportExportCard extends StatelessWidget {
       await file_download.downloadFile(jsonString, 'tournament_state.json');
 
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Turnierstatus als JSON-Datei heruntergeladen!')),
-      );
+      SnackBarHelper.showSuccess(
+          context, 'Turnierstatus als JSON-Datei heruntergeladen!');
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fehler beim Export: $e')),
-      );
+      SnackBarHelper.showError(context, 'Fehler beim Export: $e');
     }
   }
 
@@ -99,14 +96,11 @@ class ImportExportCard extends StatelessWidget {
       await file_download.downloadFile(csvContent, 'teams.csv');
 
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Teams als CSV-Datei heruntergeladen!')),
-      );
+      SnackBarHelper.showSuccess(
+          context, 'Teams als CSV-Datei heruntergeladen!');
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fehler beim CSV-Export: $e')),
-      );
+      SnackBarHelper.showError(context, 'Fehler beim CSV-Export: $e');
     }
   }
 

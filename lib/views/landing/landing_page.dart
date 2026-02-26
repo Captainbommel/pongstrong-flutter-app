@@ -7,6 +7,7 @@ import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/utils/join_code.dart';
+import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:pongstrong/views/landing/create_tournament_dialog.dart';
 import 'package:pongstrong/views/landing/impressum_dialog.dart';
 import 'package:pongstrong/views/landing/login_dialog.dart';
@@ -112,12 +113,8 @@ class _LandingPageState extends State<LandingPage> {
         Provider.of<TournamentSelectionState>(context, listen: false)
             .setSelectedTournament(tournamentId);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Turnier konnte nicht geladen werden'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        SnackBarHelper.showError(
+            context, 'Turnier konnte nicht geladen werden');
         setState(() => _isLoadingTournament = false);
       }
     }
