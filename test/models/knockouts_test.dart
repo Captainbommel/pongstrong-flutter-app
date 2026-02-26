@@ -374,7 +374,11 @@ void main() {
           expect(match.done, isFalse);
         }
       }
-      expect(cleared, isNotEmpty);
+      // Super cup match 2 also cleared (champions winner feeds it)
+      expect(knockouts.superCup.matches[1].teamId1, isEmpty);
+      expect(knockouts.superCup.matches[1].teamId2, isEmpty);
+      expect(knockouts.superCup.matches[1].done, isFalse);
+      expect(cleared, contains('s-2'));
     });
 
     test('champions final change clears super cup match 2', () {
@@ -427,7 +431,13 @@ void main() {
           expect(match.done, isFalse);
         }
       }
-      expect(cleared, isNotEmpty);
+      // Super cup matches also cleared (europa final is now invalidated)
+      expect(knockouts.superCup.matches[0].teamId1, isEmpty);
+      expect(knockouts.superCup.matches[0].done, isFalse);
+      expect(knockouts.superCup.matches[1].teamId1, isEmpty);
+      expect(knockouts.superCup.matches[1].done, isFalse);
+      expect(cleared, contains('s-1'));
+      expect(cleared, contains('s-2'));
     });
 
     test('super cup match 1 clears super cup match 2', () {

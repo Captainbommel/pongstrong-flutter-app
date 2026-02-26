@@ -257,9 +257,9 @@ class Knockouts {
       final location = findMatchLocation(rounds);
       if (location.$1 != null) {
         clearSubsequentRounds(location.$1!, location.$2, location.$3);
-        if (location.$2 == rounds.length - 1) {
-          clearSuperCupMatches(superCupIndices);
-        }
+        // Always clear super cup matches: editing any round cascades through
+        // to the final, invalidating the super cup inputs.
+        clearSuperCupMatches(superCupIndices);
         return clearedIds;
       }
     }
