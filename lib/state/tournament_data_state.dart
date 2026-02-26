@@ -728,6 +728,14 @@ class TournamentDataState extends ChangeNotifier {
       tag: 'TournamentData',
     );
 
+    if (!isValid(newScore1, newScore2)) {
+      Logger.warning(
+        'Rejecting invalid scores $newScore1-$newScore2 for match $matchId',
+        tag: 'TournamentData',
+      );
+      return Future.value(false);
+    }
+
     if (isKnockout) {
       return _editKnockoutMatch(matchId, newScore1, newScore2);
     } else {

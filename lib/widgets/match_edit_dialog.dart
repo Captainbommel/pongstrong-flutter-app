@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/models/scoring.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/widgets/match_dialogs.dart';
 
 /// Reusable dialog for editing a finished match score.
 /// Returns a `{score1: int, score2: int}` map on confirm, or null on cancel.
@@ -48,6 +49,7 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
   late TextEditingController _score1Controller;
   late TextEditingController _score2Controller;
   final _formKey = GlobalKey<FormState>();
+  String? _validationError;
 
   @override
   void initState() {
@@ -56,10 +58,20 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
         TextEditingController(text: widget.match.score1.toString());
     _score2Controller =
         TextEditingController(text: widget.match.score2.toString());
+    _score1Controller.addListener(_clearValidationError);
+    _score2Controller.addListener(_clearValidationError);
+  }
+
+  void _clearValidationError() {
+    if (_validationError != null) {
+      setState(() => _validationError = null);
+    }
   }
 
   @override
   void dispose() {
+    _score1Controller.removeListener(_clearValidationError);
+    _score2Controller.removeListener(_clearValidationError);
     _score1Controller.dispose();
     _score2Controller.dispose();
     super.dispose();
@@ -99,6 +111,18 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
               ),
               const SizedBox(height: 16),
             ],
+            if (_validationError != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  _validationError!,
+                  style: const TextStyle(
+                    color: AppColors.error,
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             // Team names and scores in aligned columns
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -191,8 +215,8 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
   Widget _scoreField(TextEditingController controller) {
     return TextFormField(
       controller: controller,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      keyboardType: const TextInputType.numberWithOptions(signed: true),
+      inputFormatters: [CupsTextInputFormatter()],
       textAlign: TextAlign.center,
       style: const TextStyle(
         fontSize: 28,
@@ -215,16 +239,30 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
         filled: true,
         fillColor: AppColors.grey50,
       ),
-      validator: (value) =>
-          (value == null || value.isEmpty) ? 'Erforderlich' : null,
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'Erforderlich';
+        if (int.tryParse(value) == null) return 'Ungültige Zahl';
+        return null;
+      },
     );
   }
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
+      final score1 = int.parse(_score1Controller.text);
+      final score2 = int.parse(_score2Controller.text);
+
+      if (!isValid(score1, score2)) {
+        setState(() {
+          _validationError = 'Ungültiges Ergebnis. Bitte gültiges '
+              'Spielergebnis eingeben.';
+        });
+        return;
+      }
+
       Navigator.of(context).pop({
-        'score1': int.parse(_score1Controller.text),
-        'score2': int.parse(_score2Controller.text),
+        'score1': score1,
+        'score2': score2,
       });
     }
   }

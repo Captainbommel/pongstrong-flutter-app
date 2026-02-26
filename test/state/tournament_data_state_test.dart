@@ -1290,6 +1290,55 @@ void main() {
       expect(result, isFalse);
     });
 
+    test('rejects invalid score combinations', () async {
+      final teams = buildTeams(4);
+      final groups = buildGroups(teams, 1);
+      final gp = buildGruppenphase(groups, tableCount: 2);
+      final queue = buildMatchQueue(gp);
+
+      stubLoadedTournament(
+        mockService,
+        teams: teams,
+        gruppenphase: gp,
+        matchQueue: queue,
+      );
+
+      final state = makeState(mockService);
+      await state.loadTournamentData('test-tourney');
+
+      final matchId = gp.groups[0].first.id;
+
+      // 7:3 is not a valid beer pong result
+      expect(
+        await state.editMatchScore(matchId, 7, 3, 0, isKnockout: false),
+        isFalse,
+      );
+      // 5:5 tie is invalid
+      expect(
+        await state.editMatchScore(matchId, 5, 5, 0, isKnockout: false),
+        isFalse,
+      );
+      // 11:9 is invalid
+      expect(
+        await state.editMatchScore(matchId, 11, 9, 0, isKnockout: false),
+        isFalse,
+      );
+      // knockout with invalid score
+      expect(
+        await state.editMatchScore(matchId, 8, 4, 0, isKnockout: true),
+        isFalse,
+      );
+
+      // No Firestore saves should have been attempted
+      verifyNever(
+        mockService.saveGruppenphase(any,
+            tournamentId: anyNamed('tournamentId')),
+      );
+      verifyNever(
+        mockService.saveKnockouts(any, tournamentId: anyNamed('tournamentId')),
+      );
+    });
+
     test('reverts on Firestore save failure', () async {
       final teams = buildTeams(8);
       final groups = buildGroups(teams, 2);
