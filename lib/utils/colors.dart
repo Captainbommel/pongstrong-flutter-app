@@ -124,6 +124,47 @@ class TreeColors {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  League colors derived from match ID prefix
+//
+//  Match IDs use a single-letter prefix:
+//    g → Group phase
+//    c → Champions (Gold)
+//    e → Europa (Silver)
+//    f → Conference (Bronze)
+//    s → Super Cup (Extra)
+// ═══════════════════════════════════════════════════════════════
+
+class LeagueColors {
+  LeagueColors._();
+
+  static const group = GroupPhaseColors.steelblue;
+  static const champions = TreeColors.rebeccapurple;
+  static const europa = TreeColors.royalblue;
+  static const conference = TreeColors.bronze;
+  static const superCup = TreeColors.hotpink;
+
+  /// Returns the league / bracket color for a match based on its ID prefix.
+  /// Falls back to [TableColors.forIndex] when the prefix is unknown.
+  static Color forMatchId(String matchId, int tableNumber) {
+    if (matchId.isEmpty) return TableColors.forIndex(tableNumber - 1);
+    switch (matchId[0]) {
+      case 'g':
+        return group;
+      case 'c':
+        return champions;
+      case 'e':
+        return europa;
+      case 'f':
+        return conference;
+      case 's':
+        return superCup;
+      default:
+        return TableColors.forIndex(tableNumber - 1);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  Group phase overview colors
 // ═══════════════════════════════════════════════════════════════
 

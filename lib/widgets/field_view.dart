@@ -11,6 +11,7 @@ class FieldView extends StatelessWidget {
   final Color secondaryColor;
   final Widget child;
   final bool smallScreen;
+  final Widget? titleTrailing;
 
   const FieldView({
     required this.title,
@@ -18,6 +19,7 @@ class FieldView extends StatelessWidget {
     required this.secondaryColor,
     required this.smallScreen,
     required this.child,
+    this.titleTrailing,
     super.key,
   });
 
@@ -34,21 +36,31 @@ class FieldView extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
-            child: Center(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      color: AppColors.textSecondary,
-                      offset: Offset(2, 2),
-                      blurRadius: 1.5,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Center(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 25,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          color: AppColors.textSecondary,
+                          offset: Offset(2, 2),
+                          blurRadius: 1.5,
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+                if (titleTrailing != null)
+                  Positioned(
+                    left: 4,
+                    child: titleTrailing!,
+                  ),
+              ],
             ),
           ),
           if (smallScreen)

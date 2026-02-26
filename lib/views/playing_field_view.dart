@@ -16,16 +16,35 @@ import 'package:provider/provider.dart';
 class PlayingFieldView extends StatelessWidget {
   const PlayingFieldView({super.key});
 
+  /// Resolves the display color for a match card.
+  static Color _colorForMatch(Match match, bool showLeagueColors) {
+    if (showLeagueColors) {
+      return LeagueColors.forMatchId(match.id, match.tableNumber);
+    }
+    return TableColors.forIndex(match.tableNumber - 1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isLargeScreen = MediaQuery.sizeOf(context).width > 940;
 
     return Consumer<TournamentDataState>(
       builder: (context, data, child) {
+        final showLeague = data.showLeagueColors;
+        Color colorFor(Match m) => _colorForMatch(m, showLeague);
+
         if (isLargeScreen) {
-          return _DesktopLayout(data: data);
+          return _DesktopLayout(
+            data: data,
+            onToggleLeagueColors: data.toggleLeagueColors,
+            colorForMatch: colorFor,
+          );
         } else {
-          return _MobileLayout(data: data);
+          return _MobileLayout(
+            data: data,
+            onToggleLeagueColors: data.toggleLeagueColors,
+            colorForMatch: colorFor,
+          );
         }
       },
     );
@@ -41,6 +60,7 @@ Widget _buildPlayingMatchCard(
   BuildContext context,
   TournamentDataState data,
   Match match,
+  Color Function(Match) colorForMatch,
 ) {
   final team1 = data.getTeam(match.teamId1);
   final team2 = data.getTeam(match.teamId2);
@@ -51,7 +71,7 @@ Widget _buildPlayingMatchCard(
       team1: team1?.name ?? 'Team 1',
       team2: team2?.name ?? 'Team 2',
       table: match.tableNumber.toString(),
-      tableColor: TableColors.forIndex(match.tableNumber - 1),
+      tableColor: colorForMatch(match),
       clickable: true,
       onTap: () {
         finishMatchDialog(
@@ -70,7 +90,8 @@ Widget _buildPlayingMatchCard(
 Widget _buildUpcomingMatchCard(
   BuildContext context,
   TournamentDataState data,
-  Match match, {
+  Match match,
+  Color Function(Match) colorForMatch, {
   required bool isReady,
 }) {
   final team1 = data.getTeam(match.teamId1);
@@ -82,7 +103,7 @@ Widget _buildUpcomingMatchCard(
       team1: team1?.name ?? 'Team 1',
       team2: team2?.name ?? 'Team 2',
       table: match.tableNumber.toString(),
-      tableColor: TableColors.forIndex(match.tableNumber - 1),
+      tableColor: colorForMatch(match),
       clickable: isReady,
       onTap: isReady
           ? () {
@@ -132,7 +153,13 @@ List<Widget> _buildStandingsTables(TournamentDataState data) {
 /// Desktop: side-by-side layout with running, upcoming, and tables.
 class _DesktopLayout extends StatelessWidget {
   final TournamentDataState data;
-  const _DesktopLayout({required this.data});
+  final VoidCallback onToggleLeagueColors;
+  final Color Function(Match) colorForMatch;
+  const _DesktopLayout({
+    required this.data,
+    required this.onToggleLeagueColors,
+    required this.colorForMatch,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -157,12 +184,14 @@ class _DesktopLayout extends StatelessWidget {
                       primaryColor: FieldColors.tomato,
                       secondaryColor: FieldColors.tomato.withAlpha(128),
                       smallScreen: false,
+                      titleTrailing: _buildStealthyToggle(
+                          FieldColors.tomato, onToggleLeagueColors),
                       child: Wrap(
                         alignment: WrapAlignment.center,
                         clipBehavior: Clip.antiAliasWithSaveLayer,
                         children: playing
-                            .map(
-                                (m) => _buildPlayingMatchCard(context, data, m))
+                            .map((m) => _buildPlayingMatchCard(
+                                context, data, m, colorForMatch))
                             .toList(),
                       ),
                     ),
@@ -173,15 +202,17 @@ class _DesktopLayout extends StatelessWidget {
                       primaryColor: FieldColors.springgreen,
                       secondaryColor: FieldColors.springgreen.withAlpha(128),
                       smallScreen: false,
+                      titleTrailing: _buildStealthyToggle(
+                          FieldColors.springgreen, onToggleLeagueColors),
                       child: Wrap(
                         alignment: WrapAlignment.center,
                         clipBehavior: Clip.antiAliasWithSaveLayer,
                         children: [
                           ...next.map((m) => _buildUpcomingMatchCard(
-                              context, data, m,
+                              context, data, m, colorForMatch,
                               isReady: true)),
                           ...nextNext.map((m) => _buildUpcomingMatchCard(
-                              context, data, m,
+                              context, data, m, colorForMatch,
                               isReady: false)),
                         ],
                       ),
@@ -218,15 +249,29 @@ class _DesktopLayout extends StatelessWidget {
 /// Mobile: scrollable stacked layout.
 class _MobileLayout extends StatelessWidget {
   final TournamentDataState data;
-  const _MobileLayout({required this.data});
+  final VoidCallback onToggleLeagueColors;
+  final Color Function(Match) colorForMatch;
+  const _MobileLayout({
+    required this.data,
+    required this.onToggleLeagueColors,
+    required this.colorForMatch,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         children: [
-          _RunningMatchesSection(data: data),
-          _UpcomingMatchesSection(data: data),
+          _RunningMatchesSection(
+            data: data,
+            colorForMatch: colorForMatch,
+            onToggleLeagueColors: onToggleLeagueColors,
+          ),
+          _UpcomingMatchesSection(
+            data: data,
+            colorForMatch: colorForMatch,
+            onToggleLeagueColors: onToggleLeagueColors,
+          ),
           _StandingsSection(data: data),
         ],
       ),
@@ -236,7 +281,13 @@ class _MobileLayout extends StatelessWidget {
 
 class _RunningMatchesSection extends StatelessWidget {
   final TournamentDataState data;
-  const _RunningMatchesSection({required this.data});
+  final Color Function(Match) colorForMatch;
+  final VoidCallback onToggleLeagueColors;
+  const _RunningMatchesSection({
+    required this.data,
+    required this.colorForMatch,
+    required this.onToggleLeagueColors,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -245,6 +296,8 @@ class _RunningMatchesSection extends StatelessWidget {
       primaryColor: FieldColors.tomato,
       secondaryColor: FieldColors.tomato.withAlpha(128),
       smallScreen: true,
+      titleTrailing:
+          _buildStealthyToggle(FieldColors.tomato, onToggleLeagueColors),
       child: Builder(
         builder: (context) {
           if (!data.hasData) {
@@ -258,7 +311,8 @@ class _RunningMatchesSection extends StatelessWidget {
 
           return Column(
             children: playing
-                .map((m) => _buildPlayingMatchCard(context, data, m))
+                .map((m) =>
+                    _buildPlayingMatchCard(context, data, m, colorForMatch))
                 .toList(),
           );
         },
@@ -269,7 +323,13 @@ class _RunningMatchesSection extends StatelessWidget {
 
 class _UpcomingMatchesSection extends StatelessWidget {
   final TournamentDataState data;
-  const _UpcomingMatchesSection({required this.data});
+  final Color Function(Match) colorForMatch;
+  final VoidCallback onToggleLeagueColors;
+  const _UpcomingMatchesSection({
+    required this.data,
+    required this.colorForMatch,
+    required this.onToggleLeagueColors,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -278,6 +338,8 @@ class _UpcomingMatchesSection extends StatelessWidget {
       primaryColor: FieldColors.springgreen,
       secondaryColor: FieldColors.springgreen.withAlpha(128),
       smallScreen: true,
+      titleTrailing:
+          _buildStealthyToggle(FieldColors.springgreen, onToggleLeagueColors),
       child: Builder(
         builder: (context) {
           if (!data.hasData) {
@@ -295,7 +357,8 @@ class _UpcomingMatchesSection extends StatelessWidget {
           return Column(
             children: allNextMatches.map((match) {
               final isReady = nextMatches.contains(match);
-              return _buildUpcomingMatchCard(context, data, match,
+              return _buildUpcomingMatchCard(
+                  context, data, match, colorForMatch,
                   isReady: isReady);
             }).toList(),
           );
@@ -331,4 +394,33 @@ class _StandingsSection extends StatelessWidget {
       ),
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Stealthy color-mode toggle icon (blends with section background)
+// ---------------------------------------------------------------------------
+
+/// Builds a subtle palette icon that blends with the [backgroundColor].
+/// Only shown in KO mode next to section headings.
+Widget _buildStealthyToggle(Color backgroundColor, VoidCallback onToggle) {
+  // Darken the background color slightly for a subtle but tappable icon
+  final iconColor = Color.fromARGB(
+    100,
+    (backgroundColor.r * 255 * 0.6).round(),
+    (backgroundColor.g * 255 * 0.6).round(),
+    (backgroundColor.b * 255 * 0.6).round(),
+  );
+
+  return GestureDetector(
+    onTap: onToggle,
+    behavior: HitTestBehavior.opaque,
+    child: Padding(
+      padding: const EdgeInsets.all(4),
+      child: Icon(
+        Icons.palette_outlined,
+        size: 20,
+        color: iconColor,
+      ),
+    ),
+  );
 }

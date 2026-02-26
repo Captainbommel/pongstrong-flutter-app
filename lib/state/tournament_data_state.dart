@@ -28,6 +28,10 @@ class TournamentDataState extends ChangeNotifier {
   String? _selectedRuleset = 'bmt-cup';
   String? _joinCode;
 
+  // UI-only toggle: show league colors instead of table colors on playing field.
+  // Persisted in RAM across navigations, not saved to Firebase.
+  bool _showLeagueColors = false;
+
   // Async lock to serialise match operations and prevent interleaved
   // read-modify-write on the local match queue.
   // Note: Multi-client safety would additionally require Firestore transactions.
@@ -73,6 +77,15 @@ class TournamentDataState extends ChangeNotifier {
 
   /// Whether a ruleset is active for this tournament.
   bool get rulesEnabled => _selectedRuleset != null;
+
+  /// Whether to show league colors instead of table colors on the playing field.
+  bool get showLeagueColors => _showLeagueColors;
+
+  /// Toggles the league-color display mode (RAM only, not persisted to Firebase).
+  void toggleLeagueColors() {
+    _showLeagueColors = !_showLeagueColors;
+    notifyListeners();
+  }
 
   /// The selected ruleset identifier, or `null` if disabled.
   String? get selectedRuleset => _selectedRuleset;
