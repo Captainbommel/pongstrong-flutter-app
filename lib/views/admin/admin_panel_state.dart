@@ -735,7 +735,18 @@ class AdminPanelState extends ChangeNotifier {
       if (style == TournamentStyle.groupsAndKnockouts) {
         _targetTeamCount = _numberOfGroups * 4;
       } else if (style == TournamentStyle.knockoutsOnly) {
-        _targetTeamCount = _koTargetTeamCount;
+        if (_teams.isNotEmpty) {
+          // Snap to the closest valid KO bracket size that fits the
+          // current number of registered teams.
+          const validKo = [64, 32, 16, 8];
+          _targetTeamCount = validKo.firstWhere(
+            (v) => v <= _teams.length,
+            orElse: () => 8,
+          );
+          _koTargetTeamCount = _targetTeamCount;
+        } else {
+          _targetTeamCount = _koTargetTeamCount;
+        }
       }
       // Persist style to Firebase
       _saveTournamentStyle(style);

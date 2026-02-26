@@ -469,7 +469,8 @@ void main() {
       expect(state.groupsAssigned, isFalse);
     });
 
-    test('restores koTargetTeamCount when switching back to KO-only', () {
+    test('restores koTargetTeamCount when switching back to KO-only (no teams)',
+        () {
       final state = makeState();
       state.setTournamentStyle(TournamentStyle.knockoutsOnly);
       state.setTargetTeamCount(16);
@@ -477,7 +478,46 @@ void main() {
       state.setTournamentStyle(TournamentStyle.groupsAndKnockouts);
       state.setTournamentStyle(TournamentStyle.knockoutsOnly);
 
+      // No teams registered, so the saved KO count is restored.
       expect(state.targetTeamCount, 16);
+    });
+
+    test('snaps to closest KO bracket size based on registered teams',
+        () async {
+      final state = makeState();
+      await addTeams(state, 20);
+
+      state.setTournamentStyle(TournamentStyle.knockoutsOnly);
+
+      // 20 teams → closest valid bracket that fits is 16
+      expect(state.targetTeamCount, 16);
+    });
+
+    test('snaps to 32 when 40 teams are registered', () async {
+      final state = makeState();
+      await addTeams(state, 40);
+
+      state.setTournamentStyle(TournamentStyle.knockoutsOnly);
+
+      expect(state.targetTeamCount, 32);
+    });
+
+    test('snaps to 8 when exactly 8 teams are registered', () async {
+      final state = makeState();
+      await addTeams(state, 8);
+
+      state.setTournamentStyle(TournamentStyle.knockoutsOnly);
+
+      expect(state.targetTeamCount, 8);
+    });
+
+    test('defaults to 8 when fewer than 8 teams are registered', () async {
+      final state = makeState();
+      await addTeams(state, 5);
+
+      state.setTournamentStyle(TournamentStyle.knockoutsOnly);
+
+      expect(state.targetTeamCount, 8);
     });
   });
 
