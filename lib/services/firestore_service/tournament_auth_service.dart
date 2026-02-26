@@ -28,6 +28,11 @@ mixin TournamentAuthService on FirestoreBase {
 
       // Generate a unique 4-char join code
       final joinCode = await _generateUniqueJoinCode();
+      if (joinCode == null) {
+        Logger.error('Could not create tournament: join code generation failed',
+            tag: 'TournamentService');
+        return null;
+      }
 
       await firestore
           .collection(FirestoreBase.tournamentsCollection)
@@ -233,7 +238,9 @@ mixin TournamentAuthService on FirestoreBase {
   }
 
   /// Generates a unique join code that doesn't collide with existing ones.
-  Future<String> _generateUniqueJoinCode() async {
+  ///
+  /// Returns `null` if no unique code could be generated after [maxAttempts].
+  Future<String?> _generateUniqueJoinCode() async {
     const maxAttempts = 25;
     for (var i = 0; i < maxAttempts; i++) {
       final code = JoinCode.generate();
@@ -244,10 +251,11 @@ mixin TournamentAuthService on FirestoreBase {
           .get();
       if (existing.docs.isEmpty) return code;
     }
-    throw StateError(
-      //TODO: Handle this more gracefully
+    Logger.error(
       'Failed to generate a unique join code after $maxAttempts attempts',
+      tag: 'TournamentService',
     );
+    return null;
   }
 
   // ==================== PARTICIPANT MANAGEMENT ====================

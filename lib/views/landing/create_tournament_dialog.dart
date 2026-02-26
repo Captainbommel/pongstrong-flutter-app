@@ -90,7 +90,8 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
       } else {
         setState(() {
           _isLoading = false;
-          _error = 'Ein Turnier mit diesem Namen existiert bereits';
+          _error =
+              'Turnier konnte nicht erstellt werden. Möglicherweise existiert bereits ein Turnier mit diesem Namen.';
         });
       }
     }
