@@ -824,8 +824,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           if (showGroups) ...[
             Row(
               children: [
-                Icon(Icons.grid_view,
-                    size: isMobile ? 20 : 24, color: AppColors.accent),
                 SizedBox(width: isMobile ? 8 : 12),
                 Text(
                   'Gruppen:',
@@ -894,48 +892,38 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                 ),
                 const Spacer(),
                 if (!isLocked) ...[
-                  if (isMobile) ...[
-                    IconButton(
-                      onPressed: _distributeGroupsEvenly,
-                      icon: const Icon(Icons.view_module, size: 20),
-                      color: AppColors.caution,
-                      tooltip: 'Gleichmäßig verteilen',
-                      padding: EdgeInsets.zero,
-                      constraints:
-                          const BoxConstraints(minWidth: 36, minHeight: 36),
-                    ),
-                    IconButton(
-                      onPressed: _assignGroupsRandomly,
-                      icon: const Icon(Icons.casino, size: 20),
-                      color: AppColors.caution,
-                      tooltip: 'Gruppen würfeln',
-                      padding: EdgeInsets.zero,
-                      constraints:
-                          const BoxConstraints(minWidth: 36, minHeight: 36),
-                    ),
-                  ] else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        ElevatedButton(
-                          onPressed: _distributeGroupsEvenly,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.caution,
-                            foregroundColor: AppColors.textPrimary,
-                          ),
-                          child: const Text('Gleichmäßig verteilen'),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert),
+                    tooltip: 'Gruppenoptionen',
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 36, minHeight: 36),
+                    onSelected: (value) {
+                      if (value == 'distribute') {
+                        _distributeGroupsEvenly();
+                      } else if (value == 'random') {
+                        _assignGroupsRandomly();
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'distribute',
+                        child: ListTile(
+                          title: Text('Gruppen gleichmäßig verteilen'),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
                         ),
-                        const SizedBox(height: 6),
-                        ElevatedButton(
-                          onPressed: _assignGroupsRandomly,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.caution,
-                            foregroundColor: AppColors.textPrimary,
-                          ),
-                          child: const Text('Gruppen würfeln'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'random',
+                        child: ListTile(
+                          title: Text('Gruppen zufällig zuweisen'),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                 ],
               ],
             ),
@@ -1494,34 +1482,49 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           children: [
             const Spacer(),
             if (!isLocked)
-              ElevatedButton.icon(
-                onPressed:
-                    (_isSaving || _showSaveSuccess) ? null : _saveAllTeams,
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.textOnColored,
+              SizedBox(
+                width: 160,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed:
+                      (_isSaving || _showSaveSuccess) ? null : _saveAllTeams,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _hasUnsavedChanges && !_showSaveSuccess
+                        ? AppColors.textDisabled
+                        : AppColors.grey300,
+                    foregroundColor: AppColors.textOnColored,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Center(
+                          child: _isSaving
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.textOnColored,
+                                  ),
+                                )
+                              : _showSaveSuccess
+                                  ? const Icon(Icons.check, size: 24)
+                                  : const Icon(Icons.save, size: 24),
                         ),
-                      )
-                    : _showSaveSuccess
-                        ? const Icon(Icons.check)
-                        : const Icon(Icons.save),
-                label: Text(_isSaving
-                    ? 'Speichern...'
-                    : _showSaveSuccess
-                        ? 'Gespeichert'
-                        : 'Alle speichern'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _hasUnsavedChanges && !_showSaveSuccess
-                      ? FieldColors.springgreen
-                      : AppColors.textDisabled,
-                  foregroundColor: AppColors.textOnColored,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+                      ),
+                      Expanded(
+                        child: Text(
+                          _showSaveSuccess ? 'Gespeichert' : 'Speichern',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
