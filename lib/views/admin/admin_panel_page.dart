@@ -297,7 +297,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       },
       numberOfTables: state.numberOfTables,
       onTablesChanged: (count) => state.setNumberOfTables(count),
-      totalTeams: state.totalTeams,
+      totalTeams: state.activeTeamCount,
       isCompact: isCompact,
     );
 

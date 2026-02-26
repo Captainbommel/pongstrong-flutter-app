@@ -1447,4 +1447,51 @@ void main() {
       expect(state.canStartTournament, isFalse);
     });
   });
+
+  // =========================================================================
+  group('activeTeamCount', () {
+    test('equals totalTeams when no reserve teams', () async {
+      final state = makeState();
+      await addTeams(state, 6);
+
+      expect(state.totalTeams, 6);
+      expect(state.activeTeamCount, 6);
+    });
+
+    test('excludes reserve teams from count', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 6);
+      await state.saveReserveTeamIds({ids[0], ids[5]});
+
+      expect(state.totalTeams, 6);
+      expect(state.activeTeamCount, 4);
+    });
+
+    test('returns 0 when all teams are reserve', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 3);
+      await state.saveReserveTeamIds(ids.toSet());
+
+      expect(state.totalTeams, 3);
+      expect(state.activeTeamCount, 0);
+    });
+
+    test('returns 0 when no teams exist', () {
+      final state = makeState();
+      expect(state.activeTeamCount, 0);
+    });
+
+    test('updates when reserve set changes', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 4);
+
+      expect(state.activeTeamCount, 4);
+
+      await state.saveReserveTeamIds({ids[0]});
+      expect(state.activeTeamCount, 3);
+
+      await state.saveReserveTeamIds({});
+      expect(state.activeTeamCount, 4);
+    });
+  });
 }

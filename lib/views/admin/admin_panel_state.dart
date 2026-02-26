@@ -70,6 +70,8 @@ class AdminPanelState extends ChangeNotifier {
   int get numberOfGroups => _numberOfGroups;
   int get numberOfTables => _numberOfTables;
   int get totalTeams => _teams.length;
+  int get activeTeamCount =>
+      _teams.where((t) => !_reserveTeamIds.contains(t.id)).length;
   int get targetTeamCount => _targetTeamCount;
   int get totalMatches => _totalMatches;
   int get completedMatches => _completedMatches;
