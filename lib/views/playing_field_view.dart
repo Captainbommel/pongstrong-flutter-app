@@ -309,7 +309,8 @@ class _RunningMatchesSection extends StatelessWidget {
             return const Center(child: Text('Keine laufenden Spiele'));
           }
 
-          return Column(
+          return Wrap(
+            alignment: WrapAlignment.center,
             children: playing
                 .map((m) =>
                     _buildPlayingMatchCard(context, data, m, colorForMatch))
@@ -354,7 +355,8 @@ class _UpcomingMatchesSection extends StatelessWidget {
             return const Center(child: Text('Keine nächsten Spiele'));
           }
 
-          return Column(
+          return Wrap(
+            alignment: WrapAlignment.center,
             children: allNextMatches.map((match) {
               final isReady = nextMatches.contains(match);
               return _buildUpcomingMatchCard(
