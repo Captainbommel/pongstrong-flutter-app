@@ -58,7 +58,11 @@ class AdminPanelDialogs {
         children: [
           Text('Turniermodus: ${state.styleDisplayName}'),
           const SizedBox(height: 8),
-          Text('Teams: ${state.totalTeams}'),
+          if (state.tournamentStyle == TournamentStyle.knockoutsOnly)
+            Text(
+                'Teams: ${state.targetTeamCount}${state.totalTeams > state.targetTeamCount ? ' (+${state.totalTeams - state.targetTeamCount} Ersatz werden entfernt)' : ''}')
+          else
+            Text('Teams: ${state.totalTeams}'),
           const SizedBox(height: 8),
           if (state.tournamentStyle == TournamentStyle.groupsAndKnockouts) ...[
             Text('Gruppen: ${state.numberOfGroups}'),
@@ -88,6 +92,9 @@ class AdminPanelDialogs {
           final tournamentData =
               Provider.of<TournamentDataState>(context, listen: false);
           await tournamentData.loadTournamentData(state.currentTournamentId);
+          // Reload admin state so teams/metadata reflect Firestore
+          await state.loadTeams();
+          await state.loadTournamentMetadata();
         }
       }
     }

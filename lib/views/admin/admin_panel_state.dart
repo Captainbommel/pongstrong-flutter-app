@@ -978,6 +978,9 @@ class AdminPanelState extends ChangeNotifier {
             tournamentId: _currentTournamentId,
             tableCount: _numberOfTables,
           );
+          // Update local teams list to match what was saved to Firestore
+          _teams = selectedTeams;
+          _reserveTeamIds = {};
           // Calculate total matches for single-elimination: n-1 matches
           _totalMatches = selectedTeams.length - 1;
           _completedMatches = 0;
