@@ -48,7 +48,7 @@ class ImportService {
 
         for (int teamIndex = 0; teamIndex < group.length; teamIndex++) {
           final teamJson = group[teamIndex] as Map<String, dynamic>;
-          final teamId = 'team_${groupIndex}_$teamIndex';
+          final teamId = 'team-$groupIndex-$teamIndex';
 
           final team = Team(
             id: teamId,
@@ -105,7 +105,7 @@ class ImportService {
           for (final teamJson in (group as List)) {
             final map = teamJson as Map<String, dynamic>;
             allTeams.add(Team(
-              id: 'team_$idx',
+              id: 'team-$idx',
               name: map['name'] as String,
               member1: map['member1'] as String? ?? '',
               member2: map['member2'] as String? ?? '',
@@ -118,7 +118,7 @@ class ImportService {
         for (int i = 0; i < jsonData.length; i++) {
           final teamJson = jsonData[i] as Map<String, dynamic>;
           allTeams.add(Team(
-            id: teamJson['id'] as String? ?? 'team_$i',
+            id: teamJson['id'] as String? ?? 'team-$i',
             name: teamJson['name'] as String,
             member1: teamJson['member1'] as String? ?? '',
             member2: teamJson['member2'] as String? ?? '',
@@ -130,7 +130,7 @@ class ImportService {
       for (int i = 0; i < teamsList.length; i++) {
         final teamJson = teamsList[i] as Map<String, dynamic>;
         allTeams.add(Team(
-          id: teamJson['id'] as String? ?? 'team_$i',
+          id: teamJson['id'] as String? ?? 'team-$i',
           name: teamJson['name'] as String,
           member1: teamJson['member1'] as String? ?? '',
           member2: teamJson['member2'] as String? ?? '',
@@ -256,7 +256,7 @@ class ImportService {
       final groupIndex =
           groupOrder.putIfAbsent(groupLabel, () => groupOrder.length);
       final teamIndex = allTeams.length;
-      final teamId = 'team_${groupIndex}_$teamIndex';
+      final teamId = 'team-$groupIndex-$teamIndex';
 
       allTeams.add(Team(
         id: teamId,
@@ -318,7 +318,7 @@ class ImportService {
       if (fields.length <= nameIdx) continue;
 
       allTeams.add(Team(
-        id: 'team_${allTeams.length}',
+        id: 'team-${allTeams.length}',
         name: fields[nameIdx].trim(),
         member1: (mem1Idx != -1 && fields.length > mem1Idx)
             ? fields[mem1Idx].trim()
@@ -497,6 +497,16 @@ class ImportService {
 
     // ---- helpers -----------------------------------------------------------
     final teamIds = teams.map((t) => t.id).toSet();
+
+    // ---- 0. Team ID uniqueness ---------------------------------------------
+    {
+      final seen = <String>{};
+      for (final t in teams) {
+        if (t.id.isNotEmpty && !seen.add(t.id)) {
+          errors.add('Duplicate team ID "${t.id}".');
+        }
+      }
+    }
 
     void checkTeamRef(String teamId, String context) {
       if (teamId.isNotEmpty && !teamIds.contains(teamId)) {

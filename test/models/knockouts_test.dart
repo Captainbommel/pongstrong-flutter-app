@@ -23,10 +23,10 @@ void main() {
       final champions = Champions();
       champions.instantiate('c', [8, 4, 2, 1]);
 
-      expect(champions.rounds[0][0].id, 'c11');
-      expect(champions.rounds[0][7].id, 'c18');
-      expect(champions.rounds[1][0].id, 'c21');
-      expect(champions.rounds[3][0].id, 'c41');
+      expect(champions.rounds[0][0].id, 'c1-1');
+      expect(champions.rounds[0][7].id, 'c1-8');
+      expect(champions.rounds[1][0].id, 'c2-1');
+      expect(champions.rounds[3][0].id, 'c4-1');
     });
   });
 
@@ -45,8 +45,8 @@ void main() {
       final europa = Europa();
       europa.instantiate('e', [4, 2, 1]);
 
-      expect(europa.rounds[0][0].id, 'e11');
-      expect(europa.rounds[2][0].id, 'e31');
+      expect(europa.rounds[0][0].id, 'e1-1');
+      expect(europa.rounds[2][0].id, 'e3-1');
     });
   });
 
@@ -65,8 +65,8 @@ void main() {
       final conference = Conference();
       conference.instantiate('f', [4, 2, 1]);
 
-      expect(conference.rounds[0][0].id, 'f11');
-      expect(conference.rounds[2][0].id, 'f31');
+      expect(conference.rounds[0][0].id, 'f1-1');
+      expect(conference.rounds[2][0].id, 'f3-1');
     });
   });
 
@@ -82,8 +82,8 @@ void main() {
       final superCup = Super();
       superCup.instantiate();
 
-      expect(superCup.matches[0].id, 's1');
-      expect(superCup.matches[1].id, 's2');
+      expect(superCup.matches[0].id, 's-1');
+      expect(superCup.matches[1].id, 's-2');
     });
   });
 
@@ -112,7 +112,7 @@ void main() {
       final knockouts = Knockouts();
       knockouts.instantiate();
 
-      final updated = knockouts.updateMatchScore('c11', 10, 5);
+      final updated = knockouts.updateMatchScore('c1-1', 10, 5);
 
       expect(updated, true);
       expect(knockouts.champions.rounds[0][0].score1, 10);
@@ -124,7 +124,7 @@ void main() {
       final knockouts = Knockouts();
       knockouts.instantiate();
 
-      final updated = knockouts.updateMatchScore('e21', 16, 15);
+      final updated = knockouts.updateMatchScore('e2-1', 16, 15);
 
       expect(updated, true);
       expect(knockouts.europa.rounds[1][0].score1, 16);
@@ -136,7 +136,7 @@ void main() {
       final knockouts = Knockouts();
       knockouts.instantiate();
 
-      final updated = knockouts.updateMatchScore('f11', 10, 5);
+      final updated = knockouts.updateMatchScore('f1-1', 10, 5);
 
       expect(updated, true);
       expect(knockouts.conference.rounds[0][0].score1, 10);
@@ -148,7 +148,7 @@ void main() {
       final knockouts = Knockouts();
       knockouts.instantiate();
 
-      final updated = knockouts.updateMatchScore('s1', 10, 5);
+      final updated = knockouts.updateMatchScore('s-1', 10, 5);
 
       expect(updated, true);
       expect(knockouts.superCup.matches[0].score1, 10);
@@ -364,7 +364,7 @@ void main() {
         () {
       final knockouts = makePopulatedKnockouts();
       // Edit a round 1 champions match → rounds 2,3,4 should be cleared
-      final cleared = knockouts.clearDependentMatches('c11');
+      final cleared = knockouts.clearDependentMatches('c1-1');
 
       // Rounds 2-4 all get cleared
       for (int r = 1; r < knockouts.champions.rounds.length; r++) {
@@ -379,18 +379,18 @@ void main() {
 
     test('champions final change clears super cup match 2', () {
       final knockouts = makePopulatedKnockouts();
-      final cleared = knockouts.clearDependentMatches('c41');
+      final cleared = knockouts.clearDependentMatches('c4-1');
 
       // Super cup match 2 should be cleared (champions winner feeds it)
       expect(knockouts.superCup.matches[1].teamId1, isEmpty);
       expect(knockouts.superCup.matches[1].teamId2, isEmpty);
       expect(knockouts.superCup.matches[1].done, isFalse);
-      expect(cleared, contains('s2'));
+      expect(cleared, contains('s-2'));
     });
 
     test('europa final change clears both super cup matches', () {
       final knockouts = makePopulatedKnockouts();
-      final cleared = knockouts.clearDependentMatches('e31');
+      final cleared = knockouts.clearDependentMatches('e3-1');
 
       // Europa final winner feeds super cup match 1
       expect(knockouts.superCup.matches[0].teamId1, isEmpty);
@@ -398,26 +398,26 @@ void main() {
       // Super cup match 2 also cleared (cascade)
       expect(knockouts.superCup.matches[1].teamId1, isEmpty);
       expect(knockouts.superCup.matches[1].done, isFalse);
-      expect(cleared, contains('s1'));
-      expect(cleared, contains('s2'));
+      expect(cleared, contains('s-1'));
+      expect(cleared, contains('s-2'));
     });
 
     test('conference final change clears both super cup matches', () {
       final knockouts = makePopulatedKnockouts();
-      final cleared = knockouts.clearDependentMatches('f31');
+      final cleared = knockouts.clearDependentMatches('f3-1');
 
       expect(knockouts.superCup.matches[0].teamId1, isEmpty);
       expect(knockouts.superCup.matches[0].done, isFalse);
       expect(knockouts.superCup.matches[1].teamId1, isEmpty);
       expect(knockouts.superCup.matches[1].done, isFalse);
-      expect(cleared, contains('s1'));
-      expect(cleared, contains('s2'));
+      expect(cleared, contains('s-1'));
+      expect(cleared, contains('s-2'));
     });
 
     test('europa early round clears subsequent europa rounds and super cup',
         () {
       final knockouts = makePopulatedKnockouts();
-      final cleared = knockouts.clearDependentMatches('e11');
+      final cleared = knockouts.clearDependentMatches('e1-1');
 
       // Europa rounds 2-3 should be cleared
       for (int r = 1; r < knockouts.europa.rounds.length; r++) {
@@ -432,17 +432,17 @@ void main() {
 
     test('super cup match 1 clears super cup match 2', () {
       final knockouts = makePopulatedKnockouts();
-      final cleared = knockouts.clearDependentMatches('s1');
+      final cleared = knockouts.clearDependentMatches('s-1');
 
       expect(knockouts.superCup.matches[1].teamId1, isEmpty);
       expect(knockouts.superCup.matches[1].teamId2, isEmpty);
       expect(knockouts.superCup.matches[1].done, isFalse);
-      expect(cleared, contains('s2'));
+      expect(cleared, contains('s-2'));
     });
 
     test('super cup match 2 clears nothing', () {
       final knockouts = makePopulatedKnockouts();
-      final cleared = knockouts.clearDependentMatches('s2');
+      final cleared = knockouts.clearDependentMatches('s-2');
 
       expect(cleared, isEmpty);
       // Super cup match 1 should be untouched
@@ -464,7 +464,7 @@ void main() {
       knockouts.champions.rounds[0][0].teamId2 = 'b';
       knockouts.champions.rounds[0][0].done = true;
 
-      final cleared = knockouts.clearDependentMatches('c11');
+      final cleared = knockouts.clearDependentMatches('c1-1');
       // Subsequent rounds are already empty, so nothing should be in cleared list
       expect(cleared, isEmpty);
     });

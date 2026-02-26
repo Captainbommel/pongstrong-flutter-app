@@ -27,13 +27,13 @@ void main() {
       expect(teams[0].name, 'Thunder');
       expect(teams[0].member1, 'Alice');
       expect(teams[0].member2, 'Bob');
-      expect(teams[0].id, 'team_0_0');
-      expect(teams[1].id, 'team_0_1');
-      expect(teams[2].id, 'team_1_0');
+      expect(teams[0].id, 'team-0-0');
+      expect(teams[1].id, 'team-0-1');
+      expect(teams[2].id, 'team-1-0');
 
       expect(groups.groups.length, 2);
-      expect(groups.groups[0], ['team_0_0', 'team_0_1']);
-      expect(groups.groups[1], ['team_1_0']);
+      expect(groups.groups[0], ['team-0-0', 'team-0-1']);
+      expect(groups.groups[1], ['team-1-0']);
     });
 
     test('handles missing member1/member2 fields gracefully', () {
@@ -116,9 +116,9 @@ void main() {
 
       expect(teams.length, 2);
       expect(teams[0].name, 'Alpha');
-      expect(teams[0].id, 'team_0');
+      expect(teams[0].id, 'team-0');
       expect(teams[1].name, 'Beta');
-      expect(teams[1].id, 'team_1');
+      expect(teams[1].id, 'team-1');
     });
 
     test('uses id from JSON when provided', () {
@@ -168,11 +168,11 @@ void main() {
 
       expect(teams.length, 3);
       expect(teams[0].name, 'A');
-      expect(teams[0].id, 'team_0');
+      expect(teams[0].id, 'team-0');
       expect(teams[1].name, 'B');
-      expect(teams[1].id, 'team_1');
+      expect(teams[1].id, 'team-1');
       expect(teams[2].name, 'C');
-      expect(teams[2].id, 'team_2');
+      expect(teams[2].id, 'team-2');
     });
   });
 
@@ -191,7 +191,7 @@ void main() {
       expect(teams.length, 2);
       expect(teams[0].id, 't1');
       expect(teams[0].name, 'Alpha');
-      expect(teams[1].id, 'team_1');
+      expect(teams[1].id, 'team-1');
       expect(teams[1].name, 'Beta');
     });
   });
@@ -360,9 +360,9 @@ void main() {
       expect(teams[0].name, 'Thunder');
       expect(teams[0].member1, 'Alice');
       expect(teams[0].member2, 'Bob');
-      expect(teams[0].id, 'team_0');
+      expect(teams[0].id, 'team-0');
       expect(teams[1].name, 'Lightning');
-      expect(teams[1].id, 'team_1');
+      expect(teams[1].id, 'team-1');
     });
 
     test('handles missing mem columns', () {

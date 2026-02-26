@@ -16,7 +16,7 @@ class KnockoutBracket {
       for (int r = 0; r < roundSizes.length; r++)
         List.generate(
           roundSizes[r],
-          (i) => Match(id: '$idPrefix${r + 1}${i + 1}'),
+          (i) => Match(id: '$idPrefix${r + 1}-${i + 1}'),
         ),
     ];
   }
@@ -68,8 +68,8 @@ class Super {
   /// Creates match stubs for the super cup.
   void instantiate() {
     matches = [
-      Match(id: 's1'),
-      Match(id: 's2'),
+      Match(id: 's-1'),
+      Match(id: 's-2'),
     ];
   }
 

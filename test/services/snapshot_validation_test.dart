@@ -34,7 +34,7 @@ void main() {
     final gruppenphase = Gruppenphase(groups: [
       [
         Match(
-            id: 'g11',
+            id: 'g1-1',
             teamId1: 't0',
             teamId2: 't1',
             tableNumber: 1,
@@ -44,7 +44,7 @@ void main() {
       ],
       [
         Match(
-            id: 'g21',
+            id: 'g2-1',
             teamId1: 't2',
             teamId2: 't3',
             tableNumber: 2,
@@ -107,7 +107,7 @@ void main() {
       final teams = makeTeams(2);
       final gruppenphase = Gruppenphase(groups: [
         [
-          Match(id: 'g11', teamId1: 't0', teamId2: 't1', tableNumber: 1),
+          Match(id: 'g1-1', teamId1: 't0', teamId2: 't1', tableNumber: 1),
         ],
       ]);
       final tabellen = Tabellen(tables: [
@@ -122,7 +122,7 @@ void main() {
         matchQueue: MatchQueue(
           waiting: [
             [
-              Match(id: 'g11', teamId1: 't0', teamId2: 't1', tableNumber: 1),
+              Match(id: 'g1-1', teamId1: 't0', teamId2: 't1', tableNumber: 1),
             ]
           ],
           playing: [],
@@ -144,9 +144,9 @@ void main() {
       final teams = makeTeams(2);
       // Manually build a broken bracket: 8 matches → 3 matches (should be 4)
       final brokenChampions = KnockoutBracket(rounds: [
-        List.generate(8, (i) => Match(id: 'c1${i + 1}')),
-        List.generate(3, (i) => Match(id: 'c2${i + 1}')), // wrong!
-        [Match(id: 'c31')],
+        List.generate(8, (i) => Match(id: 'c1-${i + 1}')),
+        List.generate(3, (i) => Match(id: 'c2-${i + 1}')), // wrong!
+        [Match(id: 'c3-1')],
       ]);
 
       final knockouts = Knockouts(
@@ -171,8 +171,8 @@ void main() {
 
     test('detects europa bracket that does not halve', () {
       final brokenEuropa = KnockoutBracket(rounds: [
-        List.generate(4, (i) => Match(id: 'e1${i + 1}')),
-        List.generate(3, (i) => Match(id: 'e2${i + 1}')), // wrong!
+        List.generate(4, (i) => Match(id: 'e1-${i + 1}')),
+        List.generate(3, (i) => Match(id: 'e2-${i + 1}')), // wrong!
       ]);
 
       final knockouts = Knockouts(
@@ -195,9 +195,9 @@ void main() {
 
     test('detects conference bracket that does not halve', () {
       final brokenConference = KnockoutBracket(rounds: [
-        List.generate(4, (i) => Match(id: 'f1${i + 1}')),
-        [Match(id: 'f21')],
-        [Match(id: 'f31')], // wrong – should not exist after 1 match
+        List.generate(4, (i) => Match(id: 'f1-${i + 1}')),
+        [Match(id: 'f2-1')],
+        [Match(id: 'f3-1')], // wrong – should not exist after 1 match
       ]);
 
       final knockouts = Knockouts(
@@ -270,7 +270,7 @@ void main() {
         champions: KnockoutBracket(),
         europa: KnockoutBracket(),
         conference: KnockoutBracket(),
-        superCup: Super(matches: [Match(id: 's1')]), // only 1!
+        superCup: Super(matches: [Match(id: 's-1')]), // only 1!
       );
 
       final errors = ImportService.validateSnapshot(
@@ -290,9 +290,9 @@ void main() {
         europa: KnockoutBracket(),
         conference: KnockoutBracket(),
         superCup: Super(matches: [
-          Match(id: 's1'),
-          Match(id: 's2'),
-          Match(id: 's3'),
+          Match(id: 's-1'),
+          Match(id: 's-2'),
+          Match(id: 's-3'),
         ]),
       );
 
@@ -346,7 +346,7 @@ void main() {
       final teams = makeTeams(2); // t0, t1
       final gruppenphase = Gruppenphase(groups: [
         [
-          Match(id: 'g11', teamId1: 't0', teamId2: 'ghost_team'),
+          Match(id: 'g1-1', teamId1: 't0', teamId2: 'ghost_team'),
         ],
       ]);
 
@@ -368,7 +368,7 @@ void main() {
       final teams = makeTeams(2); // t0, t1
       final knockouts = Knockouts(
         champions: KnockoutBracket(rounds: [
-          [Match(id: 'c11', teamId1: 't0', teamId2: 'nonexistent')],
+          [Match(id: 'c1-1', teamId1: 't0', teamId2: 'nonexistent')],
         ]),
         europa: KnockoutBracket(),
         conference: KnockoutBracket(),
@@ -394,8 +394,8 @@ void main() {
         europa: KnockoutBracket(),
         conference: KnockoutBracket(),
         superCup: Super(matches: [
-          Match(id: 's1', teamId1: 't0', teamId2: 'bad_id'),
-          Match(id: 's2'),
+          Match(id: 's-1', teamId1: 't0', teamId2: 'bad_id'),
+          Match(id: 's-2'),
         ]),
       );
 
@@ -450,7 +450,7 @@ void main() {
       final teams = makeTeams(2);
       final knockouts = Knockouts(
         champions: KnockoutBracket(rounds: [
-          [Match(id: 'c11', teamId1: 't0')],
+          [Match(id: 'c1-1', teamId1: 't0')],
         ]),
         europa: KnockoutBracket(),
         conference: KnockoutBracket(),
@@ -479,8 +479,8 @@ void main() {
       final teams = makeTeams(4);
       final gruppenphase = Gruppenphase(groups: [
         [
-          Match(id: 'g11', teamId1: 't0', teamId2: 't1'),
-          Match(id: 'g11', teamId1: 't0', teamId2: 't1'), // duplicate!
+          Match(id: 'g1-1', teamId1: 't0', teamId2: 't1'),
+          Match(id: 'g1-1', teamId1: 't0', teamId2: 't1'), // duplicate!
         ],
       ]);
 
@@ -495,7 +495,7 @@ void main() {
       );
 
       expect(errors.any((e) => e.contains('Duplicate')), isTrue);
-      expect(errors.any((e) => e.contains('g11')), isTrue);
+      expect(errors.any((e) => e.contains('g1-1')), isTrue);
     });
 
     test('detects duplicate match ID across gruppenphase and knockouts', () {
@@ -542,7 +542,7 @@ void main() {
       final knockouts = Knockouts(
         champions: KnockoutBracket(rounds: [
           [Match(), Match()],
-          [Match(id: 'c21')],
+          [Match(id: 'c2-1')],
         ]),
         europa: KnockoutBracket(),
         conference: KnockoutBracket(),
@@ -569,8 +569,8 @@ void main() {
     test('detects mismatched group counts', () {
       final teams = makeTeams(4);
       final gruppenphase = Gruppenphase(groups: [
-        [Match(id: 'g11', teamId1: 't0', teamId2: 't1')],
-        [Match(id: 'g21', teamId1: 't2', teamId2: 't3')],
+        [Match(id: 'g1-1', teamId1: 't0', teamId2: 't1')],
+        [Match(id: 'g2-1', teamId1: 't2', teamId2: 't3')],
       ]);
       final tabellen = Tabellen(tables: [
         [TableRow(teamId: 't0'), TableRow(teamId: 't1')],
@@ -633,7 +633,7 @@ void main() {
       final gruppenphase = Gruppenphase(groups: [
         [
           Match(
-              id: 'g11',
+              id: 'g1-1',
               teamId1: 't0',
               teamId2: 't1',
               score1: 7,
@@ -653,7 +653,7 @@ void main() {
       );
 
       expect(errors.any((e) => e.contains('invalid scores')), isTrue);
-      expect(errors.any((e) => e.contains('g11')), isTrue);
+      expect(errors.any((e) => e.contains('g1-1')), isTrue);
     });
 
     test('detects done match with invalid scores in knockouts', () {
@@ -662,7 +662,7 @@ void main() {
         champions: KnockoutBracket(rounds: [
           [
             Match(
-                id: 'c11',
+                id: 'c1-1',
                 teamId1: 't0',
                 teamId2: 't1',
                 score1: 5,
@@ -684,14 +684,14 @@ void main() {
       );
 
       expect(errors.any((e) => e.contains('invalid scores')), isTrue);
-      expect(errors.any((e) => e.contains('c11')), isTrue);
+      expect(errors.any((e) => e.contains('c1-1')), isTrue);
     });
 
     test('does not flag unplayed matches with zero scores', () {
       final teams = makeTeams(2);
       final gruppenphase = Gruppenphase(groups: [
         [
-          Match(id: 'g11', teamId1: 't0', teamId2: 't1'),
+          Match(id: 'g1-1', teamId1: 't0', teamId2: 't1'),
         ],
       ]);
 
@@ -713,7 +713,7 @@ void main() {
       final gruppenphase = Gruppenphase(groups: [
         [
           Match(
-              id: 'g11',
+              id: 'g1-1',
               teamId1: 't0',
               teamId2: 't1',
               score1: 10,
@@ -740,7 +740,7 @@ void main() {
       final gruppenphase = Gruppenphase(groups: [
         [
           Match(
-              id: 'g11',
+              id: 'g1-1',
               teamId1: 't0',
               teamId2: 't1',
               score1: 16,
@@ -767,7 +767,7 @@ void main() {
       final gruppenphase = Gruppenphase(groups: [
         [
           Match(
-              id: 'g11',
+              id: 'g1-1',
               teamId1: 't0',
               teamId2: 't1',
               score1: -1,
@@ -797,13 +797,13 @@ void main() {
         conference: KnockoutBracket(),
         superCup: Super(matches: [
           Match(
-              id: 's1',
+              id: 's-1',
               teamId1: 't0',
               teamId2: 't1',
               score1: 99,
               score2: 99,
               done: true), // invalid
-          Match(id: 's2'),
+          Match(id: 's-2'),
         ]),
       );
 
@@ -815,7 +815,7 @@ void main() {
         knockouts: knockouts,
       );
 
-      expect(errors.any((e) => e.contains('s1')), isTrue);
+      expect(errors.any((e) => e.contains('s-1')), isTrue);
       expect(errors.any((e) => e.contains('invalid scores')), isTrue);
     });
   });
@@ -828,7 +828,7 @@ void main() {
     test('detects match in both waiting and playing', () {
       final teams = makeTeams(2);
       final match =
-          Match(id: 'g11', teamId1: 't0', teamId2: 't1', tableNumber: 1);
+          Match(id: 'g1-1', teamId1: 't0', teamId2: 't1', tableNumber: 1);
 
       final errors = ImportService.validateSnapshot(
         teams: teams,
@@ -837,7 +837,7 @@ void main() {
             [match]
           ],
           playing: [
-            Match(id: 'g11', teamId1: 't0', teamId2: 't1', tableNumber: 1)
+            Match(id: 'g1-1', teamId1: 't0', teamId2: 't1', tableNumber: 1)
           ],
         ),
         gruppenphase: Gruppenphase(),
@@ -845,7 +845,7 @@ void main() {
         knockouts: Knockouts(),
       );
 
-      expect(errors.any((e) => e.contains('g11')), isTrue);
+      expect(errors.any((e) => e.contains('g1-1')), isTrue);
       expect(errors.any((e) => e.contains('both waiting and playing')), isTrue);
     });
 
@@ -855,10 +855,10 @@ void main() {
         teams: teams,
         matchQueue: MatchQueue(
           waiting: [
-            [Match(id: 'g11', teamId1: 't0', teamId2: 't1', tableNumber: 1)]
+            [Match(id: 'g1-1', teamId1: 't0', teamId2: 't1', tableNumber: 1)]
           ],
           playing: [
-            Match(id: 'g12', teamId1: 't0', teamId2: 't1', tableNumber: 2)
+            Match(id: 'g1-2', teamId1: 't0', teamId2: 't1', tableNumber: 2)
           ],
         ),
         gruppenphase: Gruppenphase(),
@@ -881,20 +881,20 @@ void main() {
       final teams = makeTeams(2); // t0, t1
 
       final brokenChampions = KnockoutBracket(rounds: [
-        List.generate(4, (i) => Match(id: 'c1${i + 1}')),
-        [Match(id: 'c21'), Match(id: 'c22'), Match(id: 'c23')], // 3 not 2!
+        List.generate(4, (i) => Match(id: 'c1-${i + 1}')),
+        [Match(id: 'c2-1'), Match(id: 'c2-2'), Match(id: 'c2-3')], // 3 not 2!
       ]);
 
       final gruppenphase = Gruppenphase(groups: [
         [
           Match(
-              id: 'g11',
+              id: 'g1-1',
               teamId1: 't0',
               teamId2: 'zombie',
               score1: 4,
               score2: 4,
               done: true),
-          Match(id: 'g11', teamId1: 't0', teamId2: 't1'), // duplicate
+          Match(id: 'g1-1', teamId1: 't0', teamId2: 't1'), // duplicate
         ],
       ]);
 
@@ -902,7 +902,7 @@ void main() {
         champions: brokenChampions,
         europa: KnockoutBracket(),
         conference: KnockoutBracket(),
-        superCup: Super(matches: [Match(id: 's1')]), // wrong size
+        superCup: Super(matches: [Match(id: 's-1')]), // wrong size
       );
 
       final errors = ImportService.validateSnapshot(
@@ -947,7 +947,7 @@ void main() {
           score1: 10,
           score2: 5,
           tableNumber: 1,
-          id: 'g11',
+          id: 'g1-1',
           done: true);
       final match2 = Match(
           teamId1: 't3',
@@ -955,7 +955,7 @@ void main() {
           score1: 10,
           score2: 3,
           tableNumber: 2,
-          id: 'g21',
+          id: 'g2-1',
           done: true);
 
       final gruppenphase = Gruppenphase(groups: [
@@ -1084,10 +1084,10 @@ void main() {
         champions: KnockoutBracket(),
         europa: KnockoutBracket(rounds: [
           [
-            Match(id: 'e11', teamId1: 't0', teamId2: 'phantom'),
-            Match(id: 'e12'),
+            Match(id: 'e1-1', teamId1: 't0', teamId2: 'phantom'),
+            Match(id: 'e1-2'),
           ],
-          [Match(id: 'e21')],
+          [Match(id: 'e2-1')],
         ]),
         conference: KnockoutBracket(),
         superCup: Super(),
@@ -1110,7 +1110,7 @@ void main() {
       final gruppenphase = Gruppenphase(groups: [
         [
           Match(
-              id: 'g11',
+              id: 'g1-1',
               teamId1: 't0',
               teamId2: 't1',
               score1: -2,
@@ -1137,7 +1137,7 @@ void main() {
       final gruppenphase = Gruppenphase(groups: [
         [
           Match(
-              id: 'g11',
+              id: 'g1-1',
               teamId1: 't0',
               teamId2: 't1',
               score1: 21,

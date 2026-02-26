@@ -22,7 +22,7 @@ class Gruppenphase {
         groups[i].add(Match(
           teamId1: teamGroups.groups[i][matchPattern[j][0]],
           teamId2: teamGroups.groups[i][matchPattern[j][1]],
-          id: 'g${i + 1}${j + 1}',
+          id: 'g${i + 1}-${j + 1}',
         ));
       }
     }

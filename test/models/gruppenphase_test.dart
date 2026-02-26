@@ -12,8 +12,8 @@ void main() {
 
     test('creates Gruppenphase with groups', () {
       final gruppenphase = Gruppenphase(groups: [
-        [Match(id: 'g11'), Match(id: 'g12')],
-        [Match(id: 'g21'), Match(id: 'g22')],
+        [Match(id: 'g1-1'), Match(id: 'g1-2')],
+        [Match(id: 'g2-1'), Match(id: 'g2-2')],
       ]);
       expect(gruppenphase.groups.length, 2);
       expect(gruppenphase.groups[0].length, 2);
@@ -73,11 +73,11 @@ void main() {
 
       final gruppenphase = Gruppenphase.create(groups);
 
-      expect(gruppenphase.groups[0][0].id, 'g11');
-      expect(gruppenphase.groups[0][1].id, 'g12');
-      expect(gruppenphase.groups[0][5].id, 'g16');
-      expect(gruppenphase.groups[1][0].id, 'g21');
-      expect(gruppenphase.groups[1][5].id, 'g26');
+      expect(gruppenphase.groups[0][0].id, 'g1-1');
+      expect(gruppenphase.groups[0][1].id, 'g1-2');
+      expect(gruppenphase.groups[0][5].id, 'g1-6');
+      expect(gruppenphase.groups[1][0].id, 'g2-1');
+      expect(gruppenphase.groups[1][5].id, 'g2-6');
     });
 
     test('assigns table numbers according to blueprint', () {
@@ -124,8 +124,9 @@ void main() {
     test('toJson converts Gruppenphase to JSON correctly', () {
       final gruppenphase = Gruppenphase(groups: [
         [
-          Match(id: 'g11', teamId1: 't1', teamId2: 't2', score1: 10, score2: 5),
-          Match(id: 'g12', teamId1: 't3', teamId2: 't4'),
+          Match(
+              id: 'g1-1', teamId1: 't1', teamId2: 't2', score1: 10, score2: 5),
+          Match(id: 'g1-2', teamId1: 't3', teamId2: 't4'),
         ],
       ]);
 
@@ -133,8 +134,8 @@ void main() {
       final matches = json[0]['matches'] as List;
       expect(json.length, 1);
       expect(matches.length, 2);
-      expect((matches[0] as Map<String, dynamic>)['id'], 'g11');
-      expect((matches[1] as Map<String, dynamic>)['id'], 'g12');
+      expect((matches[0] as Map<String, dynamic>)['id'], 'g1-1');
+      expect((matches[1] as Map<String, dynamic>)['id'], 'g1-2');
     });
 
     test('fromJson creates Gruppenphase from JSON correctly', () {
@@ -142,7 +143,7 @@ void main() {
         {
           'matches': [
             {
-              'id': 'g11',
+              'id': 'g1-1',
               'teamId1': 't1',
               'teamId2': 't2',
               'score1': 10,
@@ -157,7 +158,7 @@ void main() {
       final gruppenphase = Gruppenphase.fromJson(json);
       expect(gruppenphase.groups.length, 1);
       expect(gruppenphase.groups[0].length, 1);
-      expect(gruppenphase.groups[0][0].id, 'g11');
+      expect(gruppenphase.groups[0][0].id, 'g1-1');
       expect(gruppenphase.groups[0][0].teamId1, 't1');
       expect(gruppenphase.groups[0][0].done, true);
     });

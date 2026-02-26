@@ -69,7 +69,7 @@ List<List<Match>> createBracketRounds(int bracketSize, String prefix) {
   int count = bracketSize ~/ 2;
   int r = 1;
   while (count >= 1) {
-    rounds.add(List.generate(count, (i) => Match(id: '$prefix$r${i + 1}')));
+    rounds.add(List.generate(count, (i) => Match(id: '$prefix$r-${i + 1}')));
     count ~/= 2;
     r++;
   }

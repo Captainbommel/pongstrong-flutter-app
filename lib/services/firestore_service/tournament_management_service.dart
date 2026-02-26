@@ -169,7 +169,7 @@ mixin TournamentManagementService
       firstRound.add(Match(
         teamId1: teams[i * 2].id,
         teamId2: teams[i * 2 + 1].id,
-        id: 'ko_r1_${i + 1}',
+        id: 'ko-r1-${i + 1}',
         tableNumber: (i % tableCount) + 1,
       ));
     }
@@ -181,7 +181,7 @@ mixin TournamentManagementService
       final round = <Match>[];
       for (int i = 0; i < matchesInRound; i++) {
         round.add(Match(
-          id: 'ko_r${r}_${i + 1}',
+          id: 'ko-r$r-${i + 1}',
           tableNumber: (i % tableCount) + 1,
         ));
       }
@@ -271,7 +271,7 @@ mixin TournamentManagementService
         matches.add(Match(
           teamId1: teams[home].id,
           teamId2: teams[away].id,
-          id: 'rr_$matchId',
+          id: 'rr-$matchId',
           tableNumber: (tableSlot % tableCount) + 1,
         ));
         matchId++;

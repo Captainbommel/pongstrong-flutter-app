@@ -346,10 +346,10 @@ void main() {
 
     test('match IDs follow prefix+round+index pattern', () {
       final rounds = createBracketRounds(8, 'e');
-      expect(rounds[0][0].id, 'e11');
-      expect(rounds[0][3].id, 'e14');
-      expect(rounds[1][0].id, 'e21');
-      expect(rounds[2][0].id, 'e31');
+      expect(rounds[0][0].id, 'e1-1');
+      expect(rounds[0][3].id, 'e1-4');
+      expect(rounds[1][0].id, 'e2-1');
+      expect(rounds[2][0].id, 'e3-1');
     });
   });
 

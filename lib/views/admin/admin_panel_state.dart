@@ -918,7 +918,12 @@ class AdminPanelState extends ChangeNotifier {
   }
 
   String _generateTeamId() {
-    return 'team_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}';
+    final rng = Random.secure();
+    String id;
+    do {
+      id = 'team-${rng.nextInt(0xFFFF).toRadixString(16).padLeft(4, '0')}';
+    } while (_teams.any((t) => t.id == id));
+    return id;
   }
 
   void _setLoading(bool loading) {
