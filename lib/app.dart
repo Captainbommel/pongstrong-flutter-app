@@ -294,7 +294,7 @@ class _AppShellState extends State<AppShell> {
     // Build page list dynamically (must match availableViews order)
     final pages = <Widget>[
       _buildPageWithHint(const PlayingFieldView(), showHint: true),
-      if (showGroupPhase) const SingleChildScrollView(child: TeamsView()),
+      if (showGroupPhase) const TeamsView(),
       if (showTournamentTree)
         TreeViewPage(
           onExploreChanged: (exploring) {
