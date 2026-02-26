@@ -393,26 +393,135 @@ void _seedBracket(
   }
 }
 
-/// Assigns table numbers (1..[tableCount]) cyclically to all KO matches.
-// TODO: Split tables across leagues so that Champions, Europa, and Conference
-// each get their own dedicated subset of tables. This would allow all three
-// leagues to start and run simultaneously instead of sequentially.
-void mapTablesDynamic(Knockouts knock, {int tableCount = 6}) {
-  void assign(List<List<Match>> rounds, int offset) {
-    int t = offset;
-    for (final round in rounds) {
-      for (final match in round) {
-        match.tableNumber = t % tableCount + 1;
-        t++;
+/// Splits tables across leagues so that Champions, Europa, and Conference each
+/// get their own dedicated subset of tables, allowing all three leagues to
+/// start and run simultaneously.
+///
+/// Tables are allocated proportionally based on the number of first-round
+/// matches each league has. Every active league receives at least one table.
+/// The Super Cup cycles across the full table range (it runs after all leagues
+/// finish).
+///
+/// If [tableCount] is less than the number of active leagues, falls back to
+/// shared cycling (no dedicated subsets).
+void mapTablesDynamic(Knockouts knock,
+    {int tableCount = 6, bool splitTables = false}) {
+  // When splitting is disabled, use simple shared cycling (original behaviour).
+  if (!splitTables) {
+    int t = 0;
+    void assign(List<List<Match>> rounds) {
+      for (final round in rounds) {
+        for (final match in round) {
+          match.tableNumber = t % tableCount + 1;
+          t++;
+        }
+      }
+    }
+
+    assign(knock.champions.rounds);
+    assign(knock.europa.rounds);
+    assign(knock.conference.rounds);
+    for (int i = 0; i < knock.superCup.matches.length; i++) {
+      knock.superCup.matches[i].tableNumber = t % tableCount + 1;
+      t++;
+    }
+    return;
+  }
+
+  // Collect active leagues (those with at least one round).
+  final activeLeagues = <List<List<Match>>>[];
+  if (knock.champions.rounds.isNotEmpty) {
+    activeLeagues.add(knock.champions.rounds);
+  }
+  if (knock.europa.rounds.isNotEmpty) {
+    activeLeagues.add(knock.europa.rounds);
+  }
+  if (knock.conference.rounds.isNotEmpty) {
+    activeLeagues.add(knock.conference.rounds);
+  }
+
+  if (activeLeagues.isEmpty) {
+    // Only Super Cup — assign trivially.
+    for (int i = 0; i < knock.superCup.matches.length; i++) {
+      knock.superCup.matches[i].tableNumber = i % tableCount + 1;
+    }
+    return;
+  }
+
+  // Not enough tables for separate subsets → fall back to shared cycling.
+  if (tableCount < activeLeagues.length) {
+    int t = 0;
+    for (final rounds in activeLeagues) {
+      for (final round in rounds) {
+        for (final match in round) {
+          match.tableNumber = t % tableCount + 1;
+          t++;
+        }
+      }
+    }
+    for (int i = 0; i < knock.superCup.matches.length; i++) {
+      knock.superCup.matches[i].tableNumber = t % tableCount + 1;
+      t++;
+    }
+    return;
+  }
+
+  // ── Proportional allocation based on first-round match counts ─────────
+  final firstRoundCounts = activeLeagues.map((r) => r[0].length).toList();
+  final totalFirst = firstRoundCounts.fold<int>(0, (s, c) => s + c);
+
+  // Start with 1 table per league, then distribute the remainder.
+  final allocations = List<int>.filled(activeLeagues.length, 1);
+  final int extra = tableCount - activeLeagues.length;
+
+  if (totalFirst > 0 && extra > 0) {
+    // Floor-distribute proportionally.
+    final extraPerLeague = <int>[];
+    int assigned = 0;
+    for (int i = 0; i < activeLeagues.length; i++) {
+      final e = (extra * firstRoundCounts[i] / totalFirst).floor();
+      extraPerLeague.add(e);
+      assigned += e;
+    }
+    for (int i = 0; i < activeLeagues.length; i++) {
+      allocations[i] += extraPerLeague[i];
+    }
+
+    // Hand out remaining tables (from rounding) by largest-remainder.
+    final int leftover = extra - assigned;
+    if (leftover > 0) {
+      final indices = List.generate(activeLeagues.length, (i) => i);
+      indices.sort((a, b) {
+        final fracA =
+            (extra * firstRoundCounts[a] / totalFirst) - extraPerLeague[a];
+        final fracB =
+            (extra * firstRoundCounts[b] / totalFirst) - extraPerLeague[b];
+        return fracB.compareTo(fracA);
+      });
+      for (int i = 0; i < leftover; i++) {
+        allocations[indices[i]]++;
       }
     }
   }
 
-  assign(knock.champions.rounds, 0);
-  assign(knock.europa.rounds, 0);
-  assign(knock.conference.rounds, knock.europa.rounds.isEmpty ? 0 : 4);
+  // ── Assign table numbers within each league's dedicated range ─────────
+  int tableStart = 0;
+  for (int i = 0; i < activeLeagues.length; i++) {
+    final rounds = activeLeagues[i];
+    final count = allocations[i];
+    int t = 0;
+    for (final round in rounds) {
+      for (final match in round) {
+        match.tableNumber = tableStart + (t % count) + 1;
+        t++;
+      }
+    }
+    tableStart += count;
+  }
+
+  // Super Cup runs after all leagues finish → use the full table range.
   for (int i = 0; i < knock.superCup.matches.length; i++) {
-    knock.superCup.matches[i].tableNumber = (5 + i) % tableCount + 1;
+    knock.superCup.matches[i].tableNumber = i % tableCount + 1;
   }
 }
 
@@ -451,7 +560,8 @@ void mapTablesDynamic(Knockouts knock, {int tableCount = 6}) {
 /// * The swap pass guarantees that no two members of the same group can meet
 ///   before the semi-final (e.g. not in the quarter-final of a 16-team
 ///   bracket).
-Knockouts evaluateGroups(Tabellen tabellen, {int tableCount = 6}) {
+Knockouts evaluateGroups(Tabellen tabellen,
+    {int tableCount = 6, bool splitTables = false}) {
   tabellen.sortTables();
   final n = tabellen.tables.length;
 
@@ -561,7 +671,7 @@ Knockouts evaluateGroups(Tabellen tabellen, {int tableCount = 6}) {
   }
 
   // ── table assignment ──────────────────────────────────────────────────
-  mapTablesDynamic(knock, tableCount: tableCount);
+  mapTablesDynamic(knock, tableCount: tableCount, splitTables: splitTables);
 
   return knock;
 }

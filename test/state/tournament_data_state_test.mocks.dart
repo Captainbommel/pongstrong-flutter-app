@@ -505,6 +505,7 @@ class MockFirestoreService extends _i1.Mock implements _i3.FirestoreService {
     String? tournamentId = 'current',
     required int? numberOfGroups,
     int? tableCount = 6,
+    bool? splitTables = false,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -514,6 +515,7 @@ class MockFirestoreService extends _i1.Mock implements _i3.FirestoreService {
             #tournamentId: tournamentId,
             #numberOfGroups: numberOfGroups,
             #tableCount: tableCount,
+            #splitTables: splitTables,
           },
         ),
         returnValue: _i4.Future<void>.value(),

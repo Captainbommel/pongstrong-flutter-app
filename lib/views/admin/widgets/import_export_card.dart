@@ -51,6 +51,7 @@ class ImportExportCard extends StatelessWidget {
       try {
         final adminState = Provider.of<AdminPanelState>(context, listen: false);
         tournamentState['numberOfTables'] = adminState.numberOfTables;
+        tournamentState['splitTables'] = adminState.splitTables;
         if (adminState.groups.groups.isNotEmpty) {
           tournamentState['groups'] = adminState.groups.toJson();
         }

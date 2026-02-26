@@ -607,5 +607,101 @@ void main() {
         }
       }
     });
+
+    test('leagues get non-overlapping table ranges with 6 tables', () {
+      final knockouts = Knockouts();
+      knockouts.instantiate(); // Champ 8/4/2/1, Europa 4/2/1, Conf 4/2/1
+      const tableCount = 6;
+      mapTablesDynamic(knockouts, splitTables: true);
+
+      final champTables = <int>{};
+      for (final round in knockouts.champions.rounds) {
+        for (final m in round) {
+          champTables.add(m.tableNumber);
+        }
+      }
+      final euroTables = <int>{};
+      for (final round in knockouts.europa.rounds) {
+        for (final m in round) {
+          euroTables.add(m.tableNumber);
+        }
+      }
+      final confTables = <int>{};
+      for (final round in knockouts.conference.rounds) {
+        for (final m in round) {
+          confTables.add(m.tableNumber);
+        }
+      }
+
+      // Table ranges must be disjoint (simultaneous play).
+      expect(champTables.intersection(euroTables), isEmpty);
+      expect(champTables.intersection(confTables), isEmpty);
+      expect(euroTables.intersection(confTables), isEmpty);
+
+      // Every assigned table must be within [1, tableCount].
+      for (final t in [...champTables, ...euroTables, ...confTables]) {
+        expect(t, greaterThanOrEqualTo(1));
+        expect(t, lessThanOrEqualTo(tableCount));
+      }
+    });
+
+    test('champions gets more tables than smaller leagues', () {
+      final knockouts = Knockouts();
+      knockouts.instantiate(); // Champ R1 = 8, Euro R1 = 4, Conf R1 = 4
+      const tableCount = 8;
+      mapTablesDynamic(knockouts, tableCount: tableCount, splitTables: true);
+
+      final champTables = <int>{};
+      for (final round in knockouts.champions.rounds) {
+        for (final m in round) {
+          champTables.add(m.tableNumber);
+        }
+      }
+      final euroTables = <int>{};
+      for (final round in knockouts.europa.rounds) {
+        for (final m in round) {
+          euroTables.add(m.tableNumber);
+        }
+      }
+
+      expect(champTables.length, greaterThanOrEqualTo(euroTables.length));
+    });
+
+    test('falls back to shared cycling when tableCount < active leagues', () {
+      final knockouts = Knockouts();
+      knockouts.instantiate();
+      const tableCount = 2; // only 2 tables for 3 leagues
+      mapTablesDynamic(knockouts, tableCount: tableCount, splitTables: true);
+
+      // All tables should still be in range.
+      for (final round in knockouts.champions.rounds) {
+        for (final m in round) {
+          expect(m.tableNumber, greaterThanOrEqualTo(1));
+          expect(m.tableNumber, lessThanOrEqualTo(tableCount));
+        }
+      }
+    });
+
+    test('handles empty europa/conference gracefully', () {
+      final knockouts = Knockouts(
+        champions: Champions()..instantiate('c', [4, 2, 1]),
+        europa: Europa(), // empty
+        conference: Conference(), // empty
+        superCup: Super()..instantiate(),
+      );
+      const tableCount = 4;
+      mapTablesDynamic(knockouts, tableCount: tableCount, splitTables: true);
+
+      // Champions should use all 4 tables.
+      final champTables = <int>{};
+      for (final round in knockouts.champions.rounds) {
+        for (final m in round) {
+          champTables.add(m.tableNumber);
+          expect(m.tableNumber, greaterThanOrEqualTo(1));
+          expect(m.tableNumber, lessThanOrEqualTo(tableCount));
+        }
+      }
+      expect(champTables.length, tableCount);
+    });
   });
 }

@@ -37,6 +37,7 @@ class AdminPanelState extends ChangeNotifier {
   bool _groupsAssigned = false;
   int _numberOfGroups = 6;
   int _numberOfTables = 6;
+  bool _splitTables = false;
 
   // Selected team count for KO-only and round-robin modes
   // (controls how many of the saved teams are used when starting)
@@ -69,6 +70,7 @@ class AdminPanelState extends ChangeNotifier {
   bool get groupsAssigned => _groupsAssigned;
   int get numberOfGroups => _numberOfGroups;
   int get numberOfTables => _numberOfTables;
+  bool get splitTables => _splitTables;
   int get totalTeams => _teams.length;
   int get activeTeamCount =>
       _teams.where((t) => !_reserveTeamIds.contains(t.id)).length;
@@ -221,6 +223,11 @@ class AdminPanelState extends ChangeNotifier {
         if (metadata.containsKey('numberOfTables')) {
           _numberOfTables = (metadata['numberOfTables'] as num).toInt();
           if (_numberOfTables < 1) _numberOfTables = 6;
+        }
+
+        // Load split-tables setting from metadata
+        if (metadata.containsKey('splitTables')) {
+          _splitTables = metadata['splitTables'] == true;
         }
 
         // Load target team count (persisted for KO-only mode)
@@ -661,6 +668,15 @@ class AdminPanelState extends ChangeNotifier {
     }
   }
 
+  void setSplitTables(bool value) {
+    if (_currentPhase != TournamentPhase.knockoutPhase &&
+        _currentPhase != TournamentPhase.finished) {
+      _splitTables = value;
+      notifyListeners();
+      _saveSplitTables(value);
+    }
+  }
+
   void setNumberOfGroups(int count) {
     if (count >= 2 && count <= 10) {
       _numberOfGroups = count;
@@ -842,6 +858,22 @@ class AdminPanelState extends ChangeNotifier {
     }
   }
 
+  Future<void> _saveSplitTables(bool value) async {
+    try {
+      await _firestoreService.firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(_currentTournamentId)
+          .set({
+        'splitTables': value,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      Logger.info('Split tables updated to $value', tag: 'AdminPanel');
+    } catch (e) {
+      Logger.error('Error saving split tables setting',
+          tag: 'AdminPanel', error: e);
+    }
+  }
+
   Future<void> saveTargetTeamCount(int count) async {
     try {
       await _firestoreService.firestore
@@ -998,6 +1030,7 @@ class AdminPanelState extends ChangeNotifier {
         tournamentId: _currentTournamentId,
         numberOfGroups: _numberOfGroups,
         tableCount: _numberOfTables,
+        splitTables: _splitTables,
       );
       _currentPhase = TournamentPhase.knockoutPhase;
       Logger.info('Advanced to knockout phase', tag: 'AdminPanel');

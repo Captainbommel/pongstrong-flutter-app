@@ -11,6 +11,9 @@ class TournamentStyleCard extends StatelessWidget {
   final ValueChanged<String?>? onRulesetChanged;
   final int numberOfTables;
   final ValueChanged<int>? onTablesChanged;
+  final bool splitTables;
+  final ValueChanged<bool>? onSplitTablesChanged;
+  final bool isKnockoutStarted;
   final int totalTeams;
   final bool isCompact;
 
@@ -23,6 +26,9 @@ class TournamentStyleCard extends StatelessWidget {
     this.onRulesetChanged,
     this.numberOfTables = 6,
     this.onTablesChanged,
+    this.splitTables = false,
+    this.onSplitTablesChanged,
+    this.isKnockoutStarted = false,
     this.totalTeams = 0,
     this.isCompact = false,
   });
@@ -150,6 +156,56 @@ class TournamentStyleCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.warning,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            // Split tables option
+            if (isKnockoutStarted)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                child: Text(
+                  splitTables
+                      ? 'Tische werden auf Ligen aufgeteilt'
+                      : 'Tische werden gemeinsam genutzt',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: GroupPhaseColors.steelblue,
+                  ),
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        value: splitTables,
+                        onChanged: (val) =>
+                            onSplitTablesChanged?.call(val ?? false),
+                        activeColor: GroupPhaseColors.steelblue,
+                        side: const BorderSide(
+                          color: GroupPhaseColors.steelblue,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => onSplitTablesChanged?.call(!splitTables),
+                        child: const Text(
+                          'Tische auf Ligen aufteilen',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: GroupPhaseColors.steelblue,
+                          ),
                         ),
                       ),
                     ),

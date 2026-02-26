@@ -297,6 +297,10 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       },
       numberOfTables: state.numberOfTables,
       onTablesChanged: (count) => state.setNumberOfTables(count),
+      splitTables: state.splitTables,
+      onSplitTablesChanged: (val) => state.setSplitTables(val),
+      isKnockoutStarted: state.currentPhase == TournamentPhase.knockoutPhase ||
+          state.currentPhase == TournamentPhase.finished,
       totalTeams: state.activeTeamCount,
       isCompact: isCompact,
     );

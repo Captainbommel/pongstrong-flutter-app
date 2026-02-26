@@ -349,6 +349,7 @@ mixin TournamentManagementService
     String tournamentId = FirestoreBase.defaultTournamentId,
     required int numberOfGroups,
     int tableCount = 6,
+    bool splitTables = false,
   }) async {
     // Load gruppenphase and calculate standings
     final gruppenphase = await loadGruppenphase(tournamentId: tournamentId);
@@ -356,7 +357,8 @@ mixin TournamentManagementService
     final tabellen = evalGruppen(gruppenphase);
 
     // Evaluate and create knockouts
-    final knockouts = evaluateGroups(tabellen, tableCount: tableCount);
+    final knockouts = evaluateGroups(tabellen,
+        tableCount: tableCount, splitTables: splitTables);
 
     // Save knockouts
     await saveKnockouts(knockouts, tournamentId: tournamentId);
