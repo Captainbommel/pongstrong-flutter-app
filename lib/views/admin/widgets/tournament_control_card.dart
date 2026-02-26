@@ -113,14 +113,16 @@ class TournamentControlCard extends StatelessWidget {
                       const Icon(Icons.sports_esports,
                           color: GroupPhaseColors.cupred, size: 32),
                       const SizedBox(width: 12),
-                      Text(
-                        tournamentStyle == TournamentStyle.everyoneVsEveryone
-                            ? 'Jeder gegen Jeden läuft'
-                            : 'K.O.-Phase läuft',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: GroupPhaseColors.cupred,
+                      Flexible(
+                        child: Text(
+                          tournamentStyle == TournamentStyle.everyoneVsEveryone
+                              ? 'Jeder gegen Jeden läuft'
+                              : 'K.O.-Phase läuft',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: GroupPhaseColors.cupred,
+                          ),
                         ),
                       ),
                     ],
@@ -142,12 +144,14 @@ class TournamentControlCard extends StatelessWidget {
                     Icon(Icons.sports_esports,
                         color: TreeColors.rebeccapurple, size: 32),
                     SizedBox(width: 12),
-                    Text(
-                      'K.O.-Phase läuft',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: TreeColors.rebeccapurple,
+                    Flexible(
+                      child: Text(
+                        'K.O.-Phase läuft',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: TreeColors.rebeccapurple,
+                        ),
                       ),
                     ),
                   ],
@@ -164,6 +168,8 @@ class TournamentControlCard extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: GroupPhaseColors.cupred,
                       side: const BorderSide(color: GroupPhaseColors.cupred),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -186,12 +192,14 @@ class TournamentControlCard extends StatelessWidget {
                     Icon(Icons.emoji_events,
                         color: FieldColors.springgreen, size: 32),
                     SizedBox(width: 12),
-                    Text(
-                      'Turnier beendet!',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: FieldColors.springgreen,
+                    Flexible(
+                      child: Text(
+                        'Turnier beendet!',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: FieldColors.springgreen,
+                        ),
                       ),
                     ),
                   ],
@@ -210,6 +218,8 @@ class TournamentControlCard extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: GroupPhaseColors.cupred,
                     side: const BorderSide(color: GroupPhaseColors.cupred),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
