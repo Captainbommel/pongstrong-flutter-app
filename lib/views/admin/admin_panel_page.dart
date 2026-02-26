@@ -26,6 +26,7 @@ class AdminPanelPage extends StatefulWidget {
 class _AdminPanelPageState extends State<AdminPanelPage> {
   late AdminPanelState _adminState;
   bool _initialized = false;
+  TournamentDataState? _tournamentData;
 
   @override
   void initState() {
@@ -38,16 +39,23 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     super.didChangeDependencies();
     if (!_initialized) {
       _initialized = true;
-      final tournamentData =
+      _tournamentData =
           Provider.of<TournamentDataState>(context, listen: false);
-      _adminState.setTournamentId(tournamentData.currentTournamentId);
+      _adminState.setTournamentId(_tournamentData!.currentTournamentId);
+      _tournamentData!.addListener(_onTournamentDataChanged);
       _loadData();
     }
   }
 
+  void _onTournamentDataChanged() {
+    // Refresh match stats whenever tournament data changes (e.g. match finished)
+    _adminState.loadMatchStats();
+  }
+
   Future<void> _loadData() async {
+    // Load metadata first so _currentPhase is set before loadMatchStats runs
+    await _adminState.loadTournamentMetadata();
     await Future.wait([
-      _adminState.loadTournamentMetadata(),
       _adminState.loadTeams(),
       _adminState.loadGroups(),
       _adminState.loadMatchStats(),
@@ -56,6 +64,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
 
   @override
   void dispose() {
+    _tournamentData?.removeListener(_onTournamentDataChanged);
     _adminState.dispose();
     super.dispose();
   }
