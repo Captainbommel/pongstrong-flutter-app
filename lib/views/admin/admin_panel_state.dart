@@ -708,6 +708,8 @@ class AdminPanelState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Switch tournament style. When switching to groups+KO, restores
+  /// [_groupsAssigned] from the in-memory [_groups] data.
   void setTournamentStyle(TournamentStyle style) {
     if (!isTournamentStarted) {
       // Save current KO count before switching away from KO-only
@@ -721,6 +723,8 @@ class AdminPanelState extends ChangeNotifier {
       // Restore appropriate target count
       if (style == TournamentStyle.groupsAndKnockouts) {
         _targetTeamCount = _numberOfGroups * 4;
+        // Restore _groupsAssigned from in-memory _groups data
+        _groupsAssigned = _groups.groups.isNotEmpty;
       } else if (style == TournamentStyle.knockoutsOnly) {
         if (_teams.isNotEmpty) {
           // Snap to the closest valid KO bracket size that fits the

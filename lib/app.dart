@@ -32,6 +32,13 @@ class _AppShellState extends State<AppShell> {
   bool _isTreeExploring = false;
   bool _wasLargeScreen = false;
 
+  // Keep desktop views alive to preserve state when switching between views
+  final _desktopPlayingField = const PlayingFieldView();
+  final _desktopGroupPhase = const TeamsView();
+  final _desktopTournamentTree = const TreeViewPage();
+  final _desktopRules = const RulesView();
+  final _desktopAdminPanel = const AdminPanelPage();
+
   @override
   void initState() {
     super.initState();
@@ -244,7 +251,16 @@ class _AppShellState extends State<AppShell> {
         ),
         backgroundColor: AppColors.surface,
       ),
-      body: _buildBodyForView(appState.currentView),
+      body: IndexedStack(
+        index: AppView.values.indexOf(appState.currentView),
+        children: [
+          _desktopPlayingField,
+          _desktopGroupPhase,
+          _desktopTournamentTree,
+          _desktopRules,
+          _desktopAdminPanel,
+        ],
+      ),
     );
   }
 
@@ -399,22 +415,5 @@ class _AppShellState extends State<AppShell> {
         ),
       ],
     );
-  }
-
-  // ---------- Shared ----------
-
-  Widget _buildBodyForView(AppView view) {
-    switch (view) {
-      case AppView.playingField:
-        return const PlayingFieldView();
-      case AppView.groupPhase:
-        return const TeamsView();
-      case AppView.tournamentTree:
-        return const TreeViewPage();
-      case AppView.rules:
-        return const RulesView();
-      case AppView.adminPanel:
-        return const AdminPanelPage();
-    }
   }
 }
