@@ -704,400 +704,238 @@ class ImportService {
 
   // ===================== FILE UPLOAD HANDLERS =====================
 
-  /// Upload teams from a CSV file.
-  /// Uses the currently selected tournament ID from TournamentSelectionState.
-  /// Adapts behavior based on the current tournament style.
-  static Future<void> uploadTeamsFromFile(BuildContext context) async {
-    // Get the current tournament ID from selection state
+  // ─── Shared helpers ─────────────────────────────────────────
+
+  static String _tournamentId(BuildContext context) {
     final selectionState =
         Provider.of<TournamentSelectionState>(context, listen: false);
-    final tournamentId = selectionState.selectedTournamentId ??
+    return selectionState.selectedTournamentId ??
         FirestoreBase.defaultTournamentId;
+  }
 
-    // Determine tournament style if AdminPanelState is available
-    TournamentStyle? style;
+  static TournamentStyle _tournamentStyle(BuildContext context) {
     try {
-      final adminState = Provider.of<AdminPanelState>(context, listen: false);
-      style = adminState.tournamentStyle;
+      return Provider.of<AdminPanelState>(context, listen: false)
+          .tournamentStyle;
     } catch (_) {
-      // AdminPanelState might not be in the tree - defaults to group+KO
-      style = TournamentStyle.groupsAndKnockouts;
+      return TournamentStyle.groupsAndKnockouts;
     }
+  }
 
-    try {
-      // Pick CSV file
-      final FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-        dialogTitle: 'Teams importieren (CSV)',
-      );
-
-      if (result == null || result.files.single.bytes == null) {
-        return;
-      }
-
-      // Show loading dialog
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(
-            child: Card(
-              child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Teams werden importiert...'),
-                  ],
-                ),
-              ),
+  static void _showLoadingDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(message),
+              ],
             ),
           ),
-        );
+        ),
+      ),
+    );
+  }
+
+  /// Refreshes TournamentDataState and AdminPanelState after an import.
+  static Future<void> _refreshState(
+    BuildContext context,
+    String tournamentId, {
+    bool includeMetadata = false,
+  }) async {
+    if (context.mounted) {
+      final tournamentData =
+          Provider.of<TournamentDataState>(context, listen: false);
+      await tournamentData.loadTournamentData(tournamentId);
+    }
+    if (context.mounted) {
+      try {
+        final adminState = Provider.of<AdminPanelState>(context, listen: false);
+        if (includeMetadata) await adminState.loadTournamentMetadata();
+        await adminState.loadTeams();
+        await adminState.loadGroups();
+      } catch (_) {
+        // AdminPanelState may not be in the widget tree
       }
+    }
+  }
 
-      final bytes = result.files.single.bytes!;
-      final csvContent = utf8.decode(bytes);
+  /// Pick a file, show a loading spinner, run [action], then show result.
+  ///
+  /// Returns early (with no error) if the user cancels the file dialog.
+  static Future<void> _withFilePickerAndDialog({
+    required BuildContext context,
+    required List<String> extensions,
+    required String dialogTitle,
+    required String loadingMessage,
+    required String errorTag,
+    required Future<String> Function(List<int> bytes) action,
+  }) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: extensions,
+        dialogTitle: dialogTitle,
+      );
+      if (result == null || result.files.single.bytes == null) return;
 
-      final service = FirestoreService();
+      if (context.mounted) _showLoadingDialog(context, loadingMessage);
 
-      if (style == TournamentStyle.groupsAndKnockouts) {
-        final parsed = ImportService.parseTeamsFromCsv(csvContent);
-        final allTeams = parsed.$1;
-        final groups = parsed.$2;
+      final successMessage = await action(result.files.single.bytes!);
 
-        Logger.info(
-            'Loaded ${allTeams.length} teams from CSV in ${groups.groups.length} groups',
-            tag: 'ImportService');
-
-        await service.importTeamsAndGroups(
-          allTeams,
-          groups,
-          tournamentId: tournamentId,
-        );
-
-        if (context.mounted) Navigator.pop(context);
-
-        if (context.mounted) {
-          SnackBarHelper.showSuccess(context,
-              '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!');
-        }
-      } else {
-        final allTeams = ImportService.parseTeamsFlatFromCsv(csvContent);
-
-        Logger.info(
-            'Loaded ${allTeams.length} teams from CSV (flat, no groups)',
-            tag: 'ImportService');
-
-        await service.importTeamsOnly(
-          allTeams,
-          tournamentId: tournamentId,
-        );
-
-        if (context.mounted) Navigator.pop(context);
-
-        if (context.mounted) {
-          SnackBarHelper.showSuccess(
-              context, '${allTeams.length} Teams importiert!');
-        }
-      }
-
-      // Reload tournament data into state
-      if (context.mounted) {
-        final tournamentData =
-            Provider.of<TournamentDataState>(context, listen: false);
-        await tournamentData.loadTournamentData(tournamentId);
-        Logger.info('Data loaded into app state', tag: 'ImportService');
-      }
-
-      // Also refresh AdminPanelState so dropdowns stay in sync
-      if (context.mounted) {
-        try {
-          final adminState =
-              Provider.of<AdminPanelState>(context, listen: false);
-          await adminState.loadTeams();
-          await adminState.loadGroups();
-          Logger.info('Admin panel state refreshed', tag: 'ImportService');
-        } catch (_) {
-          // AdminPanelState may not be in the widget tree
-        }
-      }
-    } catch (e) {
-      Logger.error('Error loading teams from CSV',
-          tag: 'ImportService', error: e);
-
-      // Close loading dialog if open
       if (context.mounted) Navigator.pop(context);
-
-      // Show error message
+      if (context.mounted) SnackBarHelper.showSuccess(context, successMessage);
+    } catch (e) {
+      Logger.error('Error in $errorTag', tag: 'ImportService', error: e);
+      if (context.mounted) Navigator.pop(context);
       if (context.mounted) {
         SnackBarHelper.showError(context, 'Fehler beim Import: $e');
       }
     }
   }
 
+  // ─── Public upload methods ──────────────────────────────────
+
+  /// Upload teams from a CSV file.
+  static Future<void> uploadTeamsFromFile(BuildContext context) async {
+    final tournamentId = _tournamentId(context);
+    final style = _tournamentStyle(context);
+
+    await _withFilePickerAndDialog(
+      context: context,
+      extensions: ['csv'],
+      dialogTitle: 'Teams importieren (CSV)',
+      loadingMessage: 'Teams werden importiert...',
+      errorTag: 'CSV team upload',
+      action: (bytes) async {
+        final csvContent = utf8.decode(bytes);
+        final service = FirestoreService();
+        String message;
+
+        if (style == TournamentStyle.groupsAndKnockouts) {
+          final (allTeams, groups) = parseTeamsFromCsv(csvContent);
+          await service.importTeamsAndGroups(allTeams, groups,
+              tournamentId: tournamentId);
+          message =
+              '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!';
+        } else {
+          final allTeams = parseTeamsFlatFromCsv(csvContent);
+          await service.importTeamsOnly(allTeams, tournamentId: tournamentId);
+          message = '${allTeams.length} Teams importiert!';
+        }
+
+        if (context.mounted) await _refreshState(context, tournamentId);
+        return message;
+      },
+    );
+  }
+
   /// Upload a full tournament snapshot from a JSON file and restore it.
   static Future<void> uploadSnapshotFromJson(BuildContext context) async {
-    final selectionState =
-        Provider.of<TournamentSelectionState>(context, listen: false);
-    final tournamentId = selectionState.selectedTournamentId ??
-        FirestoreBase.defaultTournamentId;
+    final tournamentId = _tournamentId(context);
 
-    try {
-      final FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-        dialogTitle: 'Turnier-Snapshot importieren (JSON)',
-      );
+    await _withFilePickerAndDialog(
+      context: context,
+      extensions: ['json'],
+      dialogTitle: 'Turnier-Snapshot importieren (JSON)',
+      loadingMessage: 'Turnier-Snapshot wird wiederhergestellt...',
+      errorTag: 'snapshot restore',
+      action: (bytes) async {
+        final jsonData =
+            json.decode(utf8.decode(bytes)) as Map<String, dynamic>;
 
-      if (result == null || result.files.single.bytes == null) {
-        return;
-      }
+        if (!isSnapshotJson(jsonData)) {
+          throw const FormatException(
+              'Die Datei enthält keinen gültigen Turnier-Snapshot.');
+        }
 
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(
-            child: Card(
-              child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Turnier-Snapshot wird wiederhergestellt...'),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      }
+        final snapshot = parseSnapshotFromJson(jsonData);
 
-      final bytes = result.files.single.bytes!;
-      final jsonString = utf8.decode(bytes);
-      final jsonData = json.decode(jsonString) as Map<String, dynamic>;
-
-      if (!isSnapshotJson(jsonData)) {
-        throw const FormatException(
-            'Die Datei enthält keinen gültigen Turnier-Snapshot.');
-      }
-
-      final snapshot = parseSnapshotFromJson(jsonData);
-
-      // Validate structural integrity before restoring
-      final validationErrors = validateSnapshot(
-        teams: snapshot.teams,
-        matchQueue: snapshot.matchQueue,
-        gruppenphase: snapshot.gruppenphase,
-        tabellen: snapshot.tabellen,
-        knockouts: snapshot.knockouts,
-        numberOfTables: snapshot.numberOfTables,
-        groups: snapshot.groups,
-      );
-      if (validationErrors.isNotEmpty) {
-        throw FormatException(
-          'Snapshot-Validierung fehlgeschlagen:\n${validationErrors.join('\n')}',
-        );
-      }
-
-      Logger.info(
-          'Parsed snapshot with ${snapshot.teams.length} teams, style=${snapshot.tournamentStyle}',
-          tag: 'ImportService');
-
-      // Restore into TournamentDataState (which also persists to Firestore)
-      if (context.mounted) {
-        final tournamentData =
-            Provider.of<TournamentDataState>(context, listen: false);
-        await tournamentData.restoreFromSnapshot(
+        final validationErrors = validateSnapshot(
           teams: snapshot.teams,
           matchQueue: snapshot.matchQueue,
           gruppenphase: snapshot.gruppenphase,
           tabellen: snapshot.tabellen,
           knockouts: snapshot.knockouts,
-          isKnockoutMode: snapshot.isKnockoutMode,
-          tournamentStyle: snapshot.tournamentStyle,
-          selectedRuleset: snapshot.selectedRuleset,
-          tournamentId: tournamentId,
           numberOfTables: snapshot.numberOfTables,
           groups: snapshot.groups,
         );
-      }
-
-      // Refresh AdminPanelState so the admin UI stays in sync
-      if (context.mounted) {
-        try {
-          final adminState =
-              Provider.of<AdminPanelState>(context, listen: false);
-          await adminState.loadTournamentMetadata();
-          await adminState.loadTeams();
-          await adminState.loadGroups();
-          Logger.info('Admin panel state refreshed after snapshot restore',
-              tag: 'ImportService');
-        } catch (_) {
-          // AdminPanelState may not be in the widget tree
+        if (validationErrors.isNotEmpty) {
+          throw FormatException(
+            'Snapshot-Validierung fehlgeschlagen:\n${validationErrors.join('\n')}',
+          );
         }
-      }
 
-      if (context.mounted) Navigator.pop(context);
+        if (context.mounted) {
+          final tournamentData =
+              Provider.of<TournamentDataState>(context, listen: false);
+          await tournamentData.restoreFromSnapshot(
+            teams: snapshot.teams,
+            matchQueue: snapshot.matchQueue,
+            gruppenphase: snapshot.gruppenphase,
+            tabellen: snapshot.tabellen,
+            knockouts: snapshot.knockouts,
+            isKnockoutMode: snapshot.isKnockoutMode,
+            tournamentStyle: snapshot.tournamentStyle,
+            selectedRuleset: snapshot.selectedRuleset,
+            tournamentId: tournamentId,
+            numberOfTables: snapshot.numberOfTables,
+            groups: snapshot.groups,
+          );
+        }
 
-      if (context.mounted) {
-        SnackBarHelper.showSuccess(context,
-            'Turnier-Snapshot wiederhergestellt (${snapshot.teams.length} Teams)');
-      }
-    } catch (e) {
-      Logger.error('Error restoring tournament snapshot',
-          tag: 'ImportService', error: e);
-
-      if (context.mounted) Navigator.pop(context);
-
-      if (context.mounted) {
-        SnackBarHelper.showError(context, 'Fehler beim Snapshot-Import: $e');
-      }
-    }
+        if (context.mounted) {
+          await _refreshState(context, tournamentId, includeMetadata: true);
+        }
+        return 'Turnier-Snapshot wiederhergestellt (${snapshot.teams.length} Teams)';
+      },
+    );
   }
 
   /// Upload teams from a JSON file.
-  /// Supports grouped format (array of groups) and flat format.
-  /// Uses the currently selected tournament ID from TournamentSelectionState.
   static Future<void> uploadTeamsFromJson(BuildContext context) async {
-    final selectionState =
-        Provider.of<TournamentSelectionState>(context, listen: false);
-    final tournamentId = selectionState.selectedTournamentId ??
-        FirestoreBase.defaultTournamentId;
+    final tournamentId = _tournamentId(context);
+    final style = _tournamentStyle(context);
 
-    TournamentStyle? style;
-    try {
-      final adminState = Provider.of<AdminPanelState>(context, listen: false);
-      style = adminState.tournamentStyle;
-    } catch (_) {
-      style = TournamentStyle.groupsAndKnockouts;
-    }
+    await _withFilePickerAndDialog(
+      context: context,
+      extensions: ['json'],
+      dialogTitle: 'Teams importieren (JSON)',
+      loadingMessage: 'Teams werden importiert...',
+      errorTag: 'JSON team upload',
+      action: (bytes) async {
+        final jsonData = json.decode(utf8.decode(bytes));
 
-    try {
-      final FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-        dialogTitle: 'Teams importieren (JSON)',
-      );
-
-      if (result == null || result.files.single.bytes == null) {
-        return;
-      }
-
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(
-            child: Card(
-              child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Teams werden importiert...'),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      }
-
-      final bytes = result.files.single.bytes!;
-      final jsonString = utf8.decode(bytes);
-      final jsonData = json.decode(jsonString);
-
-      // Reject full snapshots – those should use "Snapshot importieren"
-      if (jsonData is Map<String, dynamic> && isSnapshotJson(jsonData)) {
-        if (context.mounted) Navigator.pop(context);
-        if (context.mounted) {
-          SnackBarHelper.showError(context,
+        if (jsonData is Map<String, dynamic> && isSnapshotJson(jsonData)) {
+          throw const FormatException(
               'Diese Datei ist ein Turnier-Snapshot. Bitte "Snapshot importieren" verwenden.');
         }
-        return;
-      }
 
-      final service = FirestoreService();
+        final service = FirestoreService();
+        String message;
 
-      if (style == TournamentStyle.groupsAndKnockouts) {
-        final parsed = ImportService.parseTeamsFromJson(jsonData);
-        final allTeams = parsed.$1;
-        final groups = parsed.$2;
-
-        Logger.info(
-            'Loaded ${allTeams.length} teams from JSON in ${groups.groups.length} groups',
-            tag: 'ImportService');
-
-        await service.importTeamsAndGroups(
-          allTeams,
-          groups,
-          tournamentId: tournamentId,
-        );
-
-        if (context.mounted) Navigator.pop(context);
-
-        if (context.mounted) {
-          SnackBarHelper.showSuccess(context,
-              '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!');
+        if (style == TournamentStyle.groupsAndKnockouts) {
+          final (allTeams, groups) = parseTeamsFromJson(jsonData);
+          await service.importTeamsAndGroups(allTeams, groups,
+              tournamentId: tournamentId);
+          message =
+              '${allTeams.length} Teams und ${groups.groups.length} Gruppen importiert!';
+        } else {
+          final allTeams = parseTeamsFlatFromJson(jsonData);
+          await service.importTeamsOnly(allTeams, tournamentId: tournamentId);
+          message = '${allTeams.length} Teams importiert!';
         }
-      } else {
-        final allTeams = ImportService.parseTeamsFlatFromJson(jsonData);
 
-        Logger.info(
-            'Loaded ${allTeams.length} teams from JSON (flat, no groups)',
-            tag: 'ImportService');
-
-        await service.importTeamsOnly(
-          allTeams,
-          tournamentId: tournamentId,
-        );
-
-        if (context.mounted) Navigator.pop(context);
-
-        if (context.mounted) {
-          SnackBarHelper.showSuccess(
-              context, '${allTeams.length} Teams importiert!');
-        }
-      }
-
-      // Reload tournament data into state
-      if (context.mounted) {
-        final tournamentData =
-            Provider.of<TournamentDataState>(context, listen: false);
-        await tournamentData.loadTournamentData(tournamentId);
-        Logger.info('Data loaded into app state', tag: 'ImportService');
-      }
-
-      // Also refresh AdminPanelState so dropdowns stay in sync
-      if (context.mounted) {
-        try {
-          final adminState =
-              Provider.of<AdminPanelState>(context, listen: false);
-          await adminState.loadTeams();
-          await adminState.loadGroups();
-          Logger.info('Admin panel state refreshed', tag: 'ImportService');
-        } catch (_) {
-          // AdminPanelState may not be in the widget tree
-        }
-      }
-    } catch (e) {
-      Logger.error('Error loading teams from JSON',
-          tag: 'ImportService', error: e);
-
-      if (context.mounted) Navigator.pop(context);
-
-      if (context.mounted) {
-        SnackBarHelper.showError(context, 'Fehler beim Import: $e');
-      }
-    }
+        if (context.mounted) await _refreshState(context, tournamentId);
+        return message;
+      },
+    );
   }
 }

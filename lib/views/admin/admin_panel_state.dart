@@ -149,29 +149,18 @@ class AdminPanelState extends ChangeNotifier {
     return null;
   }
 
-  String get phaseDisplayName {
-    switch (_currentPhase) {
-      case TournamentPhase.notStarted:
-        return 'Nicht gestartet';
-      case TournamentPhase.groupPhase:
-        return 'Gruppenphase';
-      case TournamentPhase.knockoutPhase:
-        return 'K.O.-Phase';
-      case TournamentPhase.finished:
-        return 'Beendet';
-    }
-  }
+  String get phaseDisplayName => switch (_currentPhase) {
+        TournamentPhase.notStarted => 'Nicht gestartet',
+        TournamentPhase.groupPhase => 'Gruppenphase',
+        TournamentPhase.knockoutPhase => 'K.O.-Phase',
+        TournamentPhase.finished => 'Beendet',
+      };
 
-  String get styleDisplayName {
-    switch (_tournamentStyle) {
-      case TournamentStyle.groupsAndKnockouts:
-        return 'Gruppenphase + K.O.';
-      case TournamentStyle.knockoutsOnly:
-        return 'Nur K.O.-Phase';
-      case TournamentStyle.everyoneVsEveryone:
-        return 'Jeder gegen Jeden';
-    }
-  }
+  String get styleDisplayName => switch (_tournamentStyle) {
+        TournamentStyle.groupsAndKnockouts => 'Gruppenphase + K.O.',
+        TournamentStyle.knockoutsOnly => 'Nur K.O.-Phase',
+        TournamentStyle.everyoneVsEveryone => 'Jeder gegen Jeden',
+      };
 
   void setTournamentId(String tournamentId) {
     _currentTournamentId = tournamentId;
@@ -186,67 +175,35 @@ class AdminPanelState extends ChangeNotifier {
           tournamentId: _currentTournamentId);
       if (metadata != null) {
         _tournamentName = (metadata['name'] as String?) ?? '';
-        final phase = metadata['phase'] as String?;
-        if (phase != null) {
-          switch (phase) {
-            case 'groups':
-              _currentPhase = TournamentPhase.groupPhase;
-            case 'knockouts':
-              _currentPhase = TournamentPhase.knockoutPhase;
-            case 'finished':
-              _currentPhase = TournamentPhase.finished;
-            default:
-              _currentPhase = TournamentPhase.notStarted;
-          }
-        }
-        // Load tournament style from metadata
-        final styleStr = metadata['tournamentStyle'] as String?;
-        if (styleStr != null) {
-          switch (styleStr) {
-            case 'knockoutsOnly':
-              _tournamentStyle = TournamentStyle.knockoutsOnly;
-            case 'everyoneVsEveryone':
-              _tournamentStyle = TournamentStyle.everyoneVsEveryone;
-            default:
-              _tournamentStyle = TournamentStyle.groupsAndKnockouts;
-          }
-        }
-        // Load rules setting from metadata
-        if (metadata.containsKey('selectedRuleset')) {
-          _selectedRuleset = metadata['selectedRuleset'] as String?;
-        } else {
-          _selectedRuleset = 'bmt-cup';
-        }
+        _currentPhase = switch (metadata['phase'] as String?) {
+          'groups' => TournamentPhase.groupPhase,
+          'knockouts' => TournamentPhase.knockoutPhase,
+          'finished' => TournamentPhase.finished,
+          _ => TournamentPhase.notStarted,
+        };
+        _tournamentStyle = switch (metadata['tournamentStyle'] as String?) {
+          'knockoutsOnly' => TournamentStyle.knockoutsOnly,
+          'everyoneVsEveryone' => TournamentStyle.everyoneVsEveryone,
+          _ => TournamentStyle.groupsAndKnockouts,
+        };
+        _selectedRuleset = metadata.containsKey('selectedRuleset')
+            ? metadata['selectedRuleset'] as String?
+            : 'bmt-cup';
+        _numberOfTables =
+            ((metadata['numberOfTables'] as num?)?.toInt() ?? 6).clamp(1, 100);
+        _splitTables = metadata['splitTables'] == true;
 
-        // Load number of tables from metadata
-        if (metadata.containsKey('numberOfTables')) {
-          _numberOfTables = (metadata['numberOfTables'] as num).toInt();
-          if (_numberOfTables < 1) _numberOfTables = 6;
-        }
-
-        // Load split-tables setting from metadata
-        if (metadata.containsKey('splitTables')) {
-          _splitTables = metadata['splitTables'] == true;
-        }
-
-        // Load target team count (persisted for KO-only mode)
-        if (metadata.containsKey('targetTeamCount')) {
-          final tc = (metadata['targetTeamCount'] as num).toInt();
+        final tc = (metadata['targetTeamCount'] as num?)?.toInt();
+        if (tc != null) {
           _targetTeamCount = tc;
           if (_tournamentStyle == TournamentStyle.knockoutsOnly) {
             _koTargetTeamCount = tc;
           }
         }
 
-        // Load reserve (bench) team IDs from metadata
-        if (metadata.containsKey('reserveTeamIds')) {
-          final reserveList = metadata['reserveTeamIds'];
-          if (reserveList is List) {
-            _reserveTeamIds = reserveList.cast<String>().toSet();
-          }
-        } else {
-          _reserveTeamIds = {};
-        }
+        final reserveList = metadata['reserveTeamIds'];
+        _reserveTeamIds =
+            reserveList is List ? reserveList.cast<String>().toSet() : {};
 
         Logger.info(
             'Loaded tournament phase: $_currentPhase, style: $_tournamentStyle',
@@ -810,130 +767,57 @@ class AdminPanelState extends ChangeNotifier {
   }
 
   /// Toggle rules visibility
-  Future<void> setRulesEnabled(bool enabled) async {
-    _selectedRuleset = enabled ? 'bmt-cup' : null;
-    notifyListeners();
-
-    try {
-      await _firestoreService.firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(_currentTournamentId)
-          .set({
-        'selectedRuleset': _selectedRuleset,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      Logger.info('Ruleset updated to $_selectedRuleset', tag: 'AdminPanel');
-    } catch (e) {
-      Logger.error('Error updating rules setting', tag: 'AdminPanel', error: e);
-      _setError('Fehler beim Speichern: $e');
-    }
-  }
+  Future<void> setRulesEnabled(bool enabled) =>
+      setSelectedRuleset(enabled ? 'bmt-cup' : null);
 
   /// Set selected ruleset
   Future<void> setSelectedRuleset(String? ruleset) async {
     _selectedRuleset = ruleset;
     notifyListeners();
-
-    try {
-      await _firestoreService.firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(_currentTournamentId)
-          .set({
-        'selectedRuleset': ruleset,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      Logger.info('Ruleset updated to $ruleset', tag: 'AdminPanel');
-    } catch (e) {
-      Logger.error('Error updating ruleset', tag: 'AdminPanel', error: e);
-      _setError('Fehler beim Speichern: $e');
-    }
+    await _saveTournamentField('selectedRuleset', ruleset);
   }
 
   Future<void> _saveTournamentStyle(TournamentStyle style) async {
-    try {
-      final styleStr = style == TournamentStyle.groupsAndKnockouts
-          ? 'groupsAndKnockouts'
-          : style == TournamentStyle.knockoutsOnly
-              ? 'knockoutsOnly'
-              : 'everyoneVsEveryone';
-      await _firestoreService.updateTournamentStyle(
-        tournamentId: _currentTournamentId,
-        style: styleStr,
-      );
-    } catch (e) {
-      Logger.error('Error saving tournament style',
-          tag: 'AdminPanel', error: e);
-    }
+    final styleStr = switch (style) {
+      TournamentStyle.groupsAndKnockouts => 'groupsAndKnockouts',
+      TournamentStyle.knockoutsOnly => 'knockoutsOnly',
+      TournamentStyle.everyoneVsEveryone => 'everyoneVsEveryone',
+    };
+    await _firestoreService.updateTournamentStyle(
+      tournamentId: _currentTournamentId,
+      style: styleStr,
+    );
   }
 
-  Future<void> _saveNumberOfTables(int count) async {
-    try {
-      await _firestoreService.firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(_currentTournamentId)
-          .set({
-        'numberOfTables': count,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      Logger.info('Number of tables updated to $count', tag: 'AdminPanel');
-    } catch (e) {
-      Logger.error('Error saving number of tables',
-          tag: 'AdminPanel', error: e);
-    }
-  }
+  Future<void> _saveNumberOfTables(int count) =>
+      _saveTournamentField('numberOfTables', count);
 
-  Future<void> _saveSplitTables(bool value) async {
-    try {
-      await _firestoreService.firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(_currentTournamentId)
-          .set({
-        'splitTables': value,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      Logger.info('Split tables updated to $value', tag: 'AdminPanel');
-    } catch (e) {
-      Logger.error('Error saving split tables setting',
-          tag: 'AdminPanel', error: e);
-    }
-  }
+  Future<void> _saveSplitTables(bool value) =>
+      _saveTournamentField('splitTables', value);
 
-  Future<void> saveTargetTeamCount(int count) async {
-    try {
-      await _firestoreService.firestore
-          .collection(FirestoreBase.tournamentsCollection)
-          .doc(_currentTournamentId)
-          .set({
-        'targetTeamCount': count,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      Logger.debug('Target team count saved: $count', tag: 'AdminPanel');
-    } catch (e) {
-      Logger.error('Error saving target team count',
-          tag: 'AdminPanel', error: e);
-    }
-  }
+  Future<void> saveTargetTeamCount(int count) =>
+      _saveTournamentField('targetTeamCount', count);
 
   /// Persist the set of reserve (bench) team IDs to tournament metadata.
   Future<void> saveReserveTeamIds(Set<String> reserveIds) async {
     _reserveTeamIds = reserveIds;
     notifyListeners();
+    await _saveTournamentField('reserveTeamIds', reserveIds.toList());
+  }
+
+  /// Shared helper – merge-sets a single field into tournament metadata.
+  Future<void> _saveTournamentField(String field, dynamic value) async {
     try {
       await _firestoreService.firestore
           .collection(FirestoreBase.tournamentsCollection)
           .doc(_currentTournamentId)
           .set({
-        'reserveTeamIds': reserveIds.toList(),
+        field: value,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-      Logger.debug(
-          'Reserve team IDs saved (${reserveIds.length} teams on bench)',
-          tag: 'AdminPanel');
+      Logger.debug('Saved $field', tag: 'AdminPanel');
     } catch (e) {
-      Logger.error('Error saving reserve team IDs',
-          tag: 'AdminPanel', error: e);
+      Logger.error('Error saving $field', tag: 'AdminPanel', error: e);
     }
   }
 

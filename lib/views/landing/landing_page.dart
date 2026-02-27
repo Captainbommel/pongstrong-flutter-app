@@ -8,9 +8,11 @@ import 'package:pongstrong/state/tournament_selection_state.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/utils/join_code.dart';
 import 'package:pongstrong/utils/snackbar_helper.dart';
+import 'package:pongstrong/utils/text_formatters.dart';
 import 'package:pongstrong/views/landing/create_tournament_dialog.dart';
 import 'package:pongstrong/views/landing/impressum_dialog.dart';
 import 'package:pongstrong/views/landing/login_dialog.dart';
+import 'package:pongstrong/views/landing/tournament_list_item.dart';
 import 'package:pongstrong/views/landing/tournament_password_dialog.dart';
 import 'package:provider/provider.dart';
 
@@ -669,8 +671,13 @@ class _LandingPageState extends State<LandingPage> {
         }
 
         return Column(
-          children:
-              tournaments.map((id) => _buildTournamentListItem(id)).toList(),
+          children: tournaments
+              .map((id) => TournamentListItem(
+                    tournamentId: id,
+                    getMeta: _getTournamentMeta,
+                    onTap: _onTournamentSelected,
+                  ))
+              .toList(),
         );
       },
     );
@@ -809,106 +816,6 @@ class _LandingPageState extends State<LandingPage> {
             ]));
   }
 
-  Widget _buildTournamentListItem(String tournamentId) {
-    return Consumer<AuthState>(
-      builder: (context, authState, _) {
-        return FutureBuilder<List<bool>>(
-          future: _getTournamentMeta(tournamentId, authState),
-          builder: (context, snapshot) {
-            final isCreator = snapshot.data?[0] ?? false;
-            final hasPassword = snapshot.data?[1] ?? true;
-
-            String subtitleText;
-            IconData trailingIcon;
-
-            if (isCreator) {
-              subtitleText = 'Tippen zum Öffnen';
-              trailingIcon = Icons.arrow_forward_ios;
-            } else if (hasPassword) {
-              subtitleText = 'Tippen für Passwort-Eingabe';
-              trailingIcon = Icons.lock_outline;
-            } else {
-              subtitleText = 'Tippen zum Beitreten';
-              trailingIcon = Icons.arrow_forward_ios;
-            }
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Material(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
-                child: InkWell(
-                  onTap: () => _onTournamentSelected(tournamentId),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isCreator
-                            ? GroupPhaseColors.cupred.withAlpha(100)
-                            : AppColors.grey300,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isCreator
-                                ? GroupPhaseColors.cupred.withAlpha(30)
-                                : GroupPhaseColors.steelblue.withAlpha(30),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.sports_esports,
-                            color: isCreator
-                                ? GroupPhaseColors.cupred
-                                : GroupPhaseColors.steelblue,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                tournamentId,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                subtitleText,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isCreator
-                                      ? GroupPhaseColors.cupred
-                                      : AppColors.textSubtle,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          trailingIcon,
-                          size: 16,
-                          color: AppColors.textDisabled,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   Widget _buildCreateTournamentButton({required bool isLarge}) {
     return SizedBox(
       width: double.infinity,
@@ -933,16 +840,5 @@ class _LandingPageState extends State<LandingPage> {
         ),
       ),
     );
-  }
-}
-
-/// Converts text input to uppercase as the user types.
-class UpperCaseTextFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }

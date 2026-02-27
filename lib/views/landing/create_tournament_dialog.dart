@@ -70,6 +70,122 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
     }
   }
 
+  // ─── Shared UI helpers ───
+
+  InputDecoration _styledDecoration({
+    required String label,
+    String? hint,
+    Widget? prefixIcon,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixIcon: prefixIcon,
+      suffixIcon: suffixIcon,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: GroupPhaseColors.cupred, width: 2),
+      ),
+      floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required bool obscure,
+    required VoidCallback onToggle,
+    String? hint,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      cursorColor: GroupPhaseColors.cupred,
+      decoration: _styledDecoration(
+        label: label,
+        hint: hint,
+        prefixIcon: const Icon(Icons.lock_outline),
+        suffixIcon: IconButton(
+          onPressed: onToggle,
+          icon: Icon(obscure
+              ? Icons.visibility_off_outlined
+              : Icons.visibility_outlined),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoBox(String text) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.infoLight,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: AppColors.info, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text,
+                style: const TextStyle(fontSize: 12, color: AppColors.info)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static const _loadingIndicator = SizedBox(
+    width: 20,
+    height: 20,
+    child: CircularProgressIndicator(
+        strokeWidth: 2, color: AppColors.textOnColored),
+  );
+
+  Widget _actionButton({
+    required VoidCallback? onPressed,
+    required String label,
+    required IconData icon,
+    required bool isVerySmall,
+    Color backgroundColor = GroupPhaseColors.cupred,
+    bool isOutlined = false,
+    bool isLoading = false,
+  }) {
+    const fg = AppColors.textOnColored;
+    final child = isLoading ? _loadingIndicator : null;
+
+    if (isOutlined) {
+      final style = OutlinedButton.styleFrom(
+        foregroundColor: backgroundColor,
+        side: BorderSide(color: backgroundColor),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      );
+      return isVerySmall
+          ? OutlinedButton(
+              onPressed: onPressed, style: style, child: Text(label))
+          : OutlinedButton.icon(
+              onPressed: onPressed,
+              icon: Icon(icon),
+              label: Text(label),
+              style: style);
+    }
+    final style = ElevatedButton.styleFrom(
+      backgroundColor: backgroundColor,
+      foregroundColor: fg,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+    return isVerySmall
+        ? ElevatedButton(
+            onPressed: onPressed, style: style, child: child ?? Text(label))
+        : ElevatedButton.icon(
+            onPressed: onPressed,
+            icon: child ?? Icon(icon),
+            label: Text(label),
+            style: style);
+  }
+
   /// Shared logic: create the tournament on Firestore and handle result.
   Future<void> _submitTournament(String creatorId) async {
     final tournamentId = await _firestoreService.createTournament(
@@ -266,102 +382,35 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   if (_currentStep > 0)
-                    isVerySmall
-                        ? OutlinedButton(
-                            onPressed: _previousStep,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: GroupPhaseColors.cupred,
-                              side: const BorderSide(
-                                  color: GroupPhaseColors.cupred),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 12),
-                            ),
-                            child: const Text('Zurück'),
-                          )
-                        : OutlinedButton.icon(
-                            onPressed: _previousStep,
-                            icon: const Icon(Icons.arrow_back),
-                            label: const Text('Zurück'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: GroupPhaseColors.cupred,
-                              side: const BorderSide(
-                                  color: GroupPhaseColors.cupred),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                            ),
-                          )
+                    _actionButton(
+                      onPressed: _previousStep,
+                      label: 'Zurück',
+                      icon: Icons.arrow_back,
+                      isVerySmall: isVerySmall,
+                      isOutlined: true,
+                    )
                   else
                     const SizedBox(),
                   if (_currentStep == 0)
-                    isVerySmall
-                        ? ElevatedButton(
-                            onPressed: _nextStep,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: GroupPhaseColors.cupred,
-                              foregroundColor: AppColors.textOnColored,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                            ),
-                            child: const Text('Weiter'),
-                          )
-                        : ElevatedButton.icon(
-                            onPressed: _nextStep,
-                            icon: const Icon(Icons.arrow_forward),
-                            label: const Text('Weiter'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: GroupPhaseColors.cupred,
-                              foregroundColor: AppColors.textOnColored,
-                            ),
-                          )
+                    _actionButton(
+                      onPressed: _nextStep,
+                      label: 'Weiter',
+                      icon: Icons.arrow_forward,
+                      isVerySmall: isVerySmall,
+                    )
                   else
-                    isVerySmall
-                        ? ElevatedButton(
-                            onPressed: _isLoading
-                                ? null
-                                : isAlreadyLoggedIn
-                                    ? () => _createTournamentAsLoggedInUser(
-                                        authState)
-                                    : _createTournament,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.success,
-                              foregroundColor: AppColors.textOnColored,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 12),
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppColors.textOnColored,
-                                    ),
-                                  )
-                                : const Text('Erstellen'),
-                          )
-                        : ElevatedButton.icon(
-                            onPressed: _isLoading
-                                ? null
-                                : isAlreadyLoggedIn
-                                    ? () => _createTournamentAsLoggedInUser(
-                                        authState)
-                                    : _createTournament,
-                            icon: _isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppColors.textOnColored,
-                                    ),
-                                  )
-                                : const Icon(Icons.check),
-                            label: const Text('Turnier erstellen'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.success,
-                              foregroundColor: AppColors.textOnColored,
-                            ),
-                          ),
+                    _actionButton(
+                      onPressed: _isLoading
+                          ? null
+                          : isAlreadyLoggedIn
+                              ? () => _createTournamentAsLoggedInUser(authState)
+                              : _createTournament,
+                      label: isVerySmall ? 'Erstellen' : 'Turnier erstellen',
+                      icon: Icons.check,
+                      isVerySmall: isVerySmall,
+                      backgroundColor: AppColors.success,
+                      isLoading: _isLoading,
+                    ),
                 ],
               ),
             ),
@@ -434,78 +483,29 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
       children: [
         const Text(
           'Turnier Details',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 20),
         TextField(
           controller: _tournamentNameController,
           cursorColor: GroupPhaseColors.cupred,
-          decoration: InputDecoration(
-            labelText: 'Turniername',
-            hintText: 'z.B. BMT-Cup 2026',
+          decoration: _styledDecoration(
+            label: 'Turniername',
+            hint: 'z.B. BMT-Cup 2026',
             prefixIcon: const Icon(Icons.emoji_events),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide:
-                  const BorderSide(color: GroupPhaseColors.cupred, width: 2),
-            ),
-            floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
           ),
         ),
         const SizedBox(height: 20),
-        TextField(
+        _buildPasswordField(
           controller: _passwordController,
-          obscureText: _obscurePassword,
-          cursorColor: GroupPhaseColors.cupred,
-          decoration: InputDecoration(
-            labelText: 'Turnier-Passwort',
-            hintText: 'Passwort für andere Spieler',
-            prefixIcon: const Icon(Icons.key),
-            suffixIcon: IconButton(
-              onPressed: () =>
-                  setState(() => _obscurePassword = !_obscurePassword),
-              icon: Icon(
-                _obscurePassword
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-              ),
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide:
-                  const BorderSide(color: GroupPhaseColors.cupred, width: 2),
-            ),
-            floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
-          ),
+          label: 'Turnier-Passwort',
+          hint: 'Passwort für andere Spieler',
+          obscure: _obscurePassword,
+          onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.infoLight,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.info_outline, color: AppColors.info, size: 20),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Dieses Passwort teilst du mit allen Spielern, damit sie dem Turnier beitreten können.',
-                  style: TextStyle(fontSize: 12, color: AppColors.info),
-                ),
-              ),
-            ],
-          ),
+        _buildInfoBox(
+          'Dieses Passwort teilst du mit allen Spielern, damit sie dem Turnier beitreten können.',
         ),
       ],
     );
@@ -551,24 +551,8 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
           ),
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.infoLight,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.info_outline, color: AppColors.info, size: 20),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Nach dem Erstellen wirst du automatisch dem Turnier beitreten.',
-                  style: TextStyle(fontSize: 12, color: AppColors.info),
-                ),
-              ),
-            ],
-          ),
+        _buildInfoBox(
+          'Nach dem Erstellen wirst du automatisch dem Turnier beitreten.',
         ),
       ],
     );
@@ -636,77 +620,27 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
           controller: _emailController,
           cursorColor: GroupPhaseColors.cupred,
           keyboardType: TextInputType.emailAddress,
-          decoration: InputDecoration(
-            labelText: 'E-Mail',
+          decoration: _styledDecoration(
+            label: 'E-Mail',
             prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide:
-                  const BorderSide(color: GroupPhaseColors.cupred, width: 2),
-            ),
-            floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
           ),
         ),
         const SizedBox(height: 16),
-        TextField(
+        _buildPasswordField(
           controller: _accountPasswordController,
-          obscureText: _obscureAccountPassword,
-          cursorColor: GroupPhaseColors.cupred,
-          decoration: InputDecoration(
-            labelText: 'Passwort',
-            prefixIcon: const Icon(Icons.lock_outline),
-            suffixIcon: IconButton(
-              onPressed: () => setState(
-                  () => _obscureAccountPassword = !_obscureAccountPassword),
-              icon: Icon(
-                _obscureAccountPassword
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-              ),
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide:
-                  const BorderSide(color: GroupPhaseColors.cupred, width: 2),
-            ),
-            floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
-          ),
+          label: 'Passwort',
+          obscure: _obscureAccountPassword,
+          onToggle: () => setState(
+              () => _obscureAccountPassword = !_obscureAccountPassword),
         ),
         if (!_isLoginMode) ...[
           const SizedBox(height: 16),
-          TextField(
+          _buildPasswordField(
             controller: _confirmPasswordController,
-            obscureText: _obscureConfirmPassword,
-            cursorColor: GroupPhaseColors.cupred,
-            decoration: InputDecoration(
-              labelText: 'Passwort bestätigen',
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                onPressed: () => setState(
-                    () => _obscureConfirmPassword = !_obscureConfirmPassword),
-                icon: Icon(
-                  _obscureConfirmPassword
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                ),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                    const BorderSide(color: GroupPhaseColors.cupred, width: 2),
-              ),
-              floatingLabelStyle:
-                  const TextStyle(color: GroupPhaseColors.cupred),
-            ),
+            label: 'Passwort bestätigen',
+            obscure: _obscureConfirmPassword,
+            onToggle: () => setState(
+                () => _obscureConfirmPassword = !_obscureConfirmPassword),
           ),
         ],
         const SizedBox(height: 20),

@@ -81,35 +81,21 @@ class TreeViewPageState extends State<TreeViewPage>
   /// Builds the list of visible bracket entries based on actual data.
   List<_BracketEntry> _getVisibleBrackets(Knockouts knockouts) {
     final entries = <_BracketEntry>[];
-
-    // Champions is always shown if it has data
-    if (_bracketHasData(knockouts.champions)) {
-      entries.add(_BracketEntry(
-        key: BracketKey.gold,
-        name: knockouts.getBracketName(BracketKey.gold),
-        color: _bracketColors[BracketKey.gold]!,
-        rounds: knockouts.champions.rounds,
-      ));
+    final brackets = {
+      BracketKey.gold: knockouts.champions,
+      BracketKey.silver: knockouts.europa,
+      BracketKey.bronze: knockouts.conference,
+    };
+    for (final e in brackets.entries) {
+      if (_bracketHasData(e.value)) {
+        entries.add(_BracketEntry(
+          key: e.key,
+          name: knockouts.getBracketName(e.key),
+          color: _bracketColors[e.key]!,
+          rounds: e.value.rounds,
+        ));
+      }
     }
-
-    if (_bracketHasData(knockouts.europa)) {
-      entries.add(_BracketEntry(
-        key: BracketKey.silver,
-        name: knockouts.getBracketName(BracketKey.silver),
-        color: _bracketColors[BracketKey.silver]!,
-        rounds: knockouts.europa.rounds,
-      ));
-    }
-
-    if (_bracketHasData(knockouts.conference)) {
-      entries.add(_BracketEntry(
-        key: BracketKey.bronze,
-        name: knockouts.getBracketName(BracketKey.bronze),
-        color: _bracketColors[BracketKey.bronze]!,
-        rounds: knockouts.conference.rounds,
-      ));
-    }
-
     if (_superCupHasData(knockouts.superCup)) {
       entries.add(_BracketEntry(
         key: BracketKey.extra,
@@ -118,7 +104,6 @@ class TreeViewPageState extends State<TreeViewPage>
         isSuperCup: true,
       ));
     }
-
     return entries;
   }
 
@@ -271,33 +256,7 @@ class TreeViewPageState extends State<TreeViewPage>
             Container(
               color: AppColors.grey100,
               padding: const EdgeInsets.only(left: 8, bottom: 4),
-              child: Row(
-                children: [
-                  const SizedBox(width: 7),
-                  SizedBox(
-                    height: 28,
-                    width: 28,
-                    child: Checkbox(
-                      value: _showTableNumbers,
-                      activeColor: visibleBrackets[_selectedIndex].color,
-                      onChanged: (v) {
-                        setState(() => _showTableNumbers = v ?? false);
-                      },
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: () =>
-                        setState(() => _showTableNumbers = !_showTableNumbers),
-                    child: const Text(
-                      'Tische anzeigen',
-                      style: TextStyle(fontSize: 13),
-                    ),
-                  ),
-                ],
-              ),
+              child: _buildTableCheckbox(visibleBrackets[_selectedIndex].color),
             ),
           Expanded(
             child: isLargeScreen
@@ -336,30 +295,9 @@ class TreeViewPageState extends State<TreeViewPage>
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 8),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: Checkbox(
-                                        value: _showTableNumbers,
-                                        activeColor: visibleBrackets[
-                                                _tabController!.index]
-                                            .color,
-                                        onChanged: (v) => setState(() =>
-                                            _showTableNumbers = v ?? false),
-                                        materialTapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Text(
-                                      'Tische anzeigen',
-                                      style: TextStyle(fontSize: 13),
-                                    ),
-                                  ],
+                                child: _buildTableCheckbox(
+                                  visibleBrackets[_tabController!.index].color,
+                                  size: 24,
                                 ),
                               ),
                             ),
@@ -454,6 +392,31 @@ class TreeViewPageState extends State<TreeViewPage>
     widget.onExploreChanged?.call(value);
   }
 
+  Widget _buildTableCheckbox(Color activeColor, {double size = 28}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (size >= 28) const SizedBox(width: 7),
+        SizedBox(
+          height: size,
+          width: size,
+          child: Checkbox(
+            value: _showTableNumbers,
+            activeColor: activeColor,
+            onChanged: (v) => setState(() => _showTableNumbers = v ?? false),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+        const SizedBox(width: 4),
+        GestureDetector(
+          onTap: () => setState(() => _showTableNumbers = !_showTableNumbers),
+          child: const Text('Tische anzeigen', style: TextStyle(fontSize: 13)),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMobileTreeWithOverlay(
       Knockouts knockouts, List<_BracketEntry> visibleBrackets) {
     final currentBracket = visibleBrackets[_selectedIndex];
@@ -523,17 +486,10 @@ class TreeViewPageState extends State<TreeViewPage>
     List<List<Match>> rounds,
     Color color,
   ) {
-    // Guard: no rounds or all rounds empty → show placeholder
     if (rounds.isEmpty || rounds.every((r) => r.isEmpty)) {
-      return const Center(
-        child: Text(
-          'Keine Daten verfügbar',
-          style: TextStyle(fontSize: 18, color: AppColors.textSubtle),
-        ),
-      );
+      return _noDataPlaceholder;
     }
 
-    // Use cached graph or build a new one
     final cacheKey = bracketKey.name;
     final matchCount = rounds.fold<int>(0, (sum, round) => sum + round.length);
     var cached = _graphCache[cacheKey];
@@ -541,76 +497,45 @@ class TreeViewPageState extends State<TreeViewPage>
       final graph = Graph()..isTree = true;
       final nodes = <String, Node>{};
 
-      // Winner node (new root of the tree)
       const winnerNodeId = 'winner';
       nodes[winnerNodeId] = Node.Id(winnerNodeId);
 
-      for (int roundIndex = 0; roundIndex < rounds.length; roundIndex++) {
-        for (int matchIndex = 0;
-            matchIndex < rounds[roundIndex].length;
-            matchIndex++) {
-          final matchId = 'r${roundIndex}_m$matchIndex';
-          nodes[matchId] = Node.Id(matchId);
+      for (int ri = 0; ri < rounds.length; ri++) {
+        for (int mi = 0; mi < rounds[ri].length; mi++) {
+          nodes['r${ri}_m$mi'] = Node.Id('r${ri}_m$mi');
         }
       }
 
-      // Connect winner node to the final match
-      final lastRoundIndex = rounds.length - 1;
-      graph.addEdge(nodes[winnerNodeId]!, nodes['r${lastRoundIndex}_m0']!);
+      graph.addEdge(nodes[winnerNodeId]!, nodes['r${rounds.length - 1}_m0']!);
 
-      for (int roundIndex = 0; roundIndex < rounds.length - 1; roundIndex++) {
-        for (int matchIndex = 0;
-            matchIndex < rounds[roundIndex].length;
-            matchIndex++) {
-          final currentMatch = 'r${roundIndex}_m$matchIndex';
-          final nextMatch = 'r${roundIndex + 1}_m${matchIndex ~/ 2}';
-          graph.addEdge(nodes[nextMatch]!, nodes[currentMatch]!);
+      for (int ri = 0; ri < rounds.length - 1; ri++) {
+        for (int mi = 0; mi < rounds[ri].length; mi++) {
+          graph.addEdge(
+              nodes['r${ri + 1}_m${mi ~/ 2}']!, nodes['r${ri}_m$mi']!);
         }
       }
 
-      final builder = BuchheimWalkerConfiguration()
-        ..siblingSeparation = 25
-        ..levelSeparation = 50
-        ..subtreeSeparation = 50
-        ..orientation = BuchheimWalkerConfiguration.ORIENTATION_RIGHT_LEFT;
-
-      cached =
-          _CachedGraph(graph: graph, config: builder, matchCount: matchCount);
+      cached = _CachedGraph(
+        graph: graph,
+        config: _defaultTreeConfig(),
+        matchCount: matchCount,
+      );
       _graphCache[cacheKey] = cached;
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: InteractiveViewer(
-        constrained: false,
-        boundaryMargin: const EdgeInsets.all(100),
-        minScale: 1.0,
-        maxScale: 1.0,
-        child: GraphView(
-          graph: cached.graph,
-          algorithm: BuchheimWalkerAlgorithm(
-              cached.config, TreeEdgeRenderer(cached.config)),
-          paint: Paint()
-            ..color = color.withAlpha(76)
-            ..strokeWidth = 2
-            ..style = PaintingStyle.stroke,
-          builder: (Node node) {
-            final nodeId = node.key?.value as String;
-
-            if (nodeId == 'winner') {
-              final finalMatch = rounds[rounds.length - 1][0];
-              return _buildWinnerNode(finalMatch, color);
-            }
-
-            final parts = nodeId.split('_');
-            final roundIndex = int.parse(parts[0].substring(1));
-            final matchIndex = int.parse(parts[1].substring(1));
-            final match = rounds[roundIndex][matchIndex];
-
-            return _buildMatchNode(match, color);
-          },
-        ),
-      ),
+    return _buildGraphView(
+      graph: cached.graph,
+      config: cached.config,
+      color: color,
+      nodeBuilder: (nodeId) {
+        if (nodeId == 'winner') {
+          return _buildWinnerNode(rounds.last[0], color);
+        }
+        final parts = nodeId.split('_');
+        final ri = int.parse(parts[0].substring(1));
+        final mi = int.parse(parts[1].substring(1));
+        return _buildMatchNode(rounds[ri][mi], color);
+      },
     );
   }
 
@@ -683,52 +608,35 @@ class TreeViewPageState extends State<TreeViewPage>
                   ],
                 ),
               ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    getTeamName(match.teamId1),
-                    textAlign: match.done ? TextAlign.start : TextAlign.center,
-                    style: TextStyle(
-                      fontWeight:
-                          match.done && match.getWinnerId() == match.teamId1
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                      color: match.teamId1.isEmpty
-                          ? AppColors.textDisabled
-                          : AppColors.shadow,
-                    ),
-                  ),
-                ),
-                if (match.done) Text('${match.score1}'),
-              ],
-            ),
+            _buildTeamRow(
+                getTeamName(match.teamId1), match.score1, match.teamId1, match),
             const Divider(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    getTeamName(match.teamId2),
-                    textAlign: match.done ? TextAlign.start : TextAlign.center,
-                    style: TextStyle(
-                      fontWeight:
-                          match.done && match.getWinnerId() == match.teamId2
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                      color: match.teamId2.isEmpty
-                          ? AppColors.textDisabled
-                          : AppColors.shadow,
-                    ),
-                  ),
-                ),
-                if (match.done) Text('${match.score2}'),
-              ],
-            ),
+            _buildTeamRow(
+                getTeamName(match.teamId2), match.score2, match.teamId2, match),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTeamRow(String name, int score, String teamId, Match match) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            name,
+            textAlign: match.done ? TextAlign.start : TextAlign.center,
+            style: TextStyle(
+              fontWeight: match.done && match.getWinnerId() == teamId
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+              color: teamId.isEmpty ? AppColors.textDisabled : AppColors.shadow,
+            ),
+          ),
+        ),
+        if (match.done) Text('$score'),
+      ],
     );
   }
 
@@ -830,32 +738,53 @@ class TreeViewPageState extends State<TreeViewPage>
   }
 
   Widget _buildSuperCupTree(Knockouts knockouts) {
-    // Guard: no super cup matches → show placeholder
-    if (knockouts.superCup.matches.length < 2) {
-      return const Center(
-        child: Text(
-          'Keine Daten verfügbar',
-          style: TextStyle(fontSize: 18, color: AppColors.textSubtle),
-        ),
-      );
-    }
+    if (knockouts.superCup.matches.length < 2) return _noDataPlaceholder;
 
     final graph = Graph()..isTree = true;
-    final builder = BuchheimWalkerConfiguration();
-
     final winnerNode = Node.Id('winner');
     final semiFinalNode = Node.Id('semi_final');
     final finalNode = Node.Id('final');
-
     graph.addEdge(winnerNode, finalNode);
     graph.addEdge(finalNode, semiFinalNode);
 
-    builder
-      ..siblingSeparation = 25
-      ..levelSeparation = 50
-      ..subtreeSeparation = 50
-      ..orientation = BuchheimWalkerConfiguration.ORIENTATION_RIGHT_LEFT;
+    return _buildGraphView(
+      graph: graph,
+      config: _defaultTreeConfig(),
+      color: TreeColors.hotpink,
+      nodeBuilder: (nodeId) => switch (nodeId) {
+        'winner' =>
+          _buildWinnerNode(knockouts.superCup.matches[1], TreeColors.hotpink),
+        'semi_final' =>
+          _buildMatchNode(knockouts.superCup.matches[0], TreeColors.hotpink),
+        'final' =>
+          _buildMatchNode(knockouts.superCup.matches[1], TreeColors.hotpink),
+        _ => const SizedBox.shrink(),
+      },
+    );
+  }
 
+  // ─── Shared graph helpers ───
+
+  static const _noDataPlaceholder = Center(
+    child: Text(
+      'Keine Daten verfügbar',
+      style: TextStyle(fontSize: 18, color: AppColors.textSubtle),
+    ),
+  );
+
+  static BuchheimWalkerConfiguration _defaultTreeConfig() =>
+      BuchheimWalkerConfiguration()
+        ..siblingSeparation = 25
+        ..levelSeparation = 50
+        ..subtreeSeparation = 50
+        ..orientation = BuchheimWalkerConfiguration.ORIENTATION_RIGHT_LEFT;
+
+  Widget _buildGraphView({
+    required Graph graph,
+    required BuchheimWalkerConfiguration config,
+    required Color color,
+    required Widget Function(String nodeId) nodeBuilder,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: InteractiveViewer(
@@ -865,25 +794,12 @@ class TreeViewPageState extends State<TreeViewPage>
         maxScale: 1.0,
         child: GraphView(
           graph: graph,
-          algorithm:
-              BuchheimWalkerAlgorithm(builder, TreeEdgeRenderer(builder)),
+          algorithm: BuchheimWalkerAlgorithm(config, TreeEdgeRenderer(config)),
           paint: Paint()
-            ..color = TreeColors.hotpink.withAlpha(76)
+            ..color = color.withAlpha(76)
             ..strokeWidth = 2
             ..style = PaintingStyle.stroke,
-          builder: (Node node) {
-            if (node.key?.value == 'winner') {
-              return _buildWinnerNode(
-                  knockouts.superCup.matches[1], TreeColors.hotpink);
-            } else if (node.key?.value == 'semi_final') {
-              return _buildMatchNode(
-                  knockouts.superCup.matches[0], TreeColors.hotpink);
-            } else if (node.key?.value == 'final') {
-              return _buildMatchNode(
-                  knockouts.superCup.matches[1], TreeColors.hotpink);
-            }
-            return const SizedBox.shrink();
-          },
+          builder: (Node node) => nodeBuilder(node.key?.value as String),
         ),
       ),
     );
