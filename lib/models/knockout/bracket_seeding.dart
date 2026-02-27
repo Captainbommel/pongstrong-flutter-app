@@ -106,15 +106,58 @@ int _countEarlyMeetings(
   return count;
 }
 
-/// Swaps teams so that no same-group pair can meet before the **semi-final**.
+/// Counts same-tier pairs in R1 matches (slots i and i+1 for even i).
+/// This prevents first-place teams from playing each other in round 1.
+int _countR1TierConflicts(
+  List<String?> slots,
+  Map<String, int> tiers,
+  int size,
+) {
+  int count = 0;
+  for (int i = 0; i < size - 1; i += 2) {
+    final a = slots[i];
+    final b = slots[i + 1];
+    if (a == null || b == null) continue;
+    final tierA = tiers[a];
+    final tierB = tiers[b];
+    if (tierA == null || tierB == null) continue;
+    // Only count conflicts between first-place teams (tier 0)
+    if (tierA == 0 && tierB == 0) count++;
+  }
+  return count;
+}
+
+/// Combined cost function for conflict resolution.
+/// Heavily penalizes tier conflicts (first-vs-first in R1) in addition to
+/// same-group early meetings. The large multiplier ensures tier conflicts
+/// are always resolved first.
+int _countAllConflicts(
+  List<String?> slots,
+  Map<String, int> groups,
+  Map<String, int> tiers,
+  int size,
+  int minRound,
+) {
+  final groupConflicts = _countEarlyMeetings(slots, groups, size, minRound);
+  final tierConflicts = _countR1TierConflicts(slots, tiers, size);
+  // Weight tier conflicts heavily to prioritize avoiding first-vs-first
+  return tierConflicts * 1000 + groupConflicts;
+}
+
+/// Swaps teams so that no same-group pair can meet before the **semi-final**
+/// AND no two first-place teams play each other in round 1.
 ///
 /// For a 4-team bracket (2 rounds) this is a no-op — R1 *is* the semi.
 /// For an 8-team bracket (3 rounds) this prevents R1 same-group matchups.
 /// For a 16-team bracket (4 rounds) this prevents both R1 (first-round) and
 /// R2 (quarter-final) same-group matchups.
+///
+/// The [tiers] map assigns each team to a tier (0 = first-place, 1 = second,
+/// etc.). First-place teams (tier 0) are prevented from meeting in round 1.
 void _resolveGroupConflicts(
   List<String?> slots,
   Map<String, int> groups,
+  Map<String, int> tiers,
   int size,
 ) {
   // Number of rounds in the bracket (log₂ of size).
@@ -133,17 +176,25 @@ void _resolveGroupConflicts(
   bool improved = true;
   while (improved) {
     improved = false;
-    final before = _countEarlyMeetings(slots, groups, size, minRound);
+    final before = _countAllConflicts(slots, groups, tiers, size, minRound);
     if (before == 0) break;
 
-    // Find the first offending pair.
+    // Find any offending pair (same-group meeting early OR first-vs-first R1).
     for (int i = 0; i < size && !improved; i++) {
       for (int j = i + 1; j < size && !improved; j++) {
         final a = slots[i];
         final b = slots[j];
         if (a == null || b == null) continue;
-        if (groups[a] != groups[b]) continue;
-        if (_earliestMeetingRound(i, j) >= minRound) continue;
+
+        // Check if this pair is problematic
+        final sameGroup = groups[a] == groups[b];
+        final earlyMeeting = _earliestMeetingRound(i, j) < minRound;
+        final firstVsFirstR1 = (i ~/ 2 == j ~/ 2) &&
+            (i % 2 == 0 && j % 2 == 1) &&
+            tiers[a] == 0 &&
+            tiers[b] == 0;
+
+        if (!(sameGroup && earlyMeeting) && !firstVsFirstR1) continue;
 
         // Try swapping slots[j] with every other slot.
         for (int k = 0; k < size && !improved; k++) {
@@ -152,7 +203,8 @@ void _resolveGroupConflicts(
           if (c == null) continue;
           slots[j] = c;
           slots[k] = b;
-          if (_countEarlyMeetings(slots, groups, size, minRound) < before) {
+          if (_countAllConflicts(slots, groups, tiers, size, minRound) <
+              before) {
             improved = true;
           } else {
             slots[j] = b;
@@ -168,7 +220,8 @@ void _resolveGroupConflicts(
             if (c == null) continue;
             slots[i] = c;
             slots[k] = a;
-            if (_countEarlyMeetings(slots, groups, size, minRound) < before) {
+            if (_countAllConflicts(slots, groups, tiers, size, minRound) <
+                before) {
               improved = true;
             } else {
               slots[i] = a;
@@ -183,11 +236,15 @@ void _resolveGroupConflicts(
 
 /// Seeds [teams] into [rounds] using standard tournament seeding, resolves
 /// same-group conflicts (ensuring they don't meet before the semi-final),
-/// and pre-advances bye teams.
+/// prevents first-place teams from meeting in R1, and pre-advances bye teams.
+///
+/// The [tiers] map assigns each team to a tier (0 = first-place, 1 = second,
+/// etc.) for proper seed separation in round 1.
 void _seedBracket(
   List<List<Match>> rounds,
   List<String> teams,
   Map<String, int> groups,
+  Map<String, int> tiers,
   int bracketSize,
 ) {
   if (rounds.isEmpty || teams.length < 2) return;
@@ -199,7 +256,7 @@ void _seedBracket(
     if (idx < teams.length) slots[i] = teams[idx];
   }
 
-  _resolveGroupConflicts(slots, groups, bracketSize);
+  _resolveGroupConflicts(slots, groups, tiers, bracketSize);
 
   // Populate first-round matches.
   for (int m = 0; m < rounds[0].length; m++) {
@@ -398,6 +455,7 @@ void mapTablesDynamic(Knockouts knock,
 /// * The swap pass guarantees that no two members of the same group can meet
 ///   before the semi-final (e.g. not in the quarter-final of a 16-team
 ///   bracket).
+/// * First-place teams are also prevented from meeting each other in round 1.
 Knockouts evaluateGroups(Tabellen tabellen,
     {int tableCount = 6, bool splitTables = false}) {
   tabellen.sortTables();
@@ -412,6 +470,14 @@ Knockouts evaluateGroups(Tabellen tabellen,
   for (int g = 0; g < n; g++) {
     for (final row in tabellen.tables[g]) {
       groupOf[row.teamId] = g;
+    }
+  }
+
+  // ── tier map (0=first, 1=second, 2=third, 3=fourth) ───────────────────────
+  final tierOf = <String, int>{};
+  for (int g = 0; g < n; g++) {
+    for (int rank = 0; rank < tabellen.tables[g].length; rank++) {
+      tierOf[tabellen.tables[g][rank].teamId] = rank;
     }
   }
 
@@ -500,12 +566,12 @@ Knockouts evaluateGroups(Tabellen tabellen,
   );
 
   // ── seed each bracket ─────────────────────────────────────────────────
-  _seedBracket(knock.champions.rounds, champ, groupOf, champSize);
+  _seedBracket(knock.champions.rounds, champ, groupOf, tierOf, champSize);
   if (eBracket > 0) {
-    _seedBracket(knock.europa.rounds, euro, groupOf, eBracket);
+    _seedBracket(knock.europa.rounds, euro, groupOf, tierOf, eBracket);
   }
   if (fBracket > 0) {
-    _seedBracket(knock.conference.rounds, conf, groupOf, fBracket);
+    _seedBracket(knock.conference.rounds, conf, groupOf, tierOf, fBracket);
   }
 
   // ── table assignment ──────────────────────────────────────────────────
