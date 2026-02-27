@@ -2,6 +2,8 @@ import 'package:pongstrong/models/groups/gruppenphase.dart';
 import 'package:pongstrong/models/knockout/knockouts.dart';
 import 'package:pongstrong/models/match/match.dart';
 
+//TODO: NextNextMatches does not work as soon as there are more tables than groups, this is a Problem for later
+
 /// Manages the match scheduling queue with waiting and currently playing matches.
 class MatchQueue {
   /// Matches waiting to be played, grouped by table assignment.
