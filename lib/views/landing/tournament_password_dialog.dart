@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/input_decoration_helpers.dart';
 import 'package:provider/provider.dart';
 
 /// Dialog for entering tournament password
@@ -133,8 +134,8 @@ class _TournamentPasswordDialogState extends State<TournamentPasswordDialog> {
               obscureText: _obscurePassword,
               cursorColor: GroupPhaseColors.cupred,
               onSubmitted: (_) => _verifyPassword(),
-              decoration: InputDecoration(
-                labelText: 'Turnier-Passwort',
+              decoration: cupredInputDecoration(
+                label: 'Turnier-Passwort',
                 prefixIcon: const Icon(Icons.key),
                 suffixIcon: IconButton(
                   onPressed: () =>
@@ -145,16 +146,6 @@ class _TournamentPasswordDialogState extends State<TournamentPasswordDialog> {
                         : Icons.visibility_outlined,
                   ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                      color: GroupPhaseColors.cupred, width: 2),
-                ),
-                floatingLabelStyle:
-                    const TextStyle(color: GroupPhaseColors.cupred),
                 errorText: _error,
               ),
             ),

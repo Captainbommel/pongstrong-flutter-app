@@ -171,39 +171,25 @@ class AdminPanelState extends ChangeNotifier {
     _setLoading(true);
     _clearError();
     try {
-      final metadata = await _firestoreService.getTournamentMetadata(
+      final raw = await _firestoreService.getTournamentMetadata(
           tournamentId: _currentTournamentId);
-      if (metadata != null) {
-        _tournamentName = (metadata['name'] as String?) ?? '';
-        _currentPhase = switch (metadata['phase'] as String?) {
-          'groups' => TournamentPhase.groupPhase,
-          'knockouts' => TournamentPhase.knockoutPhase,
-          'finished' => TournamentPhase.finished,
-          _ => TournamentPhase.notStarted,
-        };
-        _tournamentStyle = switch (metadata['tournamentStyle'] as String?) {
-          'knockoutsOnly' => TournamentStyle.knockoutsOnly,
-          'everyoneVsEveryone' => TournamentStyle.everyoneVsEveryone,
-          _ => TournamentStyle.groupsAndKnockouts,
-        };
-        _selectedRuleset = metadata.containsKey('selectedRuleset')
-            ? metadata['selectedRuleset'] as String?
-            : 'bmt-cup';
-        _numberOfTables =
-            ((metadata['numberOfTables'] as num?)?.toInt() ?? 6).clamp(1, 100);
-        _splitTables = metadata['splitTables'] == true;
+      if (raw != null) {
+        final meta = TournamentMetadata.fromMap(raw);
+        _tournamentName = meta.name;
+        _currentPhase = meta.phase;
+        _tournamentStyle = meta.style;
+        _selectedRuleset = meta.selectedRuleset;
+        _numberOfTables = meta.numberOfTables;
+        _splitTables = meta.splitTables;
 
-        final tc = (metadata['targetTeamCount'] as num?)?.toInt();
-        if (tc != null) {
-          _targetTeamCount = tc;
+        if (meta.targetTeamCount != null) {
+          _targetTeamCount = meta.targetTeamCount!;
           if (_tournamentStyle == TournamentStyle.knockoutsOnly) {
-            _koTargetTeamCount = tc;
+            _koTargetTeamCount = meta.targetTeamCount!;
           }
         }
 
-        final reserveList = metadata['reserveTeamIds'];
-        _reserveTeamIds =
-            reserveList is List ? reserveList.cast<String>().toSet() : {};
+        _reserveTeamIds = meta.reserveTeamIds;
 
         Logger.info(
             'Loaded tournament phase: $_currentPhase, style: $_tournamentStyle',

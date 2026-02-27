@@ -26,6 +26,75 @@ void _safePop(BuildContext context) {
   }
 }
 
+// ─── Shared helpers for match bottom-sheet dialogs ───
+
+/// Standard bottom-sheet border decoration (skyblue frame).
+BoxDecoration matchDialogDecoration({required bool isLargeScreen}) {
+  return BoxDecoration(
+    color: AppColors.surface,
+    border: isLargeScreen
+        ? const Border(
+            top: BorderSide(color: FieldColors.skyblue, width: 14.0),
+            left: BorderSide(color: FieldColors.skyblue, width: 14.0),
+            right: BorderSide(color: FieldColors.skyblue, width: 14.0),
+          )
+        : const Border(
+            top: BorderSide(color: FieldColors.skyblue, width: 14.0),
+          ),
+    borderRadius: isLargeScreen
+        ? const BorderRadius.only(
+            topLeft: Radius.circular(12.0),
+            topRight: Radius.circular(12.0),
+          )
+        : BorderRadius.zero,
+  );
+}
+
+/// Action area widget shared by finish-match and start-match dialogs.
+///
+/// Shows a spinner during [_DialogStatus.loading], a check-mark on
+/// [_DialogStatus.success], or [buttonLabel] on idle / error.
+Widget buildDialogActionArea({
+  required _DialogStatus status,
+  required VoidCallback onPressed,
+  required String buttonLabel,
+}) {
+  switch (status) {
+    case _DialogStatus.loading:
+      return const SizedBox(
+        width: 36,
+        height: 36,
+        child: CircularProgressIndicator(
+          strokeWidth: 3,
+          color: FieldColors.skyblue,
+        ),
+      );
+    case _DialogStatus.success:
+      return const Icon(
+        Icons.check_circle,
+        color: FieldColors.skyblue,
+        size: 36,
+      );
+    case _DialogStatus.idle:
+    case _DialogStatus.error:
+      return ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: FieldColors.skyblue, width: 3),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          overlayColor: FieldColors.skyblue.withAlpha(128),
+        ),
+        child: Text(
+          buttonLabel,
+          style: const TextStyle(color: AppColors.shadow),
+        ),
+      );
+  }
+}
+
 /// Shows a bottom sheet dialog to finish a match by entering scores.
 ///
 /// Controllers are managed internally and disposed when the dialog closes.
@@ -127,24 +196,7 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
 
     return Container(
       height: MediaQuery.of(context).size.height / 3,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: isLargeScreen
-            ? const Border(
-                top: BorderSide(color: FieldColors.skyblue, width: 14.0),
-                left: BorderSide(color: FieldColors.skyblue, width: 14.0),
-                right: BorderSide(color: FieldColors.skyblue, width: 14.0),
-              )
-            : const Border(
-                top: BorderSide(color: FieldColors.skyblue, width: 14.0),
-              ),
-        borderRadius: isLargeScreen
-            ? const BorderRadius.only(
-                topLeft: Radius.circular(12.0),
-                topRight: Radius.circular(12.0),
-              )
-            : BorderRadius.zero,
-      ),
+      decoration: matchDialogDecoration(isLargeScreen: isLargeScreen),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: <Widget>[
@@ -197,47 +249,14 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
                 textAlign: TextAlign.center,
               ),
             ),
-          _buildActionArea(),
+          buildDialogActionArea(
+            status: _status,
+            onPressed: _submit,
+            buttonLabel: 'Spiel Abschließen',
+          ),
         ],
       ),
     );
-  }
-
-  Widget _buildActionArea() {
-    switch (_status) {
-      case _DialogStatus.loading:
-        return const SizedBox(
-          width: 36,
-          height: 36,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            color: FieldColors.skyblue,
-          ),
-        );
-      case _DialogStatus.success:
-        return const Icon(
-          Icons.check_circle,
-          color: FieldColors.skyblue,
-          size: 36,
-        );
-      case _DialogStatus.idle:
-      case _DialogStatus.error:
-        return ElevatedButton(
-          onPressed: _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.surface,
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(color: FieldColors.skyblue, width: 3),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            overlayColor: FieldColors.skyblue.withAlpha(128),
-          ),
-          child: const Text(
-            'Spiel Abschließen',
-            style: TextStyle(color: AppColors.shadow),
-          ),
-        );
-    }
   }
 }
 
@@ -387,24 +406,7 @@ class _StartMatchContentState extends State<_StartMatchContent> {
 
     return Container(
       height: MediaQuery.of(context).size.height / 3,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: isLargeScreen
-            ? const Border(
-                top: BorderSide(color: FieldColors.skyblue, width: 14.0),
-                left: BorderSide(color: FieldColors.skyblue, width: 14.0),
-                right: BorderSide(color: FieldColors.skyblue, width: 14.0),
-              )
-            : const Border(
-                top: BorderSide(color: FieldColors.skyblue, width: 14.0),
-              ),
-        borderRadius: isLargeScreen
-            ? const BorderRadius.only(
-                topLeft: Radius.circular(12.0),
-                topRight: Radius.circular(12.0),
-              )
-            : BorderRadius.zero,
-      ),
+      decoration: matchDialogDecoration(isLargeScreen: isLargeScreen),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: <Widget>[
@@ -445,7 +447,11 @@ class _StartMatchContentState extends State<_StartMatchContent> {
                 textAlign: TextAlign.center,
               ),
             ),
-          _buildActionArea(),
+          buildDialogActionArea(
+            status: _status,
+            onPressed: _handleStartMatch,
+            buttonLabel: 'Spiel starten',
+          ),
         ],
       ),
     );
@@ -484,42 +490,5 @@ class _StartMatchContentState extends State<_StartMatchContent> {
         ],
       ],
     );
-  }
-
-  Widget _buildActionArea() {
-    switch (_status) {
-      case _DialogStatus.loading:
-        return const SizedBox(
-          width: 36,
-          height: 36,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            color: FieldColors.skyblue,
-          ),
-        );
-      case _DialogStatus.success:
-        return const Icon(
-          Icons.check_circle,
-          color: FieldColors.skyblue,
-          size: 36,
-        );
-      case _DialogStatus.idle:
-      case _DialogStatus.error:
-        return ElevatedButton(
-          onPressed: _handleStartMatch,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.surface,
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(color: FieldColors.skyblue, width: 3),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            overlayColor: FieldColors.skyblue.withAlpha(128),
-          ),
-          child: const Text(
-            'Spiel starten',
-            style: TextStyle(color: AppColors.shadow),
-          ),
-        );
-    }
   }
 }

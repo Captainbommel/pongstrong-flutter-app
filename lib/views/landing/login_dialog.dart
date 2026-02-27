@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/input_decoration_helpers.dart';
 import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:provider/provider.dart';
 
@@ -172,19 +173,9 @@ class _LoginDialogState extends State<LoginDialog> {
                       }
                       return null;
                     },
-                    decoration: InputDecoration(
-                      labelText: 'E-Mail',
+                    decoration: cupredInputDecoration(
+                      label: 'E-Mail',
                       prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: GroupPhaseColors.cupred, width: 2),
-                      ),
-                      floatingLabelStyle:
-                          const TextStyle(color: GroupPhaseColors.cupred),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -202,8 +193,8 @@ class _LoginDialogState extends State<LoginDialog> {
                       }
                       return null;
                     },
-                    decoration: InputDecoration(
-                      labelText: 'Passwort',
+                    decoration: cupredInputDecoration(
+                      label: 'Passwort',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
                         onPressed: () => setState(
@@ -214,16 +205,6 @@ class _LoginDialogState extends State<LoginDialog> {
                               : Icons.visibility_outlined,
                         ),
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: GroupPhaseColors.cupred, width: 2),
-                      ),
-                      floatingLabelStyle:
-                          const TextStyle(color: GroupPhaseColors.cupred),
                     ),
                   ),
                   if (_isRegisterMode) ...[
@@ -239,8 +220,8 @@ class _LoginDialogState extends State<LoginDialog> {
                         }
                         return null;
                       },
-                      decoration: InputDecoration(
-                        labelText: 'Passwort bestätigen',
+                      decoration: cupredInputDecoration(
+                        label: 'Passwort bestätigen',
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           onPressed: () => setState(() =>
@@ -252,16 +233,6 @@ class _LoginDialogState extends State<LoginDialog> {
                                 : Icons.visibility_outlined,
                           ),
                         ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                              color: GroupPhaseColors.cupred, width: 2),
-                        ),
-                        floatingLabelStyle:
-                            const TextStyle(color: GroupPhaseColors.cupred),
                       ),
                     ),
                   ],

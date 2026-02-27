@@ -116,14 +116,10 @@ class TournamentDataState extends ChangeNotifier {
       }
 
       // Store tournament metadata
-      _tournamentStyle = (tournamentInfo['tournamentStyle'] as String?) ??
-          'groupsAndKnockouts';
-      _joinCode = tournamentInfo['joinCode'] as String?;
-      if (tournamentInfo.containsKey('selectedRuleset')) {
-        _selectedRuleset = tournamentInfo['selectedRuleset'] as String?;
-      } else {
-        _selectedRuleset = 'bmt-cup';
-      }
+      final meta = TournamentMetadata.fromMap(tournamentInfo);
+      _tournamentStyle = meta.styleFirestoreKey;
+      _joinCode = meta.joinCode;
+      _selectedRuleset = meta.selectedRuleset;
 
       final teams = await service.loadTeams(tournamentId: tournamentId);
       final matchQueue =

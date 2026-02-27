@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/utils/colors.dart';
+import 'package:pongstrong/utils/input_decoration_helpers.dart';
 import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:provider/provider.dart';
 
@@ -72,26 +73,6 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
 
   // ─── Shared UI helpers ───
 
-  InputDecoration _styledDecoration({
-    required String label,
-    String? hint,
-    Widget? prefixIcon,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      prefixIcon: prefixIcon,
-      suffixIcon: suffixIcon,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: GroupPhaseColors.cupred, width: 2),
-      ),
-      floatingLabelStyle: const TextStyle(color: GroupPhaseColors.cupred),
-    );
-  }
-
   Widget _buildPasswordField({
     required TextEditingController controller,
     required String label,
@@ -103,7 +84,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
       controller: controller,
       obscureText: obscure,
       cursorColor: GroupPhaseColors.cupred,
-      decoration: _styledDecoration(
+      decoration: cupredInputDecoration(
         label: label,
         hint: hint,
         prefixIcon: const Icon(Icons.lock_outline),
@@ -489,7 +470,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
         TextField(
           controller: _tournamentNameController,
           cursorColor: GroupPhaseColors.cupred,
-          decoration: _styledDecoration(
+          decoration: cupredInputDecoration(
             label: 'Turniername',
             hint: 'z.B. BMT-Cup 2026',
             prefixIcon: const Icon(Icons.emoji_events),
@@ -620,7 +601,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
           controller: _emailController,
           cursorColor: GroupPhaseColors.cupred,
           keyboardType: TextInputType.emailAddress,
-          decoration: _styledDecoration(
+          decoration: cupredInputDecoration(
             label: 'E-Mail',
             prefixIcon: const Icon(Icons.email_outlined),
           ),
