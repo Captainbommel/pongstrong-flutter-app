@@ -7,6 +7,7 @@ import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
 import 'package:pongstrong/views/admin/team_edit_controller.dart';
+import 'package:pongstrong/views/admin/team_snapshot.dart';
 import 'package:provider/provider.dart';
 
 /// A dedicated page for managing teams and group assignments
@@ -26,10 +27,68 @@ class TeamsManagementPage extends StatefulWidget {
 class _TeamsManagementPageState extends State<TeamsManagementPage> {
   final List<TeamEditController> _teamControllers = [];
   int _targetTeamCount = 24;
-  bool _hasUnsavedChanges = false;
   bool _isSaving = false;
   bool _showSaveSuccess = false;
   Timer? _saveSuccessTimer;
+
+  /// Snapshots taken right after loading / saving, keyed by team id.
+  /// New (unsaved) controllers are tracked by object identity in [_originalNewControllers].
+  Map<String, TeamSnapshot> _originalSnapshots = {};
+
+  /// Set of controller refs that existed as empty/new slots at snapshot time.
+  Set<TeamEditController> _originalNewControllers = {};
+  int _originalTargetTeamCount = 0;
+
+  /// Whether the current controller state differs from the last snapshot.
+  bool get _hasUnsavedChanges {
+    if (_targetTeamCount != _originalTargetTeamCount) return true;
+
+    // Check for deletions of existing teams
+    final currentExistingIds = _teamControllers
+        .where((c) => !c.markedForRemoval && c.id != null)
+        .map((c) => c.id!)
+        .toSet();
+    for (final origId in _originalSnapshots.keys) {
+      if (!currentExistingIds.contains(origId)) return true;
+    }
+
+    // Check for new teams with content
+    for (final c in _teamControllers) {
+      if (c.markedForRemoval) continue;
+      if (c.id == null && !_originalNewControllers.contains(c)) {
+        if (c.nameController.text.trim().isNotEmpty) return true;
+      }
+    }
+
+    // Check each existing team for data changes
+    for (final c in _teamControllers) {
+      if (c.markedForRemoval) {
+        if (c.id != null && _originalSnapshots.containsKey(c.id)) return true;
+        continue;
+      }
+      if (c.id != null && _originalSnapshots.containsKey(c.id)) {
+        final snap = TeamSnapshot.fromController(c);
+        if (!snap.dataEquals(_originalSnapshots[c.id!]!)) return true;
+      }
+    }
+
+    return false;
+  }
+
+  /// Take a snapshot of the current state for future diffing.
+  void _takeSnapshots() {
+    _originalSnapshots = {};
+    _originalNewControllers = {};
+    _originalTargetTeamCount = _targetTeamCount;
+    for (final c in _teamControllers) {
+      if (c.markedForRemoval) continue;
+      if (c.id != null) {
+        _originalSnapshots[c.id!] = TeamSnapshot.fromController(c);
+      } else {
+        _originalNewControllers.add(c);
+      }
+    }
+  }
 
   TournamentStyle get _style => widget.adminState.tournamentStyle;
   bool get _isGroupPhase => _style == TournamentStyle.groupsAndKnockouts;
@@ -162,7 +221,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       widget.adminState.setTargetTeamCount(_targetTeamCount);
     });
 
-    _hasUnsavedChanges = false;
+    _takeSnapshots();
   }
 
   /// Categorize team controllers as active or reserve based on _targetTeamCount.
@@ -266,7 +325,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       final controller = _teamControllers[index];
       controller.isReserve = true;
       controller.groupIndex = null;
-      _hasUnsavedChanges = true;
     });
   }
 
@@ -290,7 +348,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           final empty = _teamControllers.removeAt(emptySlotIndex);
           empty.dispose();
           controller.isReserve = false;
-          _hasUnsavedChanges = true;
         });
         return;
       }
@@ -302,7 +359,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
 
     setState(() {
       controller.isReserve = false;
-      _hasUnsavedChanges = true;
     });
   }
 
@@ -312,7 +368,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       _targetTeamCount = count;
       // Re-categorize controllers as active/reserve based on the new count
       _applyReserveMarking();
-      _hasUnsavedChanges = true;
     });
     // Sync with admin state so startTournament knows the selected count
     widget.adminState.setTargetTeamCount(count);
@@ -465,7 +520,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           ));
         }
       }
-      _hasUnsavedChanges = true;
     });
 
     disposeDialogControllers();
@@ -572,7 +626,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         for (int i = 0; i < memberVals.length; i++) {
           controller.memberControllers[i].text = memberVals[i];
         }
-        _hasUnsavedChanges = true;
       });
     }
 
@@ -595,7 +648,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         _targetTeamCount =
             _teamControllers.where((c) => !c.markedForRemoval).length;
       }
-      _hasUnsavedChanges = true;
     });
   }
 
@@ -612,7 +664,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         controller.removeMemberField();
       }
       controller.groupIndex = null;
-      _hasUnsavedChanges = true;
     });
   }
 
@@ -629,6 +680,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         final controller = _teamControllers[i];
 
         if (controller.markedForRemoval) {
+          // Only delete if it actually exists in the backend
           if (controller.id != null &&
               existingTeamIds.contains(controller.id)) {
             await state.deleteTeam(controller.id!);
@@ -640,10 +692,13 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           continue;
         }
 
+        final currentSnap = TeamSnapshot.fromController(controller);
+
         if (controller.isNew || controller.id == null) {
+          // Brand-new team — must be created
           final mv = controller.memberValues;
           final success = await state.addTeam(
-            name: controller.nameController.text.trim(),
+            name: currentSnap.name,
             member1: mv.isNotEmpty ? mv[0] : '',
             member2: mv.length > 1 ? mv[1] : '',
             member3: mv.length > 2 ? mv[2] : '',
@@ -654,27 +709,43 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             controller.isNew = false;
           }
         } else {
-          final mv = controller.memberValues;
-          await state.updateTeam(
-            teamId: controller.id!,
-            name: controller.nameController.text.trim(),
-            member1: mv.isNotEmpty ? mv[0] : '',
-            member2: mv.length > 1 ? mv[1] : '',
-            member3: mv.length > 2 ? mv[2] : '',
-          );
+          // Existing team — diff against snapshot to skip unchanged data
+          final original = _originalSnapshots[controller.id!];
+          if (original != null && currentSnap.dataEquals(original)) {
+            continue; // Nothing changed — skip entirely
+          }
+
+          // Only write team data if name or members actually changed
+          if (original == null ||
+              currentSnap.name != original.name ||
+              !TeamSnapshot.listEquals(currentSnap.members, original.members)) {
+            final mv = controller.memberValues;
+            await state.updateTeam(
+              teamId: controller.id!,
+              name: currentSnap.name,
+              member1: mv.isNotEmpty ? mv[0] : '',
+              member2: mv.length > 1 ? mv[1] : '',
+              member3: mv.length > 2 ? mv[2] : '',
+            );
+          }
         }
 
+        // Group assignment — only update if group changed from snapshot
         if (state.tournamentStyle == TournamentStyle.groupsAndKnockouts &&
             controller.id != null) {
-          final currentGroupIndex = state.getTeamGroupIndex(controller.id!);
-          if (controller.groupIndex != currentGroupIndex) {
+          final original = _originalSnapshots[controller.id!];
+          if (original == null ||
+              currentSnap.groupIndex != original.groupIndex) {
             if (controller.groupIndex != null) {
               await state.assignTeamToGroup(
                   controller.id!, controller.groupIndex!);
-            } else if (currentGroupIndex >= 0) {
-              // Reserve team still in a group — remove it so it won't
-              // count toward the group phase when starting the tournament.
-              await state.removeTeamFromGroup(controller.id!);
+            } else {
+              final currentGroupIndex = state.getTeamGroupIndex(controller.id!);
+              if (currentGroupIndex >= 0) {
+                // Reserve team still in a group — remove it so it won't
+                // count toward the group phase when starting the tournament.
+                await state.removeTeamFromGroup(controller.id!);
+              }
             }
           }
         }
@@ -707,7 +778,11 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           .map((c) => c.id!)
           .toSet();
       await state.saveReserveTeamIds(reserveIds);
-      await state.saveTargetTeamCount(_targetTeamCount);
+
+      // Only persist target team count if it changed
+      if (_targetTeamCount != _originalTargetTeamCount) {
+        await state.saveTargetTeamCount(_targetTeamCount);
+      }
 
       _initializeControllers(preserveTargetCount: _targetTeamCount);
 
@@ -731,7 +806,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     } finally {
       setState(() {
         _isSaving = false;
-        _hasUnsavedChanges = false;
       });
     }
   }
@@ -752,9 +826,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     for (final c in _teamControllers) {
       if (c.isReserve) c.groupIndex = null;
     }
-    setState(() {
-      _hasUnsavedChanges = true;
-    });
+    setState(() {});
   }
 
   /// Distributes teams evenly across groups in sequential blocks:
@@ -782,9 +854,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     for (final c in _teamControllers) {
       if (c.isReserve) c.groupIndex = null;
     }
-    setState(() {
-      _hasUnsavedChanges = true;
-    });
+    setState(() {});
   }
 
   Future<bool> _onWillPop() async {
@@ -1528,7 +1598,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                     : (value) {
                         setState(() {
                           controller.groupIndex = value;
-                          _hasUnsavedChanges = true;
                         });
                       },
               );
@@ -1785,7 +1854,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                   : (value) {
                       setState(() {
                         controller.groupIndex = value;
-                        _hasUnsavedChanges = true;
                       });
                     },
             );
