@@ -975,6 +975,8 @@ void main() {
         'currentTournamentId': 'test',
         'isKnockoutMode': false,
         'tournamentStyle': 'groupsAndKnockouts',
+        'numberOfTables': 6,
+        'groups': Groups().toJson(),
       };
 
       final jsonString = jsonEncode(exported);
@@ -1011,6 +1013,8 @@ void main() {
         'knockouts': knockouts.toJson(),
         'isKnockoutMode': true,
         'tournamentStyle': 'knockoutsOnly',
+        'numberOfTables': 6,
+        'groups': Groups().toJson(),
       };
 
       // Tamper: remove two matches from champions round 1 (should be 8 → 4)
@@ -1341,21 +1345,25 @@ void main() {
         'tabellen': Tabellen().toJson(),
         'knockouts': Knockouts().toJson(),
         'numberOfTables': 8,
+        'groups': Groups().toJson(),
       };
       final snapshot = ImportService.parseSnapshotFromJson(json);
       expect(snapshot.numberOfTables, 8);
     });
 
-    test('defaults numberOfTables to 6 when missing', () {
+    test('throws when numberOfTables is missing', () {
       final json = {
         'teams': <dynamic>[],
         'matchQueue': MatchQueue().toJson(),
         'gruppenphase': Gruppenphase().toJson(),
         'tabellen': Tabellen().toJson(),
         'knockouts': Knockouts().toJson(),
+        'groups': Groups().toJson(),
       };
-      final snapshot = ImportService.parseSnapshotFromJson(json);
-      expect(snapshot.numberOfTables, 6);
+      expect(
+        () => ImportService.parseSnapshotFromJson(json),
+        throwsA(isA<TypeError>()),
+      );
     });
 
     test('parses groups from JSON', () {
@@ -1369,6 +1377,7 @@ void main() {
         'gruppenphase': Gruppenphase().toJson(),
         'tabellen': Tabellen().toJson(),
         'knockouts': Knockouts().toJson(),
+        'numberOfTables': 6,
         'groups': groups.toJson(),
       };
       final snapshot = ImportService.parseSnapshotFromJson(json);
@@ -1377,16 +1386,19 @@ void main() {
       expect(snapshot.groups.groups[1], ['t2', 't3']);
     });
 
-    test('defaults groups to empty when missing', () {
+    test('throws when groups is missing', () {
       final json = {
         'teams': <dynamic>[],
         'matchQueue': MatchQueue().toJson(),
         'gruppenphase': Gruppenphase().toJson(),
         'tabellen': Tabellen().toJson(),
         'knockouts': Knockouts().toJson(),
+        'numberOfTables': 6,
       };
-      final snapshot = ImportService.parseSnapshotFromJson(json);
-      expect(snapshot.groups.groups, isEmpty);
+      expect(
+        () => ImportService.parseSnapshotFromJson(json),
+        throwsA(isA<TypeError>()),
+      );
     });
 
     test('full round-trip preserves numberOfTables and groups', () {

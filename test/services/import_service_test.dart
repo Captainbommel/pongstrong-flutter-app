@@ -617,6 +617,8 @@ void main() {
         'isKnockoutMode': false,
         'tournamentStyle': 'groupsAndKnockouts',
         'selectedRuleset': 'bmt-cup',
+        'numberOfTables': 6,
+        'groups': Groups().toJson(),
       };
 
       final snapshot = ImportService.parseSnapshotFromJson(data);
@@ -698,6 +700,8 @@ void main() {
         'isKnockoutMode': false,
         'tournamentStyle': 'groupsAndKnockouts',
         'selectedRuleset': null,
+        'numberOfTables': 6,
+        'groups': Groups().toJson(),
       };
 
       final snapshot = ImportService.parseSnapshotFromJson(data);
@@ -725,6 +729,8 @@ void main() {
           'bronze': [],
           'extra': [],
         },
+        'numberOfTables': 6,
+        'groups': Groups().toJson(),
       };
 
       final snapshot = ImportService.parseSnapshotFromJson(data);
@@ -785,6 +791,8 @@ void main() {
         'isKnockoutMode': false,
         'tournamentStyle': 'groupsAndKnockouts',
         'selectedRuleset': 'bmt-cup',
+        'numberOfTables': 6,
+        'groups': Groups().toJson(),
       };
 
       // Serialize and deserialize through JSON to simulate file I/O
@@ -828,6 +836,8 @@ void main() {
         'isKnockoutMode': true,
         'tournamentStyle': 'groupsAndKnockouts',
         'selectedRuleset': null,
+        'numberOfTables': 6,
+        'groups': Groups().toJson(),
       };
 
       final jsonString = jsonEncode(exported);

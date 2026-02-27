@@ -448,18 +448,9 @@ class ImportService {
         (jsonData['tournamentStyle'] as String?) ?? 'groupsAndKnockouts';
     final selectedRuleset = jsonData['selectedRuleset'] as String?;
 
-    // numberOfTables – defaults to 6 for backward compatibility with older
-    // snapshots that didn't include this field.
-    final numberOfTables = (jsonData['numberOfTables'] as num?)?.toInt() ?? 6;
+    final numberOfTables = (jsonData['numberOfTables'] as num).toInt();
 
-    // groups – team-to-group assignments.  Older snapshots may omit this.
-    Groups groups;
-    if (jsonData.containsKey('groups') &&
-        jsonData['groups'] is Map<String, dynamic>) {
-      groups = Groups.fromJson(jsonData['groups'] as Map<String, dynamic>);
-    } else {
-      groups = Groups();
-    }
+    final groups = Groups.fromJson(jsonData['groups'] as Map<String, dynamic>);
 
     return (
       teams: teams,
