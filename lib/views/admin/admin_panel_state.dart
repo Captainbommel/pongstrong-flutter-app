@@ -553,16 +553,22 @@ class AdminPanelState extends ChangeNotifier {
   /// Reorder teams so that active (tournament) teams come first in the list.
   /// This ensures `_teams.take(targetTeamCount)` selects the correct teams
   /// when starting a KO-only tournament.
-  Future<void> reorderTeams(Set<String> activeTeamIds) async {
+  Future<void> reorderTeams(List<String> orderedActiveIds) async {
+    final idIndex = <String, int>{};
+    for (int i = 0; i < orderedActiveIds.length; i++) {
+      idIndex[orderedActiveIds[i]] = i;
+    }
     final activeTeams = <Team>[];
     final reserveTeams = <Team>[];
     for (final team in _teams) {
-      if (activeTeamIds.contains(team.id)) {
+      if (idIndex.containsKey(team.id)) {
         activeTeams.add(team);
       } else {
         reserveTeams.add(team);
       }
     }
+    // Sort active teams according to the caller-supplied order
+    activeTeams.sort((a, b) => idIndex[a.id]!.compareTo(idIndex[b.id]!));
     final reordered = [...activeTeams, ...reserveTeams];
     if (_teams.length == reordered.length) {
       _teams = reordered;
@@ -691,10 +697,22 @@ class AdminPanelState extends ChangeNotifier {
       if (_tournamentStyle == TournamentStyle.groupsAndKnockouts) {
         _targetTeamCount = count * 4;
       }
-      // Clear stale group assignments since they don't match the new count
-      if (_groupsAssigned && _groups.groups.length != count) {
-        _groups = Groups();
-        _groupsAssigned = false;
+      // Resize group array to match new count — preserve existing assignments
+      // for groups that still exist instead of clearing everything.
+      if (_groupsAssigned &&
+          _groups.groups.isNotEmpty &&
+          _groups.groups.length != count) {
+        if (count > _groups.groups.length) {
+          // Add empty groups for the new slots
+          while (_groups.groups.length < count) {
+            _groups.groups.add(<String>[]);
+          }
+        } else {
+          // Trim excess groups (teams in removed groups lose assignment)
+          _groups = Groups(
+            groups: _groups.groups.sublist(0, count),
+          );
+        }
       }
       notifyListeners();
     }

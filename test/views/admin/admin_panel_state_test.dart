@@ -547,6 +547,53 @@ void main() {
       expect(state.numberOfGroups, 10);
     });
 
+    test('setNumberOfGroups preserves existing group assignments on increase',
+        () async {
+      final state = makeState();
+      final ids = await addTeams(state, 8);
+      state.setNumberOfGroups(2);
+      for (int i = 0; i < 8; i++) {
+        await state.assignTeamToGroup(ids[i], i < 4 ? 0 : 1);
+      }
+      expect(state.groupsAssigned, isTrue);
+
+      // Increase from 2 to 4 groups — existing assignments should survive
+      state.setNumberOfGroups(4);
+      expect(state.numberOfGroups, 4);
+      expect(state.groupsAssigned, isTrue);
+      // Teams in groups 0 and 1 should still be there
+      for (int i = 0; i < 4; i++) {
+        expect(state.getTeamGroupIndex(ids[i]), 0);
+      }
+      for (int i = 4; i < 8; i++) {
+        expect(state.getTeamGroupIndex(ids[i]), 1);
+      }
+    });
+
+    test('setNumberOfGroups trims excess groups on decrease', () async {
+      final state = makeState();
+      final ids = await addTeams(state, 12);
+      state.setNumberOfGroups(3);
+      for (int i = 0; i < 12; i++) {
+        await state.assignTeamToGroup(ids[i], i ~/ 4);
+      }
+
+      // Decrease from 3 to 2 groups — group 2 teams should be gone
+      state.setNumberOfGroups(2);
+      expect(state.numberOfGroups, 2);
+      // Groups 0 and 1 intact
+      for (int i = 0; i < 4; i++) {
+        expect(state.getTeamGroupIndex(ids[i]), 0);
+      }
+      for (int i = 4; i < 8; i++) {
+        expect(state.getTeamGroupIndex(ids[i]), 1);
+      }
+      // Group 2 teams lost their assignment
+      for (int i = 8; i < 12; i++) {
+        expect(state.getTeamGroupIndex(ids[i]), -1);
+      }
+    });
+
     test('setNumberOfTables ignored when tournament started', () {
       final state = makeState();
       state.setPhase(TournamentPhase.groupPhase);
@@ -1279,12 +1326,12 @@ void main() {
       final state = makeState();
       final ids = await addTeams(state, 5);
       // Mark teams 0,1,2 as active, 3,4 as reserve
-      final activeIds = {ids[0], ids[1], ids[2]};
+      final activeIds = [ids[0], ids[1], ids[2]];
       await state.reorderTeams(activeIds);
 
       final teamIds = state.teams.map((t) => t.id).toList();
-      // First 3 should be the active ones
-      expect(teamIds.sublist(0, 3).toSet(), activeIds);
+      // First 3 should be the active ones in order
+      expect(teamIds.sublist(0, 3), activeIds);
       // Last 2 should be the reserve ones
       expect(teamIds.sublist(3).toSet(), {ids[3], ids[4]});
     });
@@ -1292,7 +1339,7 @@ void main() {
     test('reorderTeams preserves all teams (no data loss)', () async {
       final state = makeState();
       final ids = await addTeams(state, 6);
-      final activeIds = {ids[0], ids[3], ids[5]};
+      final activeIds = [ids[0], ids[3], ids[5]];
       await state.reorderTeams(activeIds);
 
       expect(state.teams.length, 6);
@@ -1302,7 +1349,7 @@ void main() {
     test('reorderTeams handles all-active case (no reserve)', () async {
       final state = makeState();
       final ids = await addTeams(state, 4);
-      await state.reorderTeams(ids.toSet());
+      await state.reorderTeams(ids.toList());
 
       expect(state.teams.length, 4);
     });
@@ -1310,7 +1357,7 @@ void main() {
     test('reorderTeams handles all-reserve case (empty active set)', () async {
       final state = makeState();
       final ids = await addTeams(state, 4);
-      await state.reorderTeams(<String>{});
+      await state.reorderTeams(<String>[]);
 
       // All 4 teams should still exist
       expect(state.teams.length, 4);

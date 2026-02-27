@@ -27,6 +27,7 @@ class TeamsManagementPage extends StatefulWidget {
 class _TeamsManagementPageState extends State<TeamsManagementPage> {
   final List<TeamEditController> _teamControllers = [];
   int _targetTeamCount = 24;
+  int _numberOfGroups = 6;
   bool _isSaving = false;
   bool _showSaveSuccess = false;
   Timer? _saveSuccessTimer;
@@ -38,10 +39,15 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   /// Set of controller refs that existed as empty/new slots at snapshot time.
   Set<TeamEditController> _originalNewControllers = {};
   int _originalTargetTeamCount = 0;
+  int _originalNumberOfGroups = 0;
+
+  /// Original order of existing team IDs (active first, reserve last).
+  List<String> _originalTeamOrder = [];
 
   /// Whether the current controller state differs from the last snapshot.
   bool get _hasUnsavedChanges {
     if (_targetTeamCount != _originalTargetTeamCount) return true;
+    if (_numberOfGroups != _originalNumberOfGroups) return true;
 
     // Check for deletions of existing teams
     final currentExistingIds = _teamControllers
@@ -59,6 +65,13 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         if (c.nameController.text.trim().isNotEmpty) return true;
       }
     }
+
+    // Check for order changes among existing teams
+    final currentOrder = _teamControllers
+        .where((c) => !c.markedForRemoval && c.id != null)
+        .map((c) => c.id!)
+        .toList();
+    if (!TeamSnapshot.listEquals(currentOrder, _originalTeamOrder)) return true;
 
     // Check each existing team for data changes
     for (final c in _teamControllers) {
@@ -80,10 +93,13 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     _originalSnapshots = {};
     _originalNewControllers = {};
     _originalTargetTeamCount = _targetTeamCount;
+    _originalNumberOfGroups = _numberOfGroups;
+    _originalTeamOrder = [];
     for (final c in _teamControllers) {
       if (c.markedForRemoval) continue;
       if (c.id != null) {
         _originalSnapshots[c.id!] = TeamSnapshot.fromController(c);
+        _originalTeamOrder.add(c.id!);
       } else {
         _originalNewControllers.add(c);
       }
@@ -107,7 +123,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   List<int> get _allowedTeamCounts {
     switch (_style) {
       case TournamentStyle.groupsAndKnockouts:
-        return [widget.adminState.numberOfGroups * 4];
+        return [_numberOfGroups * 4];
       case TournamentStyle.knockoutsOnly:
         return [8, 16, 32, 64]; // powers of 2
       case TournamentStyle.everyoneVsEveryone:
@@ -119,7 +135,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   /// current number of groups, so the dropdown never receives a stale value.
   int? _clampedGroupIndex(int? index) {
     if (index == null) return null;
-    if (index < 0 || index >= widget.adminState.numberOfGroups) return null;
+    if (index < 0 || index >= _numberOfGroups) return null;
     return index;
   }
 
@@ -140,24 +156,41 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     _initializeControllers();
   }
 
-  void _initializeControllers({int? preserveTargetCount}) {
+  void _initializeControllers({
+    int? preserveTargetCount,
+    int? preserveGroupCount,
+    Map<String, int?>? preserveGroupIndices,
+  }) {
     for (final controller in _teamControllers) {
       controller.dispose();
     }
     _teamControllers.clear();
 
-    final maxGroupIndex = widget.adminState.numberOfGroups - 1;
+    // Restore or read group count from admin state
+    _numberOfGroups = preserveGroupCount ?? widget.adminState.numberOfGroups;
+
+    final maxGroupIndex = _numberOfGroups - 1;
     for (final team in widget.adminState.teams) {
-      final groupIndex = widget.adminState.getTeamGroupIndex(team.id);
+      // Prefer preserved in-memory group index (post-save), fall back to admin state
+      int? groupIndex;
+      if (preserveGroupIndices != null &&
+          preserveGroupIndices.containsKey(team.id)) {
+        groupIndex = preserveGroupIndices[team.id];
+      } else {
+        final stateIndex = widget.adminState.getTeamGroupIndex(team.id);
+        groupIndex = stateIndex >= 0 ? stateIndex : null;
+      }
+      // Clamp: ignore stale group indices that exceed current group count
+      if (groupIndex != null && groupIndex > maxGroupIndex) {
+        groupIndex = null;
+      }
       _teamControllers.add(TeamEditController(
         id: team.id,
         name: team.name,
         members: [team.member1, team.member2, team.member3]
             .where((s) => s.isNotEmpty)
             .toList(),
-        // Clamp: ignore stale group indices that exceed current group count
-        groupIndex:
-            groupIndex >= 0 && groupIndex <= maxGroupIndex ? groupIndex : null,
+        groupIndex: groupIndex,
         isNew: false,
       ));
     }
@@ -174,7 +207,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         _targetTeamCount = preserveTargetCount;
       } else if (_isGroupPhase) {
         // Groups+KO: target is always numberOfGroups * 4
-        _targetTeamCount = widget.adminState.numberOfGroups * 4;
+        _targetTeamCount = _numberOfGroups * 4;
       } else if (_isKOOnly && validKo.contains(stateCount)) {
         // First open in KO-only: use the value already chosen in the admin panel
         _targetTeamCount = stateCount;
@@ -200,7 +233,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       // No registered teams yet — seed with admin state count or mode default
       final stateCount = widget.adminState.targetTeamCount;
       if (_isGroupPhase) {
-        _targetTeamCount = widget.adminState.numberOfGroups * 4;
+        _targetTeamCount = _numberOfGroups * 4;
       } else if (_isKOOnly) {
         _targetTeamCount =
             [8, 16, 32, 64].contains(stateCount) ? stateCount : 8;
@@ -214,12 +247,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         }
       }
     }
-
-    // Sync the selected count into admin state (deferred to avoid
-    // notifyListeners during build)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.adminState.setTargetTeamCount(_targetTeamCount);
-    });
 
     _takeSnapshots();
   }
@@ -301,18 +328,22 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             activeCount++;
           } else {
             c.isReserve = true;
-            if (_isGroupPhase) c.groupIndex = null;
+            // Keep groupIndex so it survives bench transitions —
+            // if the user increases group count again, the team
+            // comes back with its old assignment intact.
           }
         }
       }
     }
 
     // Clamp stale group indices that exceed the current number of groups
-    // (e.g. after switching from 10 → 9 groups)
+    // (e.g. after switching from 10 → 9 groups).
+    // Only clamp active teams — reserve teams keep their stale index so
+    // it can be restored when the user increases groups again.
     if (_isGroupPhase) {
-      final maxIndex = widget.adminState.numberOfGroups - 1;
+      final maxIndex = _numberOfGroups - 1;
       for (final c in _teamControllers) {
-        if (c.groupIndex != null && c.groupIndex! > maxIndex) {
+        if (!c.isReserve && c.groupIndex != null && c.groupIndex! > maxIndex) {
           c.groupIndex = null;
         }
       }
@@ -369,8 +400,6 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       // Re-categorize controllers as active/reserve based on the new count
       _applyReserveMarking();
     });
-    // Sync with admin state so startTournament knows the selected count
-    widget.adminState.setTargetTeamCount(count);
   }
 
   /// Show a dialog to add a single team by name and members.
@@ -676,6 +705,12 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       final state = widget.adminState;
       final existingTeamIds = state.teams.map((t) => t.id).toSet();
 
+      // Update admin state group count BEFORE saving group assignments so
+      // assignTeamToGroup validates against the correct (new) count.
+      if (_isGroupPhase && state.numberOfGroups != _numberOfGroups) {
+        state.setNumberOfGroups(_numberOfGroups);
+      }
+
       for (int i = 0; i < _teamControllers.length; i++) {
         final controller = _teamControllers[i];
 
@@ -730,37 +765,46 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           }
         }
 
-        // Group assignment — only update if group changed from snapshot
+        // Group assignment
         if (state.tournamentStyle == TournamentStyle.groupsAndKnockouts &&
             controller.id != null) {
-          final original = _originalSnapshots[controller.id!];
-          if (original == null ||
-              currentSnap.groupIndex != original.groupIndex) {
-            if (controller.groupIndex != null) {
-              await state.assignTeamToGroup(
-                  controller.id!, controller.groupIndex!);
-            } else {
-              final currentGroupIndex = state.getTeamGroupIndex(controller.id!);
-              if (currentGroupIndex >= 0) {
-                // Reserve team still in a group — remove it so it won't
-                // count toward the group phase when starting the tournament.
-                await state.removeTeamFromGroup(controller.id!);
+          if (controller.isReserve) {
+            // Reserve teams must never be in a group — remove if still
+            // assigned so they won't count toward the group phase.
+            final currentGroupIndex = state.getTeamGroupIndex(controller.id!);
+            if (currentGroupIndex >= 0) {
+              await state.removeTeamFromGroup(controller.id!);
+            }
+          } else {
+            // Active team — only update if group changed from snapshot
+            final original = _originalSnapshots[controller.id!];
+            if (original == null ||
+                currentSnap.groupIndex != original.groupIndex) {
+              if (controller.groupIndex != null) {
+                await state.assignTeamToGroup(
+                    controller.id!, controller.groupIndex!);
+              } else {
+                final currentGroupIndex =
+                    state.getTeamGroupIndex(controller.id!);
+                if (currentGroupIndex >= 0) {
+                  await state.removeTeamFromGroup(controller.id!);
+                }
               }
             }
           }
         }
       }
 
-      // Capture active team IDs before cleanup for reorder
+      // Capture active team IDs before cleanup for reorder (preserving UI order)
       final activeIds = _teamControllers
           .where((c) => !c.isReserve && !c.markedForRemoval && c.id != null)
           .map((c) => c.id!)
-          .toSet();
+          .toList();
 
       _teamControllers.removeWhere((c) => c.markedForRemoval);
 
       // Preserve group count before reload (loadGroups may override from Firebase)
-      final preservedGroupCount = state.numberOfGroups;
+      final preservedGroupCount = _numberOfGroups;
       await state.loadTeams();
       await state.loadGroups();
       // Restore the user's group count selection after reload
@@ -779,12 +823,25 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           .toSet();
       await state.saveReserveTeamIds(reserveIds);
 
-      // Only persist target team count if it changed
+      // Commit target team count to admin state and persist if changed
+      state.setTargetTeamCount(_targetTeamCount);
       if (_targetTeamCount != _originalTargetTeamCount) {
         await state.saveTargetTeamCount(_targetTeamCount);
       }
 
-      _initializeControllers(preserveTargetCount: _targetTeamCount);
+      // Capture group indices before re-init so they survive the reload
+      final preservedGroupIndices = <String, int?>{};
+      for (final c in _teamControllers) {
+        if (c.id != null) {
+          preservedGroupIndices[c.id!] = c.groupIndex;
+        }
+      }
+
+      _initializeControllers(
+        preserveTargetCount: _targetTeamCount,
+        preserveGroupCount: _numberOfGroups,
+        preserveGroupIndices: preservedGroupIndices,
+      );
 
       if (mounted) {
         setState(() {
@@ -811,8 +868,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   }
 
   Future<void> _assignGroupsRandomly() async {
-    final groupCount = widget.adminState.numberOfGroups;
-    // Collect all non-reserve, non-removed controllers (includes unsaved new ones)
+    final groupCount = _numberOfGroups;
     final activeControllers = _teamControllers
         .where((c) => !c.isReserve && !c.markedForRemoval)
         .toList()
@@ -832,11 +888,10 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   /// Distributes teams evenly across groups in sequential blocks:
   /// first N teams → group A, next N → group B, etc.
   void _distributeGroupsEvenly() {
-    final groupCount = widget.adminState.numberOfGroups;
+    final groupCount = _numberOfGroups;
     final activeControllers = _teamControllers
         .where((c) => !c.isReserve && !c.markedForRemoval)
         .toList();
-
     final teamCount = activeControllers.length;
     final baseSize = teamCount ~/ groupCount;
     final remainder = teamCount % groupCount;
@@ -853,6 +908,37 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     // Ensure reserve controllers have no group
     for (final c in _teamControllers) {
       if (c.isReserve) c.groupIndex = null;
+    }
+    setState(() {});
+  }
+
+  /// Reorders the controller list so that active teams are sorted by their
+  /// group index (unassigned teams come last). Reserve teams stay at the end.
+  void _orderByGroups() {
+    final active = _teamControllers
+        .where((c) => !c.isReserve && !c.markedForRemoval)
+        .toList();
+    final reserve = _teamControllers
+        .where((c) => c.isReserve || c.markedForRemoval)
+        .toList();
+
+    active.sort((a, b) {
+      final ga = a.groupIndex ?? 999;
+      final gb = b.groupIndex ?? 999;
+      return ga.compareTo(gb);
+    });
+
+    _teamControllers
+      ..clear()
+      ..addAll(active)
+      ..addAll(reserve);
+    setState(() {});
+  }
+
+  /// Removes the group assignment from every controller (active and reserve).
+  void _clearAllGroups() {
+    for (final c in _teamControllers) {
+      c.groupIndex = null;
     }
     setState(() {});
   }
@@ -1157,7 +1243,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                 SizedBox(
                   width: isMobile ? 65 : 70,
                   child: DropdownButtonFormField<int>(
-                    value: widget.adminState.numberOfGroups,
+                    value: _numberOfGroups,
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.symmetric(
                           horizontal: isMobile ? 8 : 12,
@@ -1179,7 +1265,9 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                         ? null
                         : (val) {
                             if (val != null) {
-                              widget.adminState.setNumberOfGroups(val);
+                              setState(() {
+                                _numberOfGroups = val;
+                              });
                               _updateTargetTeamCount(val * 4);
                             }
                           },
@@ -1202,7 +1290,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                           size: 12, color: AppColors.accent),
                       const SizedBox(width: 4),
                       Text(
-                        '${widget.adminState.numberOfGroups * 4} Teams',
+                        '${_numberOfGroups * 4} Teams',
                         style: const TextStyle(
                           color: AppColors.accent,
                           fontSize: 12,
@@ -1225,6 +1313,10 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                         _distributeGroupsEvenly();
                       } else if (value == 'random') {
                         _assignGroupsRandomly();
+                      } else if (value == 'order') {
+                        _orderByGroups();
+                      } else if (value == 'clear') {
+                        _clearAllGroups();
                       }
                     },
                     itemBuilder: (context) => [
@@ -1240,6 +1332,23 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
                         value: 'random',
                         child: ListTile(
                           title: Text('Gruppen zufällig zuweisen'),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'order',
+                        child: ListTile(
+                          title: Text('Nach Gruppen sortieren'),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      const PopupMenuItem(
+                        value: 'clear',
+                        child: ListTile(
+                          title: Text('Alle Gruppen zurücksetzen'),
                           contentPadding: EdgeInsets.zero,
                           dense: true,
                         ),
@@ -1544,7 +1653,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             width: 140,
             child: Builder(builder: (context) {
               final counts = _groupCounts();
-              final groupCount = widget.adminState.numberOfGroups;
+              final groupCount = _numberOfGroups;
               final activeTeams = _teamControllers
                   .where((c) => !c.isReserve && !c.markedForRemoval)
                   .length;
@@ -1801,7 +1910,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
           const SizedBox(height: 8),
           Builder(builder: (context) {
             final counts = _groupCounts();
-            final groupCount = widget.adminState.numberOfGroups;
+            final groupCount = _numberOfGroups;
             final activeTeams = _teamControllers
                 .where((c) => !c.isReserve && !c.markedForRemoval)
                 .length;

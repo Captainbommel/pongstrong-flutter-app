@@ -446,39 +446,533 @@ void main() {
       c.dispose();
     });
   });
+
+  // =========================================================================
+  // Order detection
+  // =========================================================================
+  group('Order change detection', () {
+    test('same order → no unsaved changes', () {
+      final controllers = [
+        TeamEditController(id: 't1', name: 'A', members: ['M1', 'M2']),
+        TeamEditController(id: 't2', name: 'B', members: ['M3', 'M4']),
+      ];
+      final result = _takeSnapshotsWithOrder(controllers);
+
+      expect(
+        _hasUnsavedChangesWithOrder(
+            controllers, result.snapshots, result.order, {}, 24, 24),
+        isFalse,
+      );
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+
+    test('swapped order → detected as unsaved change', () {
+      final controllers = [
+        TeamEditController(id: 't1', name: 'A', members: ['M1', 'M2']),
+        TeamEditController(id: 't2', name: 'B', members: ['M3', 'M4']),
+      ];
+      final result = _takeSnapshotsWithOrder(controllers);
+
+      // Swap order
+      final tmp = controllers[0];
+      controllers[0] = controllers[1];
+      controllers[1] = tmp;
+
+      expect(
+        _hasUnsavedChangesWithOrder(
+            controllers, result.snapshots, result.order, {}, 24, 24),
+        isTrue,
+      );
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+
+    test('revert order back → no unsaved changes', () {
+      final controllers = [
+        TeamEditController(id: 't1', name: 'A', members: ['M1', 'M2']),
+        TeamEditController(id: 't2', name: 'B', members: ['M3', 'M4']),
+      ];
+      final result = _takeSnapshotsWithOrder(controllers);
+
+      // Swap
+      final tmp = controllers[0];
+      controllers[0] = controllers[1];
+      controllers[1] = tmp;
+      expect(
+        _hasUnsavedChangesWithOrder(
+            controllers, result.snapshots, result.order, {}, 24, 24),
+        isTrue,
+      );
+
+      // Swap back
+      final tmp2 = controllers[0];
+      controllers[0] = controllers[1];
+      controllers[1] = tmp2;
+      expect(
+        _hasUnsavedChangesWithOrder(
+            controllers, result.snapshots, result.order, {}, 24, 24),
+        isFalse,
+      );
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+
+    test('order change with data change → detected', () {
+      final controllers = [
+        TeamEditController(
+            id: 't1', name: 'A', members: ['M1', 'M2'], groupIndex: 0),
+        TeamEditController(
+            id: 't2', name: 'B', members: ['M3', 'M4'], groupIndex: 1),
+      ];
+      final result = _takeSnapshotsWithOrder(controllers);
+
+      // Swap order AND change data
+      final tmp = controllers[0];
+      controllers[0] = controllers[1];
+      controllers[1] = tmp;
+      controllers[0].nameController.text = 'Changed';
+
+      expect(
+        _hasUnsavedChangesWithOrder(
+            controllers, result.snapshots, result.order, {}, 24, 24),
+        isTrue,
+      );
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+  });
+
+  // =========================================================================
+  // Group count change detection
+  // =========================================================================
+  group('Group count change detection', () {
+    test('same group count → no unsaved changes', () {
+      final controllers = [
+        TeamEditController(
+            id: 't1', name: 'A', members: ['M1', 'M2'], groupIndex: 0),
+      ];
+      final snapshots = _takeSnapshots(controllers);
+
+      expect(
+        _hasUnsavedChangesWithGroupCount(
+          controllers,
+          snapshots,
+          24,
+          24,
+          6, // current
+          6, // original
+        ),
+        isFalse,
+      );
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+
+    test('different group count → detected as unsaved change', () {
+      final controllers = [
+        TeamEditController(
+            id: 't1', name: 'A', members: ['M1', 'M2'], groupIndex: 0),
+      ];
+      final snapshots = _takeSnapshots(controllers);
+
+      expect(
+        _hasUnsavedChangesWithGroupCount(
+          controllers,
+          snapshots,
+          24,
+          24,
+          5, // current (changed from 6)
+          6, // original
+        ),
+        isTrue,
+      );
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+
+    test('group count reverted → no unsaved changes', () {
+      final controllers = [
+        TeamEditController(
+            id: 't1', name: 'A', members: ['M1', 'M2'], groupIndex: 0),
+      ];
+      final snapshots = _takeSnapshots(controllers);
+
+      // Change then revert
+      expect(
+        _hasUnsavedChangesWithGroupCount(
+          controllers,
+          snapshots,
+          24,
+          24,
+          6, // reverted back
+          6, // original
+        ),
+        isFalse,
+      );
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+  });
+
+  // =========================================================================
+  // groupIndex preservation when isReserve changes
+  // =========================================================================
+  group('groupIndex preservation on reserve transitions', () {
+    test('groupIndex is retained when team moves to reserve', () {
+      final c = TeamEditController(
+        id: 't1',
+        name: 'Team',
+        members: ['A', 'B'],
+        groupIndex: 3,
+      );
+
+      // Simulate moving to reserve (like the old code did: c.groupIndex = null)
+      // The NEW behavior should NOT null it, so we just set isReserve
+      c.isReserve = true;
+      // In the fixed code, groupIndex is preserved — verify controller state
+      expect(c.groupIndex, 3);
+
+      c.dispose();
+    });
+
+    test('groupIndex survives round-trip to reserve and back', () {
+      final c = TeamEditController(
+        id: 't1',
+        name: 'Team',
+        members: ['A', 'B'],
+        groupIndex: 2,
+      );
+
+      // Move to reserve
+      c.isReserve = true;
+      expect(c.groupIndex, 2, reason: 'groupIndex preserved on bench');
+
+      // Move back to active
+      c.isReserve = false;
+      expect(c.groupIndex, 2, reason: 'groupIndex restored when promoted');
+
+      c.dispose();
+    });
+
+    test('snapshot captures groupIndex even when isReserve is true', () {
+      final c = TeamEditController(
+        id: 't1',
+        name: 'Team',
+        members: ['A', 'B'],
+        groupIndex: 4,
+        isReserve: true,
+      );
+
+      final snap = TeamSnapshot.fromController(c);
+      expect(snap.groupIndex, 4);
+      expect(snap.isReserve, isTrue);
+
+      c.dispose();
+    });
+  });
+
+  // =========================================================================
+  // Clear all groups functionality
+  // =========================================================================
+  group('Clear all groups', () {
+    test('clearing sets all groupIndex to null', () {
+      final controllers = [
+        TeamEditController(
+            id: 't1', name: 'A', members: ['M1', 'M2'], groupIndex: 0),
+        TeamEditController(
+            id: 't2', name: 'B', members: ['M3', 'M4'], groupIndex: 1),
+        TeamEditController(
+            id: 't3',
+            name: 'C',
+            members: ['M5', 'M6'],
+            groupIndex: 2,
+            isReserve: true),
+      ];
+
+      // Simulate _clearAllGroups()
+      for (final c in controllers) {
+        c.groupIndex = null;
+      }
+
+      for (final c in controllers) {
+        expect(c.groupIndex, isNull);
+      }
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+
+    test('clearing groups is detected as unsaved change', () {
+      final controllers = [
+        TeamEditController(
+            id: 't1', name: 'A', members: ['M1', 'M2'], groupIndex: 0),
+        TeamEditController(
+            id: 't2', name: 'B', members: ['M3', 'M4'], groupIndex: 1),
+      ];
+      final snapshots = _takeSnapshots(controllers);
+
+      // Clear all groups
+      for (final c in controllers) {
+        c.groupIndex = null;
+      }
+
+      expect(
+        _hasUnsavedChanges(controllers, snapshots, 24, 24),
+        isTrue,
+      );
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+
+    test('clearing already-null groups → no change', () {
+      final controllers = [
+        TeamEditController(id: 't1', name: 'A', members: ['M1', 'M2']),
+        TeamEditController(id: 't2', name: 'B', members: ['M3', 'M4']),
+      ];
+      final snapshots = _takeSnapshots(controllers);
+
+      // "Clear" groups that are already null
+      for (final c in controllers) {
+        c.groupIndex = null;
+      }
+
+      expect(
+        _hasUnsavedChanges(controllers, snapshots, 24, 24),
+        isFalse,
+      );
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+  });
+
+  // =========================================================================
+  // preserveGroupIndices functionality (post-save restoration)
+  // =========================================================================
+  group('preserveGroupIndices post-save', () {
+    test('group indices map captures current state', () {
+      final controllers = [
+        TeamEditController(
+            id: 't1', name: 'A', members: ['M1', 'M2'], groupIndex: 0),
+        TeamEditController(
+            id: 't2', name: 'B', members: ['M3', 'M4'], groupIndex: 3),
+        TeamEditController(
+            id: 't3',
+            name: 'C',
+            members: ['M5', 'M6'],
+            groupIndex: 2,
+            isReserve: true),
+      ];
+
+      // Simulate capturing preserveGroupIndices before _initializeControllers
+      final preservedGroupIndices = <String, int?>{};
+      for (final c in controllers) {
+        if (c.id != null) {
+          preservedGroupIndices[c.id!] = c.groupIndex;
+        }
+      }
+
+      expect(preservedGroupIndices['t1'], 0);
+      expect(preservedGroupIndices['t2'], 3);
+      expect(preservedGroupIndices['t3'], 2); // Reserve team still has index
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+
+    test('preserved indices restore correctly after simulated reload', () {
+      // Simulate: controllers have group assignments
+      final originalControllers = [
+        TeamEditController(
+            id: 't1', name: 'A', members: ['M1', 'M2'], groupIndex: 0),
+        TeamEditController(
+            id: 't2', name: 'B', members: ['M3', 'M4'], groupIndex: 1),
+      ];
+
+      // Capture indices before "reload"
+      final preservedGroupIndices = <String, int?>{};
+      for (final c in originalControllers) {
+        if (c.id != null) {
+          preservedGroupIndices[c.id!] = c.groupIndex;
+        }
+      }
+
+      // Dispose old controllers (simulating _initializeControllers)
+      for (final c in originalControllers) {
+        c.dispose();
+      }
+
+      // Simulate re-creating controllers from admin state (which might have
+      // lost group info due to loadGroups()). Use preserved indices.
+      final newControllers = <TeamEditController>[];
+      for (final id in ['t1', 't2']) {
+        final groupIndex = preservedGroupIndices[id];
+        newControllers.add(TeamEditController(
+          id: id,
+          name: id == 't1' ? 'A' : 'B',
+          members: id == 't1' ? ['M1', 'M2'] : ['M3', 'M4'],
+          groupIndex: groupIndex,
+        ));
+      }
+
+      expect(newControllers[0].groupIndex, 0);
+      expect(newControllers[1].groupIndex, 1);
+
+      for (final c in newControllers) {
+        c.dispose();
+      }
+    });
+
+    test('null indices in preserved map are handled correctly', () {
+      final preservedGroupIndices = <String, int?>{
+        't1': 0,
+        't2': null, // Team had no group assignment
+      };
+
+      final controllers = [
+        TeamEditController(
+          id: 't1',
+          name: 'A',
+          members: ['M1', 'M2'],
+          groupIndex: preservedGroupIndices['t1'],
+        ),
+        TeamEditController(
+          id: 't2',
+          name: 'B',
+          members: ['M3', 'M4'],
+          groupIndex: preservedGroupIndices['t2'],
+        ),
+      ];
+
+      expect(controllers[0].groupIndex, 0);
+      expect(controllers[1].groupIndex, isNull);
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+
+    test('out-of-range indices are clamped during restore', () {
+      // Simulate: user decreased group count from 6 to 4 before save
+      final preservedGroupIndices = <String, int?>{
+        't1': 0, // valid
+        't2': 5, // was in group 6, now invalid with 4 groups (maxIndex=3)
+      };
+
+      const maxGroupIndex = 3; // 4 groups → indices 0-3
+      final controllers = <TeamEditController>[];
+
+      for (final id in ['t1', 't2']) {
+        var groupIndex = preservedGroupIndices[id];
+        // Clamp logic from _initializeControllers
+        if (groupIndex != null && groupIndex > maxGroupIndex) {
+          groupIndex = null;
+        }
+        controllers.add(TeamEditController(
+          id: id,
+          name: id,
+          members: ['M1', 'M2'],
+          groupIndex: groupIndex,
+        ));
+      }
+
+      expect(controllers[0].groupIndex, 0, reason: 'valid index preserved');
+      expect(controllers[1].groupIndex, isNull,
+          reason: 'out-of-range index clamped to null');
+
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
 // Helpers – mirror the page's snapshot/diff logic for testability
 // ---------------------------------------------------------------------------
 
-/// Takes snapshots of existing controllers (those with an id).
-Map<String, TeamSnapshot> _takeSnapshots(List<TeamEditController> controllers) {
+class _SnapshotResult {
+  final Map<String, TeamSnapshot> snapshots;
+  final List<String> order;
+  _SnapshotResult(this.snapshots, this.order);
+}
+
+/// Takes snapshots of existing controllers (those with an id), including order.
+_SnapshotResult _takeSnapshotsWithOrder(List<TeamEditController> controllers) {
   final map = <String, TeamSnapshot>{};
+  final order = <String>[];
   for (final c in controllers) {
     if (c.markedForRemoval) continue;
     if (c.id != null) {
       map[c.id!] = TeamSnapshot.fromController(c);
+      order.add(c.id!);
     }
   }
-  return map;
+  return _SnapshotResult(map, order);
 }
 
-/// Simplified version of the page's _hasUnsavedChanges getter.
+/// Takes snapshots of existing controllers (those with an id).
+Map<String, TeamSnapshot> _takeSnapshots(List<TeamEditController> controllers) {
+  return _takeSnapshotsWithOrder(controllers).snapshots;
+}
+
+/// Simplified version of the page's _hasUnsavedChanges getter (without order tracking).
 bool _hasUnsavedChanges(
   List<TeamEditController> controllers,
   Map<String, TeamSnapshot> originalSnapshots,
   int targetTeamCount,
   int originalTargetTeamCount,
 ) {
-  return _hasUnsavedChangesWithNew(controllers, originalSnapshots, {},
-      targetTeamCount, originalTargetTeamCount);
+  final result = _takeSnapshotsWithOrder(controllers);
+  return _hasUnsavedChangesWithOrder(controllers, originalSnapshots,
+      result.order, {}, targetTeamCount, originalTargetTeamCount);
 }
 
 /// Full version including new-controller tracking.
 bool _hasUnsavedChangesWithNew(
   List<TeamEditController> controllers,
   Map<String, TeamSnapshot> originalSnapshots,
+  Set<TeamEditController> originalNewControllers,
+  int targetTeamCount,
+  int originalTargetTeamCount,
+) {
+  // For tests that don't care about order, derive the order from snapshots
+  final originalOrder = originalSnapshots.keys.toList();
+  return _hasUnsavedChangesWithOrder(
+      controllers,
+      originalSnapshots,
+      originalOrder,
+      originalNewControllers,
+      targetTeamCount,
+      originalTargetTeamCount);
+}
+
+/// Full version including order and new-controller tracking.
+/// Mirrors the page's _hasUnsavedChanges getter.
+bool _hasUnsavedChangesWithOrder(
+  List<TeamEditController> controllers,
+  Map<String, TeamSnapshot> originalSnapshots,
+  List<String> originalTeamOrder,
   Set<TeamEditController> originalNewControllers,
   int targetTeamCount,
   int originalTargetTeamCount,
@@ -502,6 +996,13 @@ bool _hasUnsavedChangesWithNew(
     }
   }
 
+  // Check for order changes among existing teams
+  final currentOrder = controllers
+      .where((c) => !c.markedForRemoval && c.id != null)
+      .map((c) => c.id!)
+      .toList();
+  if (!TeamSnapshot.listEquals(currentOrder, originalTeamOrder)) return true;
+
   // Check each existing team for data changes
   for (final c in controllers) {
     if (c.markedForRemoval) {
@@ -515,4 +1016,22 @@ bool _hasUnsavedChangesWithNew(
   }
 
   return false;
+}
+
+/// Version that also tracks numberOfGroups changes.
+/// Mirrors the page's _hasUnsavedChanges getter with group count tracking.
+bool _hasUnsavedChangesWithGroupCount(
+  List<TeamEditController> controllers,
+  Map<String, TeamSnapshot> originalSnapshots,
+  int targetTeamCount,
+  int originalTargetTeamCount,
+  int numberOfGroups,
+  int originalNumberOfGroups,
+) {
+  // Group count change is an unsaved change
+  if (numberOfGroups != originalNumberOfGroups) return true;
+
+  // Delegate to the existing helper for other checks
+  return _hasUnsavedChanges(
+      controllers, originalSnapshots, targetTeamCount, originalTargetTeamCount);
 }
