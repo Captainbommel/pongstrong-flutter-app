@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:pongstrong/models/team.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
@@ -92,8 +93,9 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
       _teamControllers.add(TeamEditController(
         id: team.id,
         name: team.name,
-        member1: team.member1,
-        member2: team.member2,
+        members: [team.member1, team.member2, team.member3]
+            .where((s) => s.isNotEmpty)
+            .toList(),
         // Clamp: ignore stale group indices that exceed current group count
         groupIndex:
             groupIndex >= 0 && groupIndex <= maxGroupIndex ? groupIndex : null,
@@ -321,69 +323,90 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
   /// or placed on the bench if the active zone is full.
   Future<void> _showAddTeamDialog() async {
     final nameController = TextEditingController();
-    final member1Controller = TextEditingController();
-    final member2Controller = TextEditingController();
+    final memberControllers = List.generate(
+      Team.defaultMemberCount,
+      (_) => TextEditingController(),
+    );
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Team hinzufügen'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Teamname',
-                border: OutlineInputBorder(),
-              ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Team hinzufügen'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Teamname *',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                for (int i = 0; i < memberControllers.length; i++) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: memberControllers[i],
+                    decoration: InputDecoration(
+                      labelText: 'Spieler ${i + 1}',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (memberControllers.length > Team.defaultMemberCount)
+                      IconButton(
+                        onPressed: () => setDialogState(() {
+                          memberControllers.last.dispose();
+                          memberControllers.removeLast();
+                        }),
+                        icon: const Icon(Icons.remove, size: 18),
+                      ),
+                    const Spacer(),
+                    if (memberControllers.length < Team.maxMembers)
+                      IconButton(
+                        onPressed: () => setDialogState(() {
+                          memberControllers.add(TextEditingController());
+                        }),
+                        icon: const Icon(Icons.add, size: 18),
+                      ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: member1Controller,
-              decoration: const InputDecoration(
-                labelText: 'Spieler 1 (optional)',
-                border: OutlineInputBorder(),
-              ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Abbrechen'),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: member2Controller,
-              decoration: const InputDecoration(
-                labelText: 'Spieler 2 (optional)',
-                border: OutlineInputBorder(),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: TreeColors.rebeccapurple,
+                foregroundColor: AppColors.textOnColored,
               ),
+              child: const Text('Hinzufügen'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Abbrechen'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: TreeColors.rebeccapurple,
-              foregroundColor: AppColors.textOnColored,
-            ),
-            child: const Text('Hinzufügen'),
-          ),
-        ],
       ),
     );
 
     // Capture values immediately; defer disposal so controllers are still
     // alive while the dialog exit animation is running.
     final name = nameController.text.trim();
-    final m1 = member1Controller.text.trim();
-    final m2 = member2Controller.text.trim();
+    final memberValues = memberControllers.map((c) => c.text.trim()).toList();
     void disposeDialogControllers() {
       Future.delayed(const Duration(milliseconds: 300), () {
         nameController.dispose();
-        member1Controller.dispose();
-        member2Controller.dispose();
+        for (final c in memberControllers) {
+          c.dispose();
+        }
       });
     }
 
@@ -405,8 +428,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         // Round-robin: just append
         _teamControllers.add(TeamEditController(
           name: name,
-          member1: m1,
-          member2: m2,
+          members: memberValues,
         ));
         _targetTeamCount =
             _teamControllers.where((c) => !c.markedForRemoval).length;
@@ -421,14 +443,24 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         if (emptySlotIndex >= 0) {
           final slot = _teamControllers[emptySlotIndex];
           slot.nameController.text = name;
-          slot.member1Controller.text = m1;
-          slot.member2Controller.text = m2;
+          for (int i = 0; i < slot.memberControllers.length; i++) {
+            slot.memberControllers[i].text =
+                i < memberValues.length ? memberValues[i] : '';
+          }
+          // Add extra controllers if the dialog had more members than the slot
+          for (int i = slot.memberControllers.length;
+              i < memberValues.length;
+              i++) {
+            if (memberValues[i].isNotEmpty) {
+              slot.addMemberField();
+              slot.memberControllers.last.text = memberValues[i];
+            }
+          }
         } else {
           // Active zone full — add to bench
           _teamControllers.add(TeamEditController(
             name: name,
-            member1: m1,
-            member2: m2,
+            members: memberValues,
             isReserve: true,
           ));
         }
@@ -444,80 +476,111 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     final controller = _teamControllers[index];
     final nameCtrl =
         TextEditingController(text: controller.nameController.text);
-    final m1Ctrl =
-        TextEditingController(text: controller.member1Controller.text);
-    final m2Ctrl =
-        TextEditingController(text: controller.member2Controller.text);
+    // Create dialog-local member controllers matching the current count
+    final dialogMemberCtrls = controller.memberControllers
+        .map((c) => TextEditingController(text: c.text))
+        .toList();
+    // Ensure at least defaultMemberCount fields
+    while (dialogMemberCtrls.length < Team.defaultMemberCount) {
+      dialogMemberCtrls.add(TextEditingController());
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Team bearbeiten'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Teamname',
-                border: OutlineInputBorder(),
-              ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Team bearbeiten'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Teamname *',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                for (int i = 0; i < dialogMemberCtrls.length; i++) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: dialogMemberCtrls[i],
+                    decoration: InputDecoration(
+                      labelText: 'Spieler ${i + 1}',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (dialogMemberCtrls.length > Team.defaultMemberCount)
+                      IconButton(
+                        onPressed: () => setDialogState(() {
+                          dialogMemberCtrls.last.dispose();
+                          dialogMemberCtrls.removeLast();
+                        }),
+                        icon: const Icon(Icons.remove, size: 18),
+                      ),
+                    const Spacer(),
+                    if (dialogMemberCtrls.length < Team.maxMembers)
+                      IconButton(
+                        onPressed: () => setDialogState(() {
+                          dialogMemberCtrls.add(TextEditingController());
+                        }),
+                        icon: const Icon(Icons.add, size: 18),
+                      ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: m1Ctrl,
-              decoration: const InputDecoration(
-                labelText: 'Spieler 1 (optional)',
-                border: OutlineInputBorder(),
-              ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Abbrechen'),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: m2Ctrl,
-              decoration: const InputDecoration(
-                labelText: 'Spieler 2 (optional)',
-                border: OutlineInputBorder(),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: TreeColors.rebeccapurple,
+                foregroundColor: AppColors.textOnColored,
               ),
+              child: const Text('Übernehmen'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Abbrechen'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: TreeColors.rebeccapurple,
-              foregroundColor: AppColors.textOnColored,
-            ),
-            child: const Text('Übernehmen'),
-          ),
-        ],
       ),
     );
 
     // Capture values immediately; defer disposal so controllers are still
     // alive while the dialog exit animation is running.
     final nameVal = nameCtrl.text.trim();
-    final m1Val = m1Ctrl.text.trim();
-    final m2Val = m2Ctrl.text.trim();
+    final memberVals = dialogMemberCtrls.map((c) => c.text.trim()).toList();
 
     if (confirmed == true) {
       setState(() {
         controller.nameController.text = nameVal;
-        controller.member1Controller.text = m1Val;
-        controller.member2Controller.text = m2Val;
+        // Sync member controllers: resize to match dialog result
+        while (controller.memberControllers.length > memberVals.length) {
+          controller.removeMemberField();
+        }
+        while (controller.memberControllers.length < memberVals.length) {
+          controller.addMemberField();
+        }
+        for (int i = 0; i < memberVals.length; i++) {
+          controller.memberControllers[i].text = memberVals[i];
+        }
         _hasUnsavedChanges = true;
       });
     }
 
     Future.delayed(const Duration(milliseconds: 300), () {
       nameCtrl.dispose();
-      m1Ctrl.dispose();
-      m2Ctrl.dispose();
+      for (final c in dialogMemberCtrls) {
+        c.dispose();
+      }
     });
   }
 
@@ -541,8 +604,13 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     setState(() {
       final controller = _teamControllers[index];
       controller.nameController.clear();
-      controller.member1Controller.clear();
-      controller.member2Controller.clear();
+      for (final mc in controller.memberControllers) {
+        mc.clear();
+      }
+      // Reset back to default member count
+      while (controller.canRemoveMember) {
+        controller.removeMemberField();
+      }
       controller.groupIndex = null;
       _hasUnsavedChanges = true;
     });
@@ -573,10 +641,12 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
         }
 
         if (controller.isNew || controller.id == null) {
+          final mv = controller.memberValues;
           final success = await state.addTeam(
             name: controller.nameController.text.trim(),
-            member1: controller.member1Controller.text.trim(),
-            member2: controller.member2Controller.text.trim(),
+            member1: mv.isNotEmpty ? mv[0] : '',
+            member2: mv.length > 1 ? mv[1] : '',
+            member3: mv.length > 2 ? mv[2] : '',
           );
 
           if (success && state.teams.isNotEmpty) {
@@ -584,11 +654,13 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
             controller.isNew = false;
           }
         } else {
+          final mv = controller.memberValues;
           await state.updateTeam(
             teamId: controller.id!,
             name: controller.nameController.text.trim(),
-            member1: controller.member1Controller.text.trim(),
-            member2: controller.member2Controller.text.trim(),
+            member1: mv.isNotEmpty ? mv[0] : '',
+            member2: mv.length > 1 ? mv[1] : '',
+            member3: mv.length > 2 ? mv[2] : '',
           );
         }
 
@@ -1315,10 +1387,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     final isReserve = controller.isReserve;
     final badgeColor = isReserve ? AppColors.grey500 : TreeColors.rebeccapurple;
     final hasName = controller.nameController.text.isNotEmpty;
-    final member1 = controller.member1Controller.text;
-    final member2 = controller.member2Controller.text;
-    final membersText =
-        [member1, member2].where((s) => s.isNotEmpty).join(' & ');
+    final membersText = controller.membersText;
 
     return Row(
       children: [
@@ -1522,10 +1591,7 @@ class _TeamsManagementPageState extends State<TeamsManagementPage> {
     final isReserve = controller.isReserve;
     final badgeColor = isReserve ? AppColors.grey500 : TreeColors.rebeccapurple;
     final hasName = controller.nameController.text.isNotEmpty;
-    final member1 = controller.member1Controller.text;
-    final member2 = controller.member2Controller.text;
-    final membersText =
-        [member1, member2].where((s) => s.isNotEmpty).join(' & ');
+    final membersText = controller.membersText;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

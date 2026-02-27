@@ -55,6 +55,7 @@ class ImportService {
             name: teamJson['name'] as String,
             member1: teamJson['member1'] as String? ?? '',
             member2: teamJson['member2'] as String? ?? '',
+            member3: teamJson['member3'] as String? ?? '',
           );
           allTeams.add(team);
           groupIds.add(teamId);
@@ -72,6 +73,7 @@ class ImportService {
           name: teamMap['name'] as String,
           member1: teamMap['member1'] as String? ?? '',
           member2: teamMap['member2'] as String? ?? '',
+          member3: teamMap['member3'] as String? ?? '',
         );
         allTeams.add(team);
       }
@@ -109,6 +111,7 @@ class ImportService {
               name: map['name'] as String,
               member1: map['member1'] as String? ?? '',
               member2: map['member2'] as String? ?? '',
+              member3: map['member3'] as String? ?? '',
             ));
             idx++;
           }
@@ -122,6 +125,7 @@ class ImportService {
             name: teamJson['name'] as String,
             member1: teamJson['member1'] as String? ?? '',
             member2: teamJson['member2'] as String? ?? '',
+            member3: teamJson['member3'] as String? ?? '',
           ));
         }
       }
@@ -134,6 +138,7 @@ class ImportService {
           name: teamJson['name'] as String,
           member1: teamJson['member1'] as String? ?? '',
           member2: teamJson['member2'] as String? ?? '',
+          member3: teamJson['member3'] as String? ?? '',
         ));
       }
     }
@@ -232,6 +237,7 @@ class ImportService {
     final nameIdx = _findColumnIndex(header, ['name', 'team']);
     final mem1Idx = _findColumnIndex(header, ['member1', 'spieler1']);
     final mem2Idx = _findColumnIndex(header, ['member2', 'spieler2']);
+    final mem3Idx = _findColumnIndex(header, ['member3', 'spieler3']);
 
     if (nameIdx == -1) {
       throw FormatException(
@@ -266,6 +272,9 @@ class ImportService {
             : '',
         member2: (mem2Idx != -1 && fields.length > mem2Idx)
             ? fields[mem2Idx].trim()
+            : '',
+        member3: (mem3Idx != -1 && fields.length > mem3Idx)
+            ? fields[mem3Idx].trim()
             : '',
       ));
 
@@ -306,6 +315,7 @@ class ImportService {
     final nameIdx = _findColumnIndex(header, ['name', 'team']);
     final mem1Idx = _findColumnIndex(header, ['member1', 'spieler1']);
     final mem2Idx = _findColumnIndex(header, ['member2', 'spieler2']);
+    final mem3Idx = _findColumnIndex(header, ['member3', 'spieler3']);
 
     if (nameIdx == -1) {
       throw FormatException(
@@ -326,6 +336,9 @@ class ImportService {
         member2: (mem2Idx != -1 && fields.length > mem2Idx)
             ? fields[mem2Idx].trim()
             : '',
+        member3: (mem3Idx != -1 && fields.length > mem3Idx)
+            ? fields[mem3Idx].trim()
+            : '',
       ));
     }
 
@@ -343,7 +356,7 @@ class ImportService {
   /// ```
   static String exportTeamsToCsv(List<Team> teams, Groups groups) {
     final buffer = StringBuffer();
-    buffer.writeln('group,name,member1,member2');
+    buffer.writeln('group,name,member1,member2,member3');
 
     for (int g = 0; g < groups.groups.length; g++) {
       for (final teamId in groups.groups[g]) {
@@ -355,7 +368,8 @@ class ImportService {
           '${g + 1},'
           '${_escapeCsvField(team.name)},'
           '${_escapeCsvField(team.member1)},'
-          '${_escapeCsvField(team.member2)}',
+          '${_escapeCsvField(team.member2)},'
+          '${_escapeCsvField(team.member3)}',
         );
       }
     }
@@ -371,13 +385,14 @@ class ImportService {
   /// ```
   static String exportTeamsFlatToCsv(List<Team> teams) {
     final buffer = StringBuffer();
-    buffer.writeln('name,member1,member2');
+    buffer.writeln('name,member1,member2,member3');
 
     for (final team in teams) {
       buffer.writeln(
         '${_escapeCsvField(team.name)},'
         '${_escapeCsvField(team.member1)},'
-        '${_escapeCsvField(team.member2)}',
+        '${_escapeCsvField(team.member2)},'
+        '${_escapeCsvField(team.member3)}',
       );
     }
     return buffer.toString();

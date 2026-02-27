@@ -416,23 +416,23 @@ class _StartMatchContentState extends State<_StartMatchContent> {
             ),
           ),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Flexible(
-                child: Column(
-                  children: [
-                    Text('${widget.team1}:'),
-                    for (final member in widget.members1) Text(member),
-                  ],
+              Expanded(
+                child: _buildTeamColumn(widget.team1, widget.members1),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Text(
+                  'vs',
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textSubtle,
+                  ),
                 ),
               ),
-              Flexible(
-                child: Column(
-                  children: [
-                    Text('${widget.team2}:'),
-                    for (final member in widget.members2) Text(member),
-                  ],
-                ),
+              Expanded(
+                child: _buildTeamColumn(widget.team2, widget.members2),
               ),
             ],
           ),
@@ -448,6 +448,41 @@ class _StartMatchContentState extends State<_StartMatchContent> {
           _buildActionArea(),
         ],
       ),
+    );
+  }
+
+  /// Builds a responsive column for one team's name and members.
+  /// Filters out empty member names and adjusts text size based on count.
+  Widget _buildTeamColumn(String teamName, List<String> members) {
+    final nonEmptyMembers = members.where((m) => m.isNotEmpty).toList();
+    final hasManyMembers = nonEmptyMembers.length >= 3;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          teamName,
+          style: const TextStyle(
+            fontSize: 16.0,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (nonEmptyMembers.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            nonEmptyMembers.join(', '),
+            style: TextStyle(
+              fontSize: hasManyMembers ? 12.0 : 14.0,
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+          ),
+        ],
+      ],
     );
   }
 

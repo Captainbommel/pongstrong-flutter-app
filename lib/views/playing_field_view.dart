@@ -111,8 +111,8 @@ Widget _buildUpcomingMatchCard(
                 context,
                 team1: team1?.name ?? 'Team 1',
                 team2: team2?.name ?? 'Team 2',
-                members1: [team1?.member1 ?? '', team1?.member2 ?? ''],
-                members2: [team2?.member1 ?? '', team2?.member2 ?? ''],
+                members1: team1?.members ?? [],
+                members2: team2?.members ?? [],
                 match: match,
               );
             }

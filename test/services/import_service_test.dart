@@ -449,10 +449,10 @@ void main() {
 
       final lines = csv.trim().split('\n');
       expect(lines.length, 4); // header + 3 teams
-      expect(lines[0], 'group,name,member1,member2');
-      expect(lines[1], '1,Thunder,Alice,Bob');
-      expect(lines[2], '1,Lightning,Charlie,Diana');
-      expect(lines[3], '2,Storm,Eve,Frank');
+      expect(lines[0], 'group,name,member1,member2,member3');
+      expect(lines[1], '1,Thunder,Alice,Bob,');
+      expect(lines[2], '1,Lightning,Charlie,Diana,');
+      expect(lines[3], '2,Storm,Eve,Frank,');
     });
 
     test('escapes names with commas', () {
@@ -494,9 +494,9 @@ void main() {
 
       final lines = csv.trim().split('\n');
       expect(lines.length, 3); // header + 2 teams
-      expect(lines[0], 'name,member1,member2');
-      expect(lines[1], 'Thunder,Alice,Bob');
-      expect(lines[2], 'Lightning,Charlie,Diana');
+      expect(lines[0], 'name,member1,member2,member3');
+      expect(lines[1], 'Thunder,Alice,Bob,');
+      expect(lines[2], 'Lightning,Charlie,Diana,');
     });
 
     test('handles empty team list', () {
@@ -504,7 +504,7 @@ void main() {
 
       final lines = csv.trim().split('\n');
       expect(lines.length, 1); // header only
-      expect(lines[0], 'name,member1,member2');
+      expect(lines[0], 'name,member1,member2,member3');
     });
   });
 

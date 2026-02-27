@@ -377,6 +377,7 @@ class AdminPanelState extends ChangeNotifier {
     required String name,
     required String member1,
     required String member2,
+    String member3 = '',
   }) async {
     if (isTournamentStarted) {
       _setError(
@@ -390,6 +391,7 @@ class AdminPanelState extends ChangeNotifier {
       name: name,
       member1: member1,
       member2: member2,
+      member3: member3,
     );
     _teams.add(newTeam);
     notifyListeners();
@@ -416,6 +418,7 @@ class AdminPanelState extends ChangeNotifier {
     required String name,
     required String member1,
     required String member2,
+    String member3 = '',
   }) async {
     _setLoading(true);
     _clearError();
@@ -430,9 +433,15 @@ class AdminPanelState extends ChangeNotifier {
       name: _teams[index].name,
       member1: _teams[index].member1,
       member2: _teams[index].member2,
+      member3: _teams[index].member3,
     );
-    _teams[index] =
-        Team(id: teamId, name: name, member1: member1, member2: member2);
+    _teams[index] = Team(
+      id: teamId,
+      name: name,
+      member1: member1,
+      member2: member2,
+      member3: member3,
+    );
     notifyListeners();
     try {
       await _firestoreService.saveTeams(_teams,

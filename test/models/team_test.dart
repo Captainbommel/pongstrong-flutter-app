@@ -10,6 +10,7 @@ void main() {
       expect(team.name, '');
       expect(team.member1, '');
       expect(team.member2, '');
+      expect(team.member3, '');
     });
 
     test('creates team with custom values', () {
@@ -18,11 +19,29 @@ void main() {
         name: 'Team Alpha',
         member1: 'Alice',
         member2: 'Bob',
+        member3: 'Charlie',
       );
       expect(team.id, 't1');
       expect(team.name, 'Team Alpha');
       expect(team.member1, 'Alice');
       expect(team.member2, 'Bob');
+      expect(team.member3, 'Charlie');
+    });
+
+    test('members getter returns only non-empty members', () {
+      expect(Team(member1: 'A', member2: 'B', member3: 'C').members,
+          ['A', 'B', 'C']);
+      expect(Team(member1: 'A', member2: 'B').members, ['A', 'B']);
+      expect(Team(member1: 'A').members, ['A']);
+      expect(Team().members, isEmpty);
+    });
+
+    test('maxMembers is 3', () {
+      expect(Team.maxMembers, 3);
+    });
+
+    test('defaultMemberCount is 2', () {
+      expect(Team.defaultMemberCount, 2);
     });
   });
 
@@ -67,6 +86,7 @@ void main() {
         name: 'Team Alpha',
         member1: 'Alice',
         member2: 'Bob',
+        member3: 'Charlie',
       );
 
       final json = team.toJson();
@@ -74,6 +94,7 @@ void main() {
       expect(json['name'], 'Team Alpha');
       expect(json['member1'], 'Alice');
       expect(json['member2'], 'Bob');
+      expect(json['member3'], 'Charlie');
     });
 
     test('fromJson creates team from JSON correctly', () {
@@ -82,6 +103,7 @@ void main() {
         'name': 'Team Alpha',
         'member1': 'Alice',
         'member2': 'Bob',
+        'member3': 'Charlie',
       };
 
       final team = Team.fromJson(json);
@@ -89,6 +111,7 @@ void main() {
       expect(team.name, 'Team Alpha');
       expect(team.member1, 'Alice');
       expect(team.member2, 'Bob');
+      expect(team.member3, 'Charlie');
     });
 
     test('fromJson handles missing fields with defaults', () {
@@ -98,6 +121,7 @@ void main() {
       expect(team.name, '');
       expect(team.member1, '');
       expect(team.member2, '');
+      expect(team.member3, '');
     });
 
     test('round trip serialization preserves data', () {
@@ -106,6 +130,7 @@ void main() {
         name: 'Team Alpha',
         member1: 'Alice',
         member2: 'Bob',
+        member3: 'Charlie',
       );
 
       final json = original.toJson();
@@ -115,6 +140,7 @@ void main() {
       expect(restored.name, original.name);
       expect(restored.member1, original.member1);
       expect(restored.member2, original.member2);
+      expect(restored.member3, original.member3);
     });
   });
 
@@ -125,12 +151,14 @@ void main() {
         name: 'Team Alpha',
         member1: 'Alice',
         member2: 'Bob',
+        member3: 'Charlie',
       );
       final team2 = Team(
         id: 't1',
         name: 'Team Alpha',
         member1: 'Alice',
         member2: 'Bob',
+        member3: 'Charlie',
       );
 
       expect(team1 == team2, true);
