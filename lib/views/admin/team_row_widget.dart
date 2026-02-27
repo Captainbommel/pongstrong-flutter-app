@@ -168,6 +168,7 @@ class TeamRowWidget extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (membersText.isNotEmpty)
@@ -177,6 +178,7 @@ class TeamRowWidget extends StatelessWidget {
                               fontSize: 12,
                               color: AppColors.textSecondary,
                             ),
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                       ],

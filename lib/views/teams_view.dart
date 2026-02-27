@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/tabellen.dart' as tabellen;
+import 'package:pongstrong/models/groups/tabellen.dart' as tabellen;
+import 'package:pongstrong/models/match/match.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
@@ -340,7 +340,6 @@ class _GroupOverview extends StatelessWidget {
           fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
           fontSize: isHeader ? 14 : 13,
         ),
-        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -488,6 +487,7 @@ class _MatchCard extends StatelessWidget {
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ),

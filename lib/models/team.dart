@@ -1,4 +1,4 @@
-import 'package:pongstrong/models/groups.dart';
+import 'package:pongstrong/models/groups/groups.dart';
 
 /// A tournament team consisting of up to [maxMembers] members.
 class Team {

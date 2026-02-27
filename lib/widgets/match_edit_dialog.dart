@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/scoring.dart';
+import 'package:pongstrong/models/match/match.dart';
+import 'package:pongstrong/models/match/scoring.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/widgets/match_dialogs.dart';
 

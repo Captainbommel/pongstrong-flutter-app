@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/models/match/match.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/widgets/field_view.dart';

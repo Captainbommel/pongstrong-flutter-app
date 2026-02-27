@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/models/knockouts.dart';
+import 'package:pongstrong/models/knockout/knockouts.dart';
 
 void main() {
   group('Champions', () {

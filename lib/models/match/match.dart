@@ -1,4 +1,4 @@
-import 'package:pongstrong/models/scoring.dart';
+import 'package:pongstrong/models/match/scoring.dart';
 
 /// A single match between two teams with score tracking.
 class Match {

@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/models/evaluation.dart';
-import 'package:pongstrong/models/groups.dart';
-import 'package:pongstrong/models/gruppenphase.dart';
-import 'package:pongstrong/models/knockouts.dart';
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/tabellen.dart';
+import 'package:pongstrong/models/groups/evaluation.dart';
+import 'package:pongstrong/models/groups/groups.dart';
+import 'package:pongstrong/models/groups/gruppenphase.dart';
+import 'package:pongstrong/models/groups/tabellen.dart';
+import 'package:pongstrong/models/knockout/knockouts.dart';
+import 'package:pongstrong/models/match/match.dart';
 
 // Legacy 6-group transition (moved from bracket_seeding.dart, test-only).
 Knockouts evaluateGroups6(Tabellen tabellen) {

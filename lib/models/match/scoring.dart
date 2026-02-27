@@ -98,6 +98,8 @@ bool isValid(int b1, int b2) {
   if (b1 == 19 && b2 >= 16 && b2 < 19) return true;
   if (b2 == 19 && b1 >= 16 && b1 < 19) return true;
 
-  if (b1 >= 19 && b2 >= 19 && (b1 > b2 || b2 > b1)) return true;
+  // 1 on 1: both ≥ 19, one strictly higher
+  if (b1 >= 19 && b2 >= 19 && b1 != b2) return true;
+
   return false;
 }

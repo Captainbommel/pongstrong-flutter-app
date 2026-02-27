@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/models/groups.dart';
-import 'package:pongstrong/models/gruppenphase.dart';
-import 'package:pongstrong/models/knockouts.dart';
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/match_queue.dart';
+import 'package:pongstrong/models/groups/groups.dart';
+import 'package:pongstrong/models/groups/gruppenphase.dart';
+import 'package:pongstrong/models/knockout/knockouts.dart';
+import 'package:pongstrong/models/match/match.dart';
+import 'package:pongstrong/models/match/match_queue.dart';
 
 void main() {
   group('MatchQueue', () {

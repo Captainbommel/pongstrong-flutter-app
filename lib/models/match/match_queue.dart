@@ -1,6 +1,6 @@
-import 'package:pongstrong/models/gruppenphase.dart';
-import 'package:pongstrong/models/knockouts.dart';
-import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/models/groups/gruppenphase.dart';
+import 'package:pongstrong/models/knockout/knockouts.dart';
+import 'package:pongstrong/models/match/match.dart';
 
 /// Manages the match scheduling queue with waiting and currently playing matches.
 class MatchQueue {

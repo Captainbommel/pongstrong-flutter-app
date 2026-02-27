@@ -1,5 +1,5 @@
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/scoring.dart';
+import 'package:pongstrong/models/match/match.dart';
+import 'package:pongstrong/models/match/scoring.dart';
 
 /// A single row in a group standings table.
 class TableRow {

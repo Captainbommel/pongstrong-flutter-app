@@ -1,11 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/models/evaluation.dart';
-import 'package:pongstrong/models/groups.dart';
-import 'package:pongstrong/models/gruppenphase.dart';
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/tabellen.dart';
+import 'package:pongstrong/models/groups/evaluation.dart';
+import 'package:pongstrong/models/groups/groups.dart';
+import 'package:pongstrong/models/groups/gruppenphase.dart';
+import 'package:pongstrong/models/groups/tabellen.dart';
+import 'package:pongstrong/models/match/match.dart';
 
 /// Creates a Tabellen from [n] groups of 4 teams with simulated results.
 /// Team IDs follow the pattern: g{group}p{rank} (e.g. g0p1, g0p2, g0p3, g0p4).

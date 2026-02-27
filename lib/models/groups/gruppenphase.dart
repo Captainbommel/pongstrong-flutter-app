@@ -1,6 +1,6 @@
-import 'package:pongstrong/models/configurations.dart';
-import 'package:pongstrong/models/groups.dart';
-import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/models/groups/groups.dart';
+import 'package:pongstrong/models/match/match.dart';
+import 'package:pongstrong/models/tournament/configurations.dart';
 
 /// The group phase of a tournament, containing all group matches.
 class Gruppenphase {

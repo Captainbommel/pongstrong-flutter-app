@@ -1,7 +1,7 @@
 //* matches should use an identifier to be able to update the match correctly
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/models/match/match.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/app_logger.dart';
@@ -220,6 +220,8 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
                         widget.team1,
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 16.0),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       cupInput(_cups1, enabled: isInteractive),
                     ],
@@ -232,6 +234,8 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
                         widget.team2,
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 16.0),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       cupInput(_cups2, enabled: isInteractive),
                     ],
@@ -473,6 +477,7 @@ class _StartMatchContentState extends State<_StartMatchContent> {
             fontWeight: FontWeight.bold,
           ),
           textAlign: TextAlign.center,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         if (nonEmptyMembers.isNotEmpty) ...[

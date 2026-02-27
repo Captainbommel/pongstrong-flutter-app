@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/models/groups.dart';
-import 'package:pongstrong/models/gruppenphase.dart';
-import 'package:pongstrong/models/match.dart';
+import 'package:pongstrong/models/groups/groups.dart';
+import 'package:pongstrong/models/groups/gruppenphase.dart';
+import 'package:pongstrong/models/match/match.dart';
 
 void main() {
   group('Gruppenphase', () {

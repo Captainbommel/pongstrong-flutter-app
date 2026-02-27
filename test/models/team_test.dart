@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/models/groups.dart';
+import 'package:pongstrong/models/groups/groups.dart';
 import 'package:pongstrong/models/team.dart';
 
 void main() {

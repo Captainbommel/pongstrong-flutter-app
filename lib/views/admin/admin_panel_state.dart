@@ -6,7 +6,7 @@ import 'package:pongstrong/models/models.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/utils/app_logger.dart';
 
-export 'package:pongstrong/models/tournament_enums.dart';
+export 'package:pongstrong/models/tournament/tournament_enums.dart';
 
 /// Admin panel state management with Firebase integration
 class AdminPanelState extends ChangeNotifier {

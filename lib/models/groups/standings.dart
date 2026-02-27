@@ -1,9 +1,9 @@
 // Group standings evaluation.
 //
 // Evaluates match results within groups to produce ranked standings tables.
-import 'package:pongstrong/models/gruppenphase.dart';
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/tabellen.dart';
+import 'package:pongstrong/models/groups/gruppenphase.dart';
+import 'package:pongstrong/models/groups/tabellen.dart';
+import 'package:pongstrong/models/match/match.dart';
 
 /// Evaluates a list of [matches] and returns a ranked standings table.
 ///

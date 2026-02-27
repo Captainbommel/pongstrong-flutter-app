@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/tabellen.dart';
+import 'package:pongstrong/models/groups/tabellen.dart';
+import 'package:pongstrong/models/match/match.dart';
 
 void main() {
   group('TableRow', () {

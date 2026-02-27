@@ -633,6 +633,8 @@ class TreeViewPageState extends State<TreeViewPage>
                   : FontWeight.normal,
               color: teamId.isEmpty ? AppColors.textDisabled : AppColors.shadow,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         if (match.done) Text('$score'),

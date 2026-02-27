@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/models/configurations.dart';
+import 'package:pongstrong/models/tournament/configurations.dart';
 
 void main() {
   group('Configurations.generateMatchPairings', () {

@@ -1,5 +1,5 @@
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/tournament_enums.dart';
+import 'package:pongstrong/models/match/match.dart';
+import 'package:pongstrong/models/tournament/tournament_enums.dart';
 
 /// A generic knockout bracket with N rounds, each containing progressively
 /// fewer matches (e.g. [8, 4, 2, 1] for a Champions-style bracket).

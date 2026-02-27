@@ -3,9 +3,9 @@
 // Handles single-elimination bracket generation, tournament seeding,
 // group conflict resolution, and the full transition from group phase
 // to knockout rounds for 1–10 groups.
-import 'package:pongstrong/models/knockouts.dart';
-import 'package:pongstrong/models/match.dart';
-import 'package:pongstrong/models/tabellen.dart';
+import 'package:pongstrong/models/groups/tabellen.dart';
+import 'package:pongstrong/models/knockout/knockouts.dart';
+import 'package:pongstrong/models/match/match.dart';
 
 // ============================================================================
 // Generalized group-to-knockout transition (1–10 groups, group size 4)

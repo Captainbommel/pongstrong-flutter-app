@@ -1,4 +1,4 @@
-import 'package:pongstrong/models/tournament_enums.dart';
+import 'package:pongstrong/models/tournament/tournament_enums.dart';
 
 /// Parsed tournament metadata shared between admin and viewer states.
 ///

@@ -1,6 +1,6 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/models/groups.dart';
+import 'package:pongstrong/models/groups/groups.dart';
 import 'package:pongstrong/models/team.dart';
 import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 
