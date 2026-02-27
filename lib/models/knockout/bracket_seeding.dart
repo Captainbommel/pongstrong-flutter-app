@@ -190,7 +190,7 @@ void _resolveGroupConflicts(
         final sameGroup = groups[a] == groups[b];
         final earlyMeeting = _earliestMeetingRound(i, j) < minRound;
         final firstVsFirstR1 = (i ~/ 2 == j ~/ 2) &&
-            (i % 2 == 0 && j % 2 == 1) &&
+            (i.isEven && j.isOdd) &&
             tiers[a] == 0 &&
             tiers[b] == 0;
 
