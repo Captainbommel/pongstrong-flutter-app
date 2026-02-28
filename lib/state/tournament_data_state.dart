@@ -47,6 +47,7 @@ class TournamentDataState extends ChangeNotifier {
   Timer? _notifyTimer;
 
   // Stream subscriptions for real-time updates
+  StreamSubscription? _metadataSubscription;
   StreamSubscription? _teamsSubscription;
   StreamSubscription? _groupPhaseSubscription;
   StreamSubscription? _matchQueueSubscription;
@@ -235,6 +236,56 @@ class TournamentDataState extends ChangeNotifier {
 
     final service = _firestoreService;
 
+    // Listen to tournament metadata changes (phase, rules, style)
+    // so other clients learn about knockout transitions and rule toggles.
+    _metadataSubscription = service
+        .tournamentMetadataStream(tournamentId: _currentTournamentId)
+        .listen((raw) {
+      if (raw != null) {
+        final meta = TournamentMetadata.fromMap(raw);
+        bool changed = false;
+
+        // Update knockout mode from phase
+        final newIsKnockout = meta.phase == TournamentPhase.knockoutPhase ||
+            meta.phase == TournamentPhase.finished;
+        if (newIsKnockout != _isKnockoutMode) {
+          _isKnockoutMode = newIsKnockout;
+          changed = true;
+          Logger.debug(
+            'Knockout mode updated from metadata stream: $_isKnockoutMode',
+            tag: 'TournamentData',
+          );
+        }
+
+        // Update selected ruleset
+        if (meta.selectedRuleset != _selectedRuleset) {
+          _selectedRuleset = meta.selectedRuleset;
+          changed = true;
+          Logger.debug(
+            'Selected ruleset updated from metadata stream: $_selectedRuleset',
+            tag: 'TournamentData',
+          );
+        }
+
+        // Update tournament style
+        final newStyle = meta.styleFirestoreKey;
+        if (newStyle != _tournamentStyle) {
+          _tournamentStyle = newStyle;
+          changed = true;
+          Logger.debug(
+            'Tournament style updated from metadata stream: $_tournamentStyle',
+            tag: 'TournamentData',
+          );
+        }
+
+        if (changed) {
+          _notifyListenersDebounced();
+        }
+      }
+    }, onError: (e) {
+      Logger.error('Error in metadata stream', tag: 'TournamentData', error: e);
+    });
+
     // Listen to teams changes (ensures team names stay in sync)
     _teamsSubscription =
         service.teamsStream(tournamentId: _currentTournamentId).listen((teams) {
@@ -337,6 +388,7 @@ class TournamentDataState extends ChangeNotifier {
   /// Cancel all stream subscriptions
   void _cancelStreams() {
     Logger.debug('Cancelling Firestore streams', tag: 'TournamentData');
+    _metadataSubscription?.cancel();
     _teamsSubscription?.cancel();
     _groupPhaseSubscription?.cancel();
     _matchQueueSubscription?.cancel();
