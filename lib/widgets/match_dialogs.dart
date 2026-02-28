@@ -195,70 +195,79 @@ class _FinishMatchContentState extends State<_FinishMatchContent> {
         _status == _DialogStatus.idle || _status == _DialogStatus.error;
 
     return Container(
-      height: MediaQuery.of(context).size.height / 3,
+      constraints: BoxConstraints(
+        minHeight: 200,
+        maxHeight: MediaQuery.of(context).size.height / 2,
+      ),
       decoration: matchDialogDecoration(isLargeScreen: isLargeScreen),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: <Widget>[
-          const Text(
-            'Ergebnis eintragen',
-            style: TextStyle(
-              fontSize: 30.0,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(vertical: 30.0, horizontal: 10.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Flexible(
-                  child: Column(
-                    children: [
-                      Text(
-                        widget.team1,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 16.0),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      cupInput(_cups1, enabled: isInteractive),
-                    ],
-                  ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Text(
+                'Ergebnis eintragen',
+                style: TextStyle(
+                  fontSize: 30.0,
+                  fontWeight: FontWeight.bold,
                 ),
-                Flexible(
-                  child: Column(
-                    children: [
-                      Text(
-                        widget.team2,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 16.0),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      cupInput(_cups2, enabled: isInteractive),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (_errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Text(
-                _errorMessage!,
-                style: const TextStyle(color: AppColors.error, fontSize: 13),
-                textAlign: TextAlign.center,
               ),
-            ),
-          buildDialogActionArea(
-            status: _status,
-            onPressed: _submit,
-            buttonLabel: 'Spiel Abschließen',
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    vertical: 30.0, horizontal: 10.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Flexible(
+                      child: Column(
+                        children: [
+                          Text(
+                            widget.team1,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 16.0),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          cupInput(_cups1, enabled: isInteractive),
+                        ],
+                      ),
+                    ),
+                    Flexible(
+                      child: Column(
+                        children: [
+                          Text(
+                            widget.team2,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 16.0),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          cupInput(_cups2, enabled: isInteractive),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    _errorMessage!,
+                    style:
+                        const TextStyle(color: AppColors.error, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              buildDialogActionArea(
+                status: _status,
+                onPressed: _submit,
+                buttonLabel: 'Spiel Abschließen',
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
