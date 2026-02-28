@@ -7,8 +7,10 @@ import 'package:pongstrong/services/firestore_service/firestore_service.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
 import 'package:pongstrong/utils/app_logger.dart';
+import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
+import 'package:pongstrong/widgets/confirmation_dialog.dart';
 import 'package:provider/provider.dart';
 
 /// Handles importing and exporting tournament data via CSV and JSON files.
@@ -711,6 +713,47 @@ class ImportService {
     }
   }
 
+  /// Returns `true` when the current tournament has already been started
+  /// (i.e. is no longer in the [TournamentPhase.notStarted] phase).
+  static bool _isTournamentStarted(BuildContext context) {
+    try {
+      return Provider.of<AdminPanelState>(context, listen: false)
+          .isTournamentStarted;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Shows a warning dialog informing the user that importing teams into an
+  /// already-started tournament will reset all progress (matches, knockouts,
+  /// standings).  Returns `true` when the user confirms they want to proceed.
+  static Future<bool> _confirmResetIfStarted(BuildContext context) async {
+    if (!_isTournamentStarted(context)) return true;
+
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: 'Turnier zurücksetzen?',
+      titleIcon: Icons.warning_amber_rounded,
+      confirmText: 'Zurücksetzen & Importieren',
+      confirmIcon: Icons.warning_amber_rounded,
+      content: const Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Das Turnier wurde bereits gestartet.'),
+          SizedBox(height: 16),
+          InfoBanner(
+            text:
+                'Durch den Import neuer Teams werden alle bisherigen Ergebnisse (Spielplan, Gruppenphase, K.O.-Runde) gelöscht und das Turnier zurückgesetzt.',
+            color: GroupPhaseColors.cupred,
+            icon: Icons.warning,
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
+
   static void _showLoadingDialog(BuildContext context, String message) {
     showDialog(
       context: context,
@@ -794,8 +837,13 @@ class ImportService {
 
   /// Upload teams from a CSV file.
   static Future<void> uploadTeamsFromFile(BuildContext context) async {
+    // Warn when tournament was already started – import resets everything.
+    if (!await _confirmResetIfStarted(context)) return;
+    if (!context.mounted) return;
+
     final tournamentId = _tournamentId(context);
     final style = _tournamentStyle(context);
+    final wasStarted = _isTournamentStarted(context);
 
     await _withFilePickerAndDialog(
       context: context,
@@ -807,6 +855,11 @@ class ImportService {
         final csvContent = utf8.decode(bytes);
         final service = FirestoreService();
         String message;
+
+        // Clear match/knockout/standings data when the tournament was running.
+        if (wasStarted) {
+          await service.resetTournament(tournamentId: tournamentId);
+        }
 
         if (style == TournamentStyle.groupsAndKnockouts) {
           final (allTeams, groups) = parseTeamsFromCsv(csvContent);
@@ -820,7 +873,10 @@ class ImportService {
           message = '${allTeams.length} Teams importiert!';
         }
 
-        if (context.mounted) await _refreshState(context, tournamentId);
+        if (context.mounted) {
+          await _refreshState(context, tournamentId,
+              includeMetadata: wasStarted);
+        }
         return message;
       },
     );
@@ -890,8 +946,13 @@ class ImportService {
 
   /// Upload teams from a JSON file.
   static Future<void> uploadTeamsFromJson(BuildContext context) async {
+    // Warn when tournament was already started – import resets everything.
+    if (!await _confirmResetIfStarted(context)) return;
+    if (!context.mounted) return;
+
     final tournamentId = _tournamentId(context);
     final style = _tournamentStyle(context);
+    final wasStarted = _isTournamentStarted(context);
 
     await _withFilePickerAndDialog(
       context: context,
@@ -910,6 +971,11 @@ class ImportService {
         final service = FirestoreService();
         String message;
 
+        // Clear match/knockout/standings data when the tournament was running.
+        if (wasStarted) {
+          await service.resetTournament(tournamentId: tournamentId);
+        }
+
         if (style == TournamentStyle.groupsAndKnockouts) {
           final (allTeams, groups) = parseTeamsFromJson(jsonData);
           await service.importTeamsAndGroups(allTeams, groups,
@@ -922,7 +988,10 @@ class ImportService {
           message = '${allTeams.length} Teams importiert!';
         }
 
-        if (context.mounted) await _refreshState(context, tournamentId);
+        if (context.mounted) {
+          await _refreshState(context, tournamentId,
+              includeMetadata: wasStarted);
+        }
         return message;
       },
     );
