@@ -62,22 +62,6 @@ class TreeViewPageState extends State<TreeViewPage>
     super.dispose();
   }
 
-  //TODO: Check if the first round is completely filled otherwise its not ready. Add a method to KnockoutBracket for this.
-  /// Checks whether a KnockoutBracket has meaningful data.
-  bool _bracketHasData(KnockoutBracket bracket) {
-    if (bracket.rounds.isEmpty) return false;
-    if (bracket.rounds[0].isEmpty) return false;
-    return bracket.rounds[0][0].teamId1.isNotEmpty ||
-        bracket.rounds[0][0].teamId2.isNotEmpty;
-  }
-
-  /// Checks whether the Super Cup has meaningful data.
-  bool _superCupHasData(Super superCup) {
-    if (superCup.matches.isEmpty) return false;
-    return superCup.matches
-        .any((m) => m.teamId1.isNotEmpty || m.teamId2.isNotEmpty);
-  }
-
   /// Builds the list of visible bracket entries based on actual data.
   List<_BracketEntry> _getVisibleBrackets(Knockouts knockouts) {
     final entries = <_BracketEntry>[];
@@ -88,7 +72,7 @@ class TreeViewPageState extends State<TreeViewPage>
     };
 
     for (final bracketEntry in brackets.entries) {
-      if (_bracketHasData(bracketEntry.value)) {
+      if (bracketEntry.value.isReady) {
         entries.add(_BracketEntry(
           key: bracketEntry.key,
           name: knockouts.getBracketName(bracketEntry.key),
@@ -98,7 +82,7 @@ class TreeViewPageState extends State<TreeViewPage>
       }
     }
 
-    if (_superCupHasData(knockouts.superCup)) {
+    if (knockouts.superCup.isReady) {
       entries.add(_BracketEntry(
         key: BracketKey.extra,
         name: knockouts.getBracketName(BracketKey.extra),

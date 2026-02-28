@@ -21,6 +21,13 @@ class KnockoutBracket {
     ];
   }
 
+  /// [isReady] checks if all matches in the first round have two teams assigned.
+  bool get isReady {
+    if (rounds.isEmpty) return false;
+    if (rounds[0].isEmpty) return false;
+    return rounds[0].every((m) => m.teamId1.isNotEmpty && m.teamId2.isNotEmpty);
+  }
+
   /// Serialises the bracket rounds to a JSON-compatible structure.
   List<List<Map<String, dynamic>>> toJson() =>
       rounds.map((round) => round.map((m) => m.toJson()).toList()).toList();
@@ -77,6 +84,12 @@ class Super {
   /// [count] is the number of matches to create (1 or 2).
   void instantiate([int count = 2]) {
     matches = List.generate(count, (i) => Match(id: 's-${i + 1}'));
+  }
+
+  /// [isReady] checks if all super cup matches have two teams assigned.
+  bool get isReady {
+    if (matches.isEmpty) return false;
+    return matches.every((m) => m.teamId1.isNotEmpty && m.teamId2.isNotEmpty);
   }
 
   /// Serialises the super cup to a JSON list.

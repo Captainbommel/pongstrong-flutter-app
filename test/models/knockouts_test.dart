@@ -71,6 +71,71 @@ void main() {
     });
   });
 
+  group('KnockoutBracket isReady', () {
+    test('returns false when rounds is empty', () {
+      final bracket = KnockoutBracket();
+      expect(bracket.isReady, isFalse);
+    });
+
+    test('returns false when first round has no matches', () {
+      final bracket = KnockoutBracket(rounds: [[]]);
+      expect(bracket.isReady, isFalse);
+    });
+
+    test('returns false when all first-round matches have no teams', () {
+      final bracket = KnockoutBracket();
+      bracket.instantiate('c', [2, 1]);
+      expect(bracket.isReady, isFalse);
+    });
+
+    test('returns false when only teamId1 is set on some matches', () {
+      final bracket = KnockoutBracket();
+      bracket.instantiate('c', [2, 1]);
+      bracket.rounds[0][0].teamId1 = 'team-a';
+      bracket.rounds[0][1].teamId1 = 'team-b';
+      expect(bracket.isReady, isFalse);
+    });
+
+    test('returns false when only teamId2 is set on some matches', () {
+      final bracket = KnockoutBracket();
+      bracket.instantiate('c', [2, 1]);
+      bracket.rounds[0][0].teamId2 = 'team-a';
+      bracket.rounds[0][1].teamId2 = 'team-b';
+      expect(bracket.isReady, isFalse);
+    });
+
+    test('returns false when only one of two first-round matches is filled',
+        () {
+      final bracket = KnockoutBracket();
+      bracket.instantiate('c', [2, 1]);
+      bracket.rounds[0][0].teamId1 = 'team-a';
+      bracket.rounds[0][0].teamId2 = 'team-b';
+      // rounds[0][1] left empty
+      expect(bracket.isReady, isFalse);
+    });
+
+    test('returns true when all first-round matches have both teams set', () {
+      final bracket = KnockoutBracket();
+      bracket.instantiate('c', [2, 1]);
+      bracket.rounds[0][0].teamId1 = 'team-a';
+      bracket.rounds[0][0].teamId2 = 'team-b';
+      bracket.rounds[0][1].teamId1 = 'team-c';
+      bracket.rounds[0][1].teamId2 = 'team-d';
+      expect(bracket.isReady, isTrue);
+    });
+
+    test('ignores later rounds when checking readiness', () {
+      final bracket = KnockoutBracket();
+      bracket.instantiate('c', [2, 1]);
+      bracket.rounds[0][0].teamId1 = 'team-a';
+      bracket.rounds[0][0].teamId2 = 'team-b';
+      bracket.rounds[0][1].teamId1 = 'team-c';
+      bracket.rounds[0][1].teamId2 = 'team-d';
+      // Final round intentionally left empty — should still be ready
+      expect(bracket.isReady, isTrue);
+    });
+  });
+
   group('Super', () {
     test('instantiate creates correct structure', () {
       final superCup = Super();
@@ -85,6 +150,64 @@ void main() {
 
       expect(superCup.matches[0].id, 's-1');
       expect(superCup.matches[1].id, 's-2');
+    });
+
+    group('isReady', () {
+      test('returns false when matches is empty', () {
+        final superCup = Super();
+        expect(superCup.isReady, isFalse);
+      });
+
+      test('returns false when all matches have no teams', () {
+        final superCup = Super();
+        superCup.instantiate();
+        expect(superCup.isReady, isFalse);
+      });
+
+      test('returns false when only teamId1 is set', () {
+        final superCup = Super();
+        superCup.instantiate();
+        superCup.matches[0].teamId1 = 'team-a';
+        superCup.matches[1].teamId1 = 'team-b';
+        expect(superCup.isReady, isFalse);
+      });
+
+      test('returns false when only teamId2 is set', () {
+        final superCup = Super();
+        superCup.instantiate();
+        superCup.matches[0].teamId2 = 'team-a';
+        superCup.matches[1].teamId2 = 'team-b';
+        expect(superCup.isReady, isFalse);
+      });
+
+      test('returns false when only one of two matches is fully assigned', () {
+        final superCup = Super();
+        superCup.instantiate();
+        superCup.matches[0].teamId1 = 'team-a';
+        superCup.matches[0].teamId2 = 'team-b';
+        // matches[1] left empty
+        expect(superCup.isReady, isFalse);
+      });
+
+      test('returns true when all matches have both teams set (2-match cup)',
+          () {
+        final superCup = Super();
+        superCup.instantiate();
+        superCup.matches[0].teamId1 = 'team-a';
+        superCup.matches[0].teamId2 = 'team-b';
+        superCup.matches[1].teamId1 = 'team-c';
+        superCup.matches[1].teamId2 = 'team-d';
+        expect(superCup.isReady, isTrue);
+      });
+
+      test('returns true when single match has both teams set (1-match cup)',
+          () {
+        final superCup = Super();
+        superCup.instantiate(1);
+        superCup.matches[0].teamId1 = 'team-a';
+        superCup.matches[0].teamId2 = 'team-b';
+        expect(superCup.isReady, isTrue);
+      });
     });
   });
 
