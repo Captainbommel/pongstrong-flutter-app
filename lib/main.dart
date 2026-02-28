@@ -83,10 +83,7 @@ class AppSelector extends StatelessWidget {
       return const LandingPage();
     }
 
-    // PopScope prevents the root route from being popped on web.
-    // Without it, an accidental double-pop (e.g. bottom-sheet dismiss
-    // racing with the auto-close timer) calls SystemNavigator.pop()
-    // which navigates the browser back to index.html.
+    // Prevent the root route from being popped (e.g. by a double-pop race).
     return const PopScope(
       canPop: false,
       child: AppShell(),
