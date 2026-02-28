@@ -331,7 +331,8 @@ mixin TournamentManagementService
     return result;
   }
 
-  /// Transitions tournament from group phase to knockout phase
+  /// Transitions tournament from group phase to knockout phase.
+  /// Saves knockouts, match queue, and phase update in a single batch.
   Future<void> transitionToKnockouts({
     String tournamentId = FirestoreBase.defaultTournamentId,
     required int numberOfGroups,
@@ -347,26 +348,22 @@ mixin TournamentManagementService
     final knockouts = evaluateGroups(tabellen,
         tableCount: tableCount, splitTables: splitTables);
 
-    // Save knockouts
-    await saveKnockouts(knockouts, tournamentId: tournamentId);
-
-    // Update tournament phase
-    await firestore
-        .collection(FirestoreBase.tournamentsCollection)
-        .doc(tournamentId)
-        .update({
-      'phase': 'knockouts',
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
     // Create a fresh flat match queue and populate with KO matches
     final queue = MatchQueue();
     queue.updateKnockQueue(knockouts);
-    await saveMatchQueue(queue, tournamentId: tournamentId);
+
+    // Write everything in a single batch
+    await _saveKnockoutsQueueAndPhase(
+      knockouts: knockouts,
+      queue: queue,
+      phase: 'knockouts',
+      tournamentId: tournamentId,
+    );
   }
 
   /// Reverts tournament from knockout phase back to group phase.
   /// Clears knockout trees and rebuilds the match queue with unfinished group matches.
+  /// Saves knockouts, queue, and phase in a single batch.
   Future<void> revertToGroupPhase({
     String tournamentId = FirestoreBase.defaultTournamentId,
   }) async {
@@ -388,19 +385,71 @@ mixin TournamentManagementService
     // Save empty knockouts (clears the trees)
     final knockouts = Knockouts();
     knockouts.instantiate();
-    await saveKnockouts(knockouts, tournamentId: tournamentId);
 
-    // Save rebuilt match queue
-    await saveMatchQueue(queue, tournamentId: tournamentId);
+    // Write everything in a single batch
+    await _saveKnockoutsQueueAndPhase(
+      knockouts: knockouts,
+      queue: queue,
+      phase: 'groups',
+      tournamentId: tournamentId,
+    );
+  }
 
-    // Update tournament phase back to groups
-    await firestore
-        .collection(FirestoreBase.tournamentsCollection)
-        .doc(tournamentId)
-        .update({
-      'phase': 'groups',
+  /// Batch-writes knockouts doc, match queue doc, and tournament phase
+  /// in a single atomic Firestore commit.
+  Future<void> _saveKnockoutsQueueAndPhase({
+    required Knockouts knockouts,
+    required MatchQueue queue,
+    required String phase,
+    String tournamentId = FirestoreBase.defaultTournamentId,
+  }) async {
+    final batch = firestore.batch();
+
+    // Knockouts document
+    batch.set(getDoc(tournamentId, 'knockouts'), {
+      BracketKey.gold.name: _bracketToMap(knockouts.champions),
+      BracketKey.silver.name: _bracketToMap(knockouts.europa),
+      BracketKey.bronze.name: _bracketToMap(knockouts.conference),
+      BracketKey.extra.name: knockouts.superCup.toJson(),
+      'bracketNames': {
+        for (final entry in knockouts.bracketNames.entries)
+          entry.key.name: entry.value,
+      },
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    // Match queue document
+    batch.set(getDoc(tournamentId, 'matchQueue'), {
+      'queue': queue.queue.map((e) => e.toJson()).toList(),
+      'playing': queue.playing.map((m) => m.toJson()).toList(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Tournament phase
+    batch.update(
+      firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId),
+      {
+        'phase': phase,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+    );
+
+    await batch.commit();
+  }
+
+  /// Converts a [KnockoutBracket]'s rounds to a Firestore-safe map structure.
+  /// (Mirrors the top-level `_bracketToMap` for use inside this mixin.)
+  static Map<String, dynamic> _bracketToMap(KnockoutBracket bracket) {
+    final roundsMap = <String, dynamic>{};
+    for (int i = 0; i < bracket.rounds.length; i++) {
+      roundsMap['round$i'] = bracket.rounds[i].map((m) => m.toJson()).toList();
+    }
+    return {
+      'rounds': roundsMap,
+      'numberOfRounds': bracket.rounds.length,
+    };
   }
 
   /// Re-evaluates group standings based on current match results
@@ -464,29 +513,30 @@ mixin TournamentManagementService
     await batch.commit();
   }
 
-  /// Resets tournament to notStarted state (keeps teams and groups, deletes everything else)
+  /// Resets tournament to notStarted state (keeps teams and groups, deletes everything else).
+  /// Uses a Firestore batch so all deletes + the phase update are atomic.
   Future<void> resetTournament({
     String tournamentId = FirestoreBase.defaultTournamentId,
   }) async {
-    // Delete gruppenphase
-    await getDoc(tournamentId, 'gruppenphase').delete();
+    final batch = firestore.batch();
 
-    // Delete match queue
-    await getDoc(tournamentId, 'matchQueue').delete();
-
-    // Delete knockouts
-    await getDoc(tournamentId, 'knockouts').delete();
-
-    // Delete tabellen
-    await getDoc(tournamentId, 'tabellen').delete();
+    // Delete game-data documents
+    batch.delete(getDoc(tournamentId, 'gruppenphase'));
+    batch.delete(getDoc(tournamentId, 'matchQueue'));
+    batch.delete(getDoc(tournamentId, 'knockouts'));
+    batch.delete(getDoc(tournamentId, 'tabellen'));
 
     // Reset tournament phase to notStarted
-    await firestore
-        .collection(FirestoreBase.tournamentsCollection)
-        .doc(tournamentId)
-        .update({
-      'phase': 'notStarted',
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    batch.update(
+      firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId),
+      {
+        'phase': 'notStarted',
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+    );
+
+    await batch.commit();
   }
 }

@@ -8,6 +8,7 @@ import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/views/admin/admin_panel_page.dart';
 import 'package:pongstrong/views/mobile_drawer.dart';
 import 'package:pongstrong/views/playing_field_view.dart';
+import 'package:pongstrong/views/presentation/presentation_screen.dart';
 import 'package:pongstrong/views/rules_view.dart';
 import 'package:pongstrong/views/teams_view.dart';
 import 'package:pongstrong/views/tree_view.dart';
@@ -221,6 +222,25 @@ class _AppShellState extends State<AppShell> {
                           color: GroupPhaseColors.cupred,
                         ),
                       ),
+                    ),
+                  ),
+                ),
+              ),
+            // Presentation mode button - available to authenticated participants on desktop
+            if (hasStarted && (authState.isParticipant || authState.isAdmin))
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Tooltip(
+                  message: 'Präsentationsmodus (Beamer)',
+                  child: IconButton(
+                    onPressed: () => PresentationScreen.open(
+                      context,
+                      tournamentData,
+                    ),
+                    icon: const Icon(
+                      Icons.slideshow,
+                      color: GroupPhaseColors.steelblue,
+                      size: 24,
                     ),
                   ),
                 ),

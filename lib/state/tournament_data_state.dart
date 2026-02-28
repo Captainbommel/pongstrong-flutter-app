@@ -255,6 +255,14 @@ class TournamentDataState extends ChangeNotifier {
         }
 
         _notifyListenersDebounced();
+      } else {
+        // Document was deleted (e.g. tournament reset) — clear local state
+        Logger.debug('Group phase document deleted, clearing local state',
+            tag: 'TournamentData');
+        _gruppenphase = Gruppenphase();
+        _tabellen = Tabellen();
+        _tabellenHash = '';
+        _notifyListenersDebounced();
       }
     }, onError: (e) {
       Logger.error('Error in group phase stream',
@@ -270,6 +278,12 @@ class TournamentDataState extends ChangeNotifier {
             tag: 'TournamentData');
         _matchQueue = queue;
         _notifyListenersDebounced();
+      } else {
+        // Document was deleted (e.g. tournament reset) — clear local state
+        Logger.debug('Match queue document deleted, clearing local state',
+            tag: 'TournamentData');
+        _matchQueue = MatchQueue();
+        _notifyListenersDebounced();
       }
     }, onError: (e) {
       Logger.error('Error in match queue stream',
@@ -283,6 +297,13 @@ class TournamentDataState extends ChangeNotifier {
       if (knockouts != null) {
         Logger.debug('Knockouts updated from Firestore', tag: 'TournamentData');
         _knockouts = knockouts;
+        _notifyListenersDebounced();
+      } else {
+        // Document was deleted (e.g. tournament reset) — clear local state
+        Logger.debug('Knockouts document deleted, clearing local state',
+            tag: 'TournamentData');
+        _knockouts = Knockouts();
+        _isKnockoutMode = false;
         _notifyListenersDebounced();
       }
     }, onError: (e) {
@@ -567,12 +588,20 @@ class TournamentDataState extends ChangeNotifier {
     _matchQueue.removeFromPlaying(matchId);
     _tabellen = evalGruppen(groupPhase);
 
-    return _saveGroupPhaseAndTables(
+    final saved = await _saveGroupPhaseAndTables(
       groupPhase,
       _tabellen,
       rollbackQueue: prevQueue,
       rollbackTabellen: prevTabellen,
     );
+
+    if (saved) {
+      // Update local gruppenphase immediately so it reflects the finished
+      // match without waiting for the Firestore stream round-trip.
+      _gruppenphase = groupPhase;
+      _tabellenHash = _computeGruppenphaseHash(groupPhase);
+    }
+    return saved;
   }
 
   /// Finish a knockout match
@@ -787,22 +816,34 @@ class TournamentDataState extends ChangeNotifier {
   ) async {
     Logger.debug('Editing knockout match: $matchId', tag: 'TournamentData');
 
+    // Snapshot BEFORE mutating so we can rollback on failure
+    final prevKnockouts = _knockouts.clone();
+    final prevQueue = _matchQueue.clone();
+
     try {
       _knockouts.clearDependentMatches(matchId);
 
       if (!_knockouts.updateMatchScore(matchId, newScore1, newScore2)) {
         Logger.warning('Match $matchId not found in knockouts',
             tag: 'TournamentData');
+        // Revert the clearDependentMatches mutation
+        _knockouts = prevKnockouts;
         return false;
       }
 
       _knockouts.update();
       _matchQueue.updateKnockQueue(_knockouts);
 
-      return _saveKnockoutsAndQueue('knockout edit: $matchId');
+      return _saveKnockoutsAndQueue(
+        'knockout edit: $matchId',
+        rollbackKnockouts: prevKnockouts,
+        rollbackQueue: prevQueue,
+      );
     } catch (e) {
       Logger.error('Error editing knockout match',
           tag: 'TournamentData', error: e);
+      _knockouts = prevKnockouts;
+      _matchQueue = prevQueue;
       return false;
     }
   }
@@ -815,6 +856,9 @@ class TournamentDataState extends ChangeNotifier {
   /// This is the counterpart of [toJson] – it takes the parsed snapshot
   /// fields and writes them into both the local state and Firestore so
   /// they survive a page reload.
+  ///
+  /// All Firestore writes happen inside a single try/catch so a partial
+  /// failure doesn't leave the local state out of sync.
   Future<void> restoreFromSnapshot({
     required List<Team> teams,
     required MatchQueue matchQueue,
@@ -830,18 +874,6 @@ class TournamentDataState extends ChangeNotifier {
   }) async {
     final service = _firestoreService;
 
-    // Persist every sub-collection to Firestore
-    await service.saveTeams(teams, tournamentId: tournamentId);
-    await service.saveGruppenphase(gruppenphase, tournamentId: tournamentId);
-    await service.saveMatchQueue(matchQueue, tournamentId: tournamentId);
-    await service.saveTabellen(tabellen, tournamentId: tournamentId);
-    await service.saveKnockouts(knockouts, tournamentId: tournamentId);
-
-    // Persist group assignments if provided
-    if (groups != null && groups.groups.isNotEmpty) {
-      await service.saveGroups(groups, tournamentId: tournamentId);
-    }
-
     // Determine the phase from the state
     String phase;
     if (teams.isEmpty) {
@@ -852,20 +884,38 @@ class TournamentDataState extends ChangeNotifier {
       phase = 'groups';
     }
 
-    // Update tournament metadata (including numberOfTables)
-    await service.firestore
-        .collection(FirestoreBase.tournamentsCollection)
-        .doc(tournamentId)
-        .set({
-      'phase': phase,
-      'tournamentStyle': tournamentStyle,
-      'selectedRuleset': selectedRuleset,
-      'numberOfTables': numberOfTables,
-      'updatedAt':
-          null, // will be overwritten by FieldValue.serverTimestamp() when available
-    }, SetOptions(merge: true));
+    // Persist everything to Firestore – wrap in try/catch so that a
+    // partial failure doesn't leave local state corrupted.
+    try {
+      await service.saveTeams(teams, tournamentId: tournamentId);
+      await service.saveGruppenphase(gruppenphase, tournamentId: tournamentId);
+      await service.saveMatchQueue(matchQueue, tournamentId: tournamentId);
+      await service.saveTabellen(tabellen, tournamentId: tournamentId);
+      await service.saveKnockouts(knockouts, tournamentId: tournamentId);
 
-    // Update local state
+      // Persist group assignments if provided
+      if (groups != null && groups.groups.isNotEmpty) {
+        await service.saveGroups(groups, tournamentId: tournamentId);
+      }
+
+      // Update tournament metadata (including numberOfTables)
+      await service.firestore
+          .collection(FirestoreBase.tournamentsCollection)
+          .doc(tournamentId)
+          .set({
+        'phase': phase,
+        'tournamentStyle': tournamentStyle,
+        'selectedRuleset': selectedRuleset,
+        'numberOfTables': numberOfTables,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      Logger.error('Error persisting snapshot to Firestore',
+          tag: 'TournamentData', error: e);
+      rethrow;
+    }
+
+    // Update local state only after all Firestore writes succeed
     _teams = teams;
     _rebuildTeamCache();
     _matchQueue = matchQueue;

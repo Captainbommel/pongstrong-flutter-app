@@ -1682,7 +1682,8 @@ void main() {
       state.dispose();
     });
 
-    test('null stream events are ignored', () async {
+    test('null stream events clear local state (e.g. tournament reset)',
+        () async {
       final teams = buildTeams(4);
       final groups = buildGroups(teams, 1);
       final gp = buildGruppenphase(groups, tableCount: 2);
@@ -1715,14 +1716,20 @@ void main() {
       final state = makeState(mockService);
       await state.loadTournamentData('stream-tourney');
 
+      // Verify we have data before the null event
+      expect(state.gruppenphase.groups.isNotEmpty, isTrue);
+
       int notifyCount = 0;
       state.addListener(() => notifyCount++);
 
-      // Push null — should be ignored
+      // Push null — should clear local gruppenphase (e.g. document deleted)
       gpController.add(null);
 
       await Future.delayed(const Duration(milliseconds: 200));
-      expect(notifyCount, 0);
+      expect(notifyCount, 1,
+          reason: 'null stream event should notify listeners');
+      expect(state.gruppenphase.groups, isEmpty,
+          reason: 'null stream event should clear gruppenphase');
 
       gpController.close();
       state.dispose();
