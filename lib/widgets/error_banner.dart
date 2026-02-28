@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:pongstrong/utils/colors.dart';
 
 /// Reusable error banner widget for displaying error messages.
-///
-/// Used in admin panel pages and other contexts that show errors.
 class ErrorBanner extends StatelessWidget {
   final String message;
   final VoidCallback? onDismiss;

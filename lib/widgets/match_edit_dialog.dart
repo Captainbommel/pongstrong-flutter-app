@@ -3,11 +3,14 @@ import 'package:pongstrong/models/match/match.dart';
 import 'package:pongstrong/models/match/scoring.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/views/playing_field/match_dialogs.dart';
+import 'package:pongstrong/widgets/info_banner.dart';
 
-/// Reusable dialog for editing a finished match score.
-/// Returns a `{score1: int, score2: int}` map on confirm, or null on cancel.
+/// Dialog for editing a match score.
 ///
-/// Set [isKnockout] to true to show the cascade-reset warning.
+/// Shows two score input fields with team names and validates scores using
+/// [isValid]. In knockout mode, warns that editing resets subsequent matches.
+///
+/// Returns `{'score1': int, 'score2': int}` on confirm, or `null` on dismiss.
 class MatchEditDialog extends StatefulWidget {
   final Match match;
   final String team1Name;
@@ -22,7 +25,6 @@ class MatchEditDialog extends StatefulWidget {
     this.isKnockout = false,
   });
 
-  /// Convenience helper – call from anywhere that has a [BuildContext].
   static Future<Map<String, int>?> show(
     BuildContext context, {
     required Match match,
@@ -87,27 +89,10 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (widget.isKnockout) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.warning),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.warning_amber, color: AppColors.warning),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Das Bearbeiten dieses Spiels setzt alle '
-                        'nachfolgenden Spiele zurück.',
-                        style:
-                            TextStyle(color: AppColors.warning, fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
+              const InfoBanner(
+                text: 'Das Bearbeiten dieses Spiels setzt alle '
+                    'nachfolgenden Spiele zurück.',
+                color: AppColors.warning,
               ),
               const SizedBox(height: 16),
             ],
@@ -123,72 +108,7 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
                   textAlign: TextAlign.center,
                 ),
               ),
-            // Team names and scores in aligned columns
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Team 1 column
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(
-                        widget.team1Name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 12),
-                      _scoreField(_score1Controller),
-                    ],
-                  ),
-                ),
-                // Separator
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 24), // Align with team names
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: const Text(
-                          ':',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: GroupPhaseColors.cupred,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Team 2 column
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(
-                        widget.team2Name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 12),
-                      _scoreField(_score2Controller),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            _scoreRow(),
           ],
         ),
       ),
@@ -209,6 +129,61 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
           child: const Text('Speichern'),
         ),
       ],
+    );
+  }
+
+  Widget _scoreRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _teamColumn(widget.team1Name, _score1Controller),
+        _scoreSeparator(),
+        _teamColumn(widget.team2Name, _score2Controller),
+      ],
+    );
+  }
+
+  Widget _teamColumn(String teamName, TextEditingController controller) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            teamName,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
+          _scoreField(controller),
+        ],
+      ),
+    );
+  }
+
+  Widget _scoreSeparator() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          const SizedBox(height: 36),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: const Text(
+              ':',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: GroupPhaseColors.cupred,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
