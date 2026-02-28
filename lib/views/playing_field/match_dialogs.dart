@@ -1,4 +1,3 @@
-//* matches should use an identifier to be able to update the match correctly
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pongstrong/models/match/match.dart';

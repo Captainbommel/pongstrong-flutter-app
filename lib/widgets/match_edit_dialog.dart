@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pongstrong/models/match/match.dart';
 import 'package:pongstrong/models/match/scoring.dart';
 import 'package:pongstrong/utils/colors.dart';
-import 'package:pongstrong/widgets/match_dialogs.dart';
+import 'package:pongstrong/views/playing_field/match_dialogs.dart';
 
 /// Reusable dialog for editing a finished match score.
 /// Returns a `{score1: int, score2: int}` map on confirm, or null on cancel.
