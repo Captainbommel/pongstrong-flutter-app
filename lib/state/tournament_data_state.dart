@@ -47,6 +47,7 @@ class TournamentDataState extends ChangeNotifier {
   Timer? _notifyTimer;
 
   // Stream subscriptions for real-time updates
+  StreamSubscription? _teamsSubscription;
   StreamSubscription? _groupPhaseSubscription;
   StreamSubscription? _matchQueueSubscription;
   StreamSubscription? _knockoutsSubscription;
@@ -180,6 +181,7 @@ class TournamentDataState extends ChangeNotifier {
     Knockouts? knockouts,
   }) {
     _teams = teams;
+    _rebuildTeamCache();
     _matchQueue = matchQueue;
     _tabellen = tabellen;
     _knockouts = knockouts ?? Knockouts();
@@ -232,6 +234,26 @@ class TournamentDataState extends ChangeNotifier {
         tag: 'TournamentData');
 
     final service = _firestoreService;
+
+    // Listen to teams changes (ensures team names stay in sync)
+    _teamsSubscription =
+        service.teamsStream(tournamentId: _currentTournamentId).listen((teams) {
+      if (teams != null) {
+        Logger.debug('Teams updated from Firestore: ${teams.length} teams',
+            tag: 'TournamentData');
+        _teams = teams;
+        _rebuildTeamCache();
+        _notifyListenersDebounced();
+      } else {
+        Logger.debug('Teams document deleted, clearing local state',
+            tag: 'TournamentData');
+        _teams = [];
+        _rebuildTeamCache();
+        _notifyListenersDebounced();
+      }
+    }, onError: (e) {
+      Logger.error('Error in teams stream', tag: 'TournamentData', error: e);
+    });
 
     // Listen to group phase changes
     _groupPhaseSubscription = service
@@ -315,6 +337,7 @@ class TournamentDataState extends ChangeNotifier {
   /// Cancel all stream subscriptions
   void _cancelStreams() {
     Logger.debug('Cancelling Firestore streams', tag: 'TournamentData');
+    _teamsSubscription?.cancel();
     _groupPhaseSubscription?.cancel();
     _matchQueueSubscription?.cancel();
     _knockoutsSubscription?.cancel();

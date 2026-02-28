@@ -37,7 +37,7 @@ class TreeViewPage extends StatefulWidget {
 }
 
 class TreeViewPageState extends State<TreeViewPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   TabController? _tabController;
   int _selectedIndex = 0;
   bool _isExploring = false;
