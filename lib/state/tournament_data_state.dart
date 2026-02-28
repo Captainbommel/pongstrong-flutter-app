@@ -667,10 +667,7 @@ class TournamentDataState extends ChangeNotifier {
       final previousIsKnockoutMode = _isKnockoutMode;
 
       // Clear match queue and fill with knockout matches
-      _matchQueue = MatchQueue(
-        waiting: List.generate(tableCount, (_) => <Match>[]),
-        playing: [],
-      );
+      _matchQueue = MatchQueue();
       _matchQueue.updateKnockQueue(knockouts);
 
       Logger.debug('Match queue updated with knockout matches',

@@ -9,15 +9,8 @@ mixin MatchQueueService on FirestoreBase {
     MatchQueue queue, {
     String tournamentId = FirestoreBase.defaultTournamentId,
   }) async {
-    // Convert nested array to map to avoid Firestore nested array limitation
-    final waitingMap = <String, dynamic>{};
-    for (int i = 0; i < queue.waiting.length; i++) {
-      waitingMap['group$i'] = queue.waiting[i].map((m) => m.toJson()).toList();
-    }
-
     final data = {
-      'waiting': waitingMap,
-      'numberOfQueues': queue.waiting.length,
+      'queue': queue.queue.map((e) => e.toJson()).toList(),
       'playing': queue.playing.map((m) => m.toJson()).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -37,31 +30,26 @@ mixin MatchQueueService on FirestoreBase {
 
     // Check if this is a placeholder document (setup phase)
     if (data['initialized'] == true &&
-        (data['numberOfQueues'] == null || data['numberOfQueues'] == 0)) {
+        (data['queue'] == null || (data['queue'] as List?)?.isEmpty == true)) {
       return MatchQueue();
     }
 
-    final waitingMap = data['waiting'] as Map<String, dynamic>?;
-    final numberOfQueues = data['numberOfQueues'] as int? ?? 0;
+    final queueList = data['queue'] as List? ?? [];
     final playingList = data['playing'] as List? ?? [];
 
-    if (waitingMap == null || numberOfQueues == 0) {
+    if (queueList.isEmpty && playingList.isEmpty) {
       return MatchQueue();
     }
 
-    final waiting = <List<Match>>[];
-    for (int i = 0; i < numberOfQueues; i++) {
-      final queueMatches = (waitingMap['group$i'] as List)
-          .map((m) => Match.fromJson(m as Map<String, dynamic>))
-          .toList();
-      waiting.add(queueMatches);
-    }
+    final queueEntries = queueList
+        .map((e) => MatchQueueEntry.fromJson(e as Map<String, dynamic>))
+        .toList();
 
     final playing = playingList
         .map((m) => Match.fromJson(m as Map<String, dynamic>))
         .toList();
 
-    return MatchQueue(waiting: waiting, playing: playing);
+    return MatchQueue(queue: queueEntries, playing: playing);
   }
 
   /// Stream of match queue updates
@@ -74,31 +62,27 @@ mixin MatchQueueService on FirestoreBase {
 
       // Check if this is a placeholder document (setup phase)
       if (data['initialized'] == true &&
-          (data['numberOfQueues'] == null || data['numberOfQueues'] == 0)) {
+          (data['queue'] == null ||
+              (data['queue'] as List?)?.isEmpty == true)) {
         return MatchQueue();
       }
 
-      final waitingMap = data['waiting'] as Map<String, dynamic>?;
-      final numberOfQueues = data['numberOfQueues'] as int? ?? 0;
+      final queueList = data['queue'] as List? ?? [];
       final playingList = data['playing'] as List? ?? [];
 
-      if (waitingMap == null || numberOfQueues == 0) {
+      if (queueList.isEmpty && playingList.isEmpty) {
         return MatchQueue();
       }
 
-      final waiting = <List<Match>>[];
-      for (int i = 0; i < numberOfQueues; i++) {
-        final queueMatches = (waitingMap['group$i'] as List)
-            .map((m) => Match.fromJson(m as Map<String, dynamic>))
-            .toList();
-        waiting.add(queueMatches);
-      }
+      final queueEntries = queueList
+          .map((e) => MatchQueueEntry.fromJson(e as Map<String, dynamic>))
+          .toList();
 
       final playing = playingList
           .map((m) => Match.fromJson(m as Map<String, dynamic>))
           .toList();
 
-      return MatchQueue(waiting: waiting, playing: playing);
+      return MatchQueue(queue: queueEntries, playing: playing);
     });
   }
 }

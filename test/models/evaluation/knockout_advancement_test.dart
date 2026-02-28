@@ -254,10 +254,7 @@ void main() {
       final tabellen = _makeTabellenForGroups(5);
       final ko = evaluateGroups(tabellen);
 
-      final queue = MatchQueue(
-        waiting: List.generate(6, (_) => <Match>[]),
-        playing: [],
-      );
+      final queue = MatchQueue();
       queue.updateKnockQueue(ko);
 
       // Count matches that should be in queue (both teams set, not done)
@@ -280,8 +277,7 @@ void main() {
         }
       }
 
-      final totalInQueue =
-          queue.waiting.fold<int>(0, (sum, list) => sum + list.length);
+      final totalInQueue = queue.queue.length;
       expect(totalInQueue, expectedReady,
           reason: 'Queue should contain all ready R1 matches');
     });
@@ -298,10 +294,7 @@ void main() {
       }
       ko.update();
 
-      final queue = MatchQueue(
-        waiting: List.generate(6, (_) => <Match>[]),
-        playing: [],
-      );
+      final queue = MatchQueue();
       queue.updateKnockQueue(ko);
 
       // Round 2 matches should now be in the queue
@@ -315,12 +308,7 @@ void main() {
           reason: 'Champions R2 should have ready matches');
 
       // Verify these matches are in the queue
-      final allQueuedIds = <String>{};
-      for (final list in queue.waiting) {
-        for (final m in list) {
-          allQueuedIds.add(m.id);
-        }
-      }
+      final allQueuedIds = queue.queue.map((e) => e.matchId).toSet();
       for (final m in ko.champions.rounds[1]) {
         if (m.teamId1.isNotEmpty && m.teamId2.isNotEmpty && !m.done) {
           expect(allQueuedIds.contains(m.id), isTrue,

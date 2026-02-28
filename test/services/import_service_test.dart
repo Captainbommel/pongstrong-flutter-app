@@ -567,7 +567,7 @@ void main() {
     test('returns true for valid snapshot', () {
       final data = {
         'teams': [],
-        'matchQueue': {'waiting': [], 'playing': []},
+        'matchQueue': {'queue': [], 'playing': []},
         'gruppenphase': [],
         'tabellen': [],
         'knockouts': {},
@@ -604,7 +604,7 @@ void main() {
         'teams': [
           {'id': 't1', 'name': 'Alpha', 'member1': 'A1', 'member2': 'A2'},
         ],
-        'matchQueue': {'waiting': [], 'playing': []},
+        'matchQueue': {'queue': [], 'playing': []},
         'gruppenphase': [],
         'tabellen': [],
         'knockouts': {
@@ -625,7 +625,7 @@ void main() {
 
       expect(snapshot.teams.length, 1);
       expect(snapshot.teams[0].name, 'Alpha');
-      expect(snapshot.matchQueue.waiting, isEmpty);
+      expect(snapshot.matchQueue.queue, isEmpty);
       expect(snapshot.matchQueue.playing, isEmpty);
       expect(snapshot.gruppenphase.groups, isEmpty);
       expect(snapshot.tabellen.tables, isEmpty);
@@ -642,9 +642,9 @@ void main() {
           {'id': 't2', 'name': 'Beta', 'member1': 'B1', 'member2': 'B2'},
         ],
         'matchQueue': {
-          'waiting': [
-            [
-              {
+          'queue': [
+            {
+              'match': {
                 'teamId1': 't1',
                 'teamId2': 't2',
                 'score1': 0,
@@ -652,8 +652,10 @@ void main() {
                 'tischnummer': 1,
                 'id': 'g11',
                 'done': false,
-              }
-            ]
+              },
+              'groupRank': 0,
+              'tableOrder': 0,
+            }
           ],
           'playing': [],
         },
@@ -707,9 +709,8 @@ void main() {
       final snapshot = ImportService.parseSnapshotFromJson(data);
 
       expect(snapshot.teams.length, 2);
-      expect(snapshot.matchQueue.waiting.length, 1);
-      expect(snapshot.matchQueue.waiting[0].length, 1);
-      expect(snapshot.matchQueue.waiting[0][0].id, 'g11');
+      expect(snapshot.matchQueue.queue.length, 1);
+      expect(snapshot.matchQueue.queue[0].matchId, 'g11');
       expect(snapshot.gruppenphase.groups.length, 1);
       expect(snapshot.gruppenphase.groups[0].length, 1);
       expect(snapshot.tabellen.tables.length, 1);
@@ -720,7 +721,7 @@ void main() {
     test('handles missing optional fields with defaults', () {
       final data = {
         'teams': [],
-        'matchQueue': {'waiting': [], 'playing': []},
+        'matchQueue': {'queue': [], 'playing': []},
         'gruppenphase': [],
         'tabellen': [],
         'knockouts': {
@@ -777,7 +778,7 @@ void main() {
         [match1],
         [match2],
       ]);
-      final matchQueue = MatchQueue(waiting: [], playing: []);
+      final matchQueue = MatchQueue(queue: [], playing: []);
       final tabellen = evalGruppen(gruppenphase);
 
       // Build the JSON the way TournamentDataState.toJson() would

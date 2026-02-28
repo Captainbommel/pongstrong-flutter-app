@@ -196,13 +196,7 @@ mixin TournamentManagementService
     await saveKnockouts(knockouts, tournamentId: tournamentId);
 
     // Create match queue with first-round matches
-    final queue = MatchQueue(
-      waiting: List.generate(tableCount, (_) => <Match>[]),
-      playing: [],
-    );
-    for (final match in firstRound) {
-      queue.waiting[match.tableNumber - 1].add(match);
-    }
+    final queue = MatchQueue.fromMatches(firstRound);
     await saveMatchQueue(queue, tournamentId: tournamentId);
 
     // Save empty gruppenphase (not used in KO-only)
@@ -287,16 +281,9 @@ mixin TournamentManagementService
     final gruppenphase = Gruppenphase(groups: [matches]);
     await saveGruppenphase(gruppenphase, tournamentId: tournamentId);
 
-    // Build match queue – each table's queue receives matches in generation
-    // order, so matches from the same round land on different tables and can
-    // be started concurrently.
-    final queue = MatchQueue(
-      waiting: List.generate(tableCount, (_) => <Match>[]),
-      playing: [],
-    );
-    for (final match in matches) {
-      queue.waiting[match.tableNumber - 1].add(match);
-    }
+    // Build match queue – matches are sorted so that concurrent table usage
+    // is maximised automatically.
+    final queue = MatchQueue.fromMatches(matches);
     await saveMatchQueue(queue, tournamentId: tournamentId);
 
     // Save empty groups (not used in round-robin)
@@ -372,12 +359,8 @@ mixin TournamentManagementService
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    // Create a fresh match queue with one waiting slot per table
-    // instead of reusing the group-phase queue which may have fewer slots
-    final queue = MatchQueue(
-      waiting: List.generate(tableCount, (_) => <Match>[]),
-      playing: [],
-    );
+    // Create a fresh flat match queue and populate with KO matches
+    final queue = MatchQueue();
     queue.updateKnockQueue(knockouts);
     await saveMatchQueue(queue, tournamentId: tournamentId);
   }
@@ -391,26 +374,16 @@ mixin TournamentManagementService
     final gruppenphase = await loadGruppenphase(tournamentId: tournamentId);
     if (gruppenphase == null) return;
 
-    // Derive table count from existing matches
-    int maxTable = 6;
-    for (final group in gruppenphase.groups) {
-      for (final match in group) {
-        if (match.tableNumber > maxTable) maxTable = match.tableNumber;
-      }
-    }
-
     // Rebuild match queue with only unfinished group matches
-    final queue = MatchQueue(
-      waiting: List.generate(maxTable, (_) => <Match>[]),
-      playing: [],
-    );
+    final unfinished = <Match>[];
     for (final group in gruppenphase.groups) {
       for (final match in group) {
         if (!match.done) {
-          queue.waiting[match.tableNumber - 1].add(match);
+          unfinished.add(match);
         }
       }
     }
+    final queue = MatchQueue.fromMatches(unfinished);
 
     // Save empty knockouts (clears the trees)
     final knockouts = Knockouts();

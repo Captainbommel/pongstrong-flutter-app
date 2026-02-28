@@ -63,7 +63,7 @@ void main() {
         TableRow(teamId: 't3'),
       ],
     ]);
-    final matchQueue = MatchQueue(waiting: [], playing: []);
+    final matchQueue = MatchQueue(queue: [], playing: []);
     final knockouts = validKnockouts();
 
     return (
@@ -120,10 +120,11 @@ void main() {
       final errors = ImportService.validateSnapshot(
         teams: teams,
         matchQueue: MatchQueue(
-          waiting: [
-            [
-              Match(id: 'g1-1', teamId1: 't0', teamId2: 't1', tableNumber: 1),
-            ]
+          queue: [
+            MatchQueueEntry(
+              match: Match(
+                  id: 'g1-1', teamId1: 't0', teamId2: 't1', tableNumber: 1),
+            ),
           ],
           playing: [],
         ),
@@ -416,8 +417,10 @@ void main() {
       final errors = ImportService.validateSnapshot(
         teams: teams,
         matchQueue: MatchQueue(
-          waiting: [
-            [Match(id: 'w1', teamId1: 't0', teamId2: 'missing')]
+          queue: [
+            MatchQueueEntry(
+              match: Match(id: 'w1', teamId1: 't0', teamId2: 'missing'),
+            ),
           ],
           playing: [],
         ),
@@ -435,7 +438,7 @@ void main() {
       final errors = ImportService.validateSnapshot(
         teams: teams,
         matchQueue: MatchQueue(
-          waiting: [],
+          queue: [],
           playing: [Match(id: 'p1', teamId1: 'phantom', teamId2: 't1')],
         ),
         gruppenphase: Gruppenphase(),
@@ -825,7 +828,7 @@ void main() {
   // ==========================================================================
 
   group('validateSnapshot – match queue integrity', () {
-    test('detects match in both waiting and playing', () {
+    test('detects match in both queue and playing', () {
       final teams = makeTeams(2);
       final match =
           Match(id: 'g1-1', teamId1: 't0', teamId2: 't1', tableNumber: 1);
@@ -833,8 +836,8 @@ void main() {
       final errors = ImportService.validateSnapshot(
         teams: teams,
         matchQueue: MatchQueue(
-          waiting: [
-            [match]
+          queue: [
+            MatchQueueEntry(match: match),
           ],
           playing: [
             Match(id: 'g1-1', teamId1: 't0', teamId2: 't1', tableNumber: 1)
@@ -846,7 +849,7 @@ void main() {
       );
 
       expect(errors.any((e) => e.contains('g1-1')), isTrue);
-      expect(errors.any((e) => e.contains('both waiting and playing')), isTrue);
+      expect(errors.any((e) => e.contains('both queue and playing')), isTrue);
     });
 
     test('no error when queue is clean', () {
@@ -854,8 +857,11 @@ void main() {
       final errors = ImportService.validateSnapshot(
         teams: teams,
         matchQueue: MatchQueue(
-          waiting: [
-            [Match(id: 'g1-1', teamId1: 't0', teamId2: 't1', tableNumber: 1)]
+          queue: [
+            MatchQueueEntry(
+              match: Match(
+                  id: 'g1-1', teamId1: 't0', teamId2: 't1', tableNumber: 1),
+            ),
           ],
           playing: [
             Match(id: 'g1-2', teamId1: 't0', teamId2: 't1', tableNumber: 2)
@@ -962,7 +968,7 @@ void main() {
         [match1],
         [match2],
       ]);
-      final matchQueue = MatchQueue(waiting: [], playing: []);
+      final matchQueue = MatchQueue(queue: [], playing: []);
       final tabellen = evalGruppen(gruppenphase);
 
       // Simulate JSON export → import

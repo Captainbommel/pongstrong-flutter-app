@@ -584,11 +584,10 @@ class ImportService {
       checkTeamRef(m.teamId2, 'Super Cup');
     }
     // Match queue
-    for (int w = 0; w < matchQueue.waiting.length; w++) {
-      for (final m in matchQueue.waiting[w]) {
-        checkTeamRef(m.teamId1, 'matchQueue waiting[$w]');
-        checkTeamRef(m.teamId2, 'matchQueue waiting[$w]');
-      }
+    for (int i = 0; i < matchQueue.queue.length; i++) {
+      final m = matchQueue.queue[i].match;
+      checkTeamRef(m.teamId1, 'matchQueue queue[$i]');
+      checkTeamRef(m.teamId2, 'matchQueue queue[$i]');
     }
     for (final m in matchQueue.playing) {
       checkTeamRef(m.teamId1, 'matchQueue playing');
@@ -656,16 +655,14 @@ class ImportService {
     }
 
     // ---- 7. Match queue integrity ------------------------------------------
-    final waitingIds = <String>{};
-    for (final line in matchQueue.waiting) {
-      for (final m in line) {
-        waitingIds.add(m.id);
-      }
+    final queueIds = <String>{};
+    for (final entry in matchQueue.queue) {
+      queueIds.add(entry.matchId);
     }
     for (final m in matchQueue.playing) {
-      if (waitingIds.contains(m.id)) {
+      if (queueIds.contains(m.id)) {
         errors.add(
-          'Match "${m.id}" appears in both waiting and playing queues.',
+          'Match "${m.id}" appears in both queue and playing lists.',
         );
       }
     }

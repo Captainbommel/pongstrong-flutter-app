@@ -281,9 +281,8 @@ void main() {
       final state = makeState(mockService);
       await state.loadTournamentData('test-tourney');
 
-      // Get a valid match ID from the waiting queue
-      final firstMatchId =
-          state.matchQueue.waiting.expand((slot) => slot).first.id;
+      // Get a valid match ID from the queue
+      final firstMatchId = state.matchQueue.queue.first.matchId;
 
       final result = await state.startMatch(firstMatchId);
       expect(result, isTrue);
@@ -312,18 +311,15 @@ void main() {
       final state = makeState(mockService);
       await state.loadTournamentData('test-tourney');
 
-      final waitingBefore = state.matchQueue.waiting
-          .fold<int>(0, (sum, slot) => sum + slot.length);
+      final waitingBefore = state.matchQueue.queue.length;
 
-      final firstMatchId =
-          state.matchQueue.waiting.expand((slot) => slot).first.id;
+      final firstMatchId = state.matchQueue.queue.first.matchId;
 
       final result = await state.startMatch(firstMatchId);
 
       expect(result, isFalse);
       // Verify state was rolled back
-      final waitingAfter = state.matchQueue.waiting
-          .fold<int>(0, (sum, slot) => sum + slot.length);
+      final waitingAfter = state.matchQueue.queue.length;
       expect(waitingAfter, waitingBefore);
     });
 
@@ -380,7 +376,7 @@ void main() {
       await state.loadTournamentData('test-tourney');
 
       // Start a match first
-      final matchId = state.matchQueue.waiting.expand((slot) => slot).first.id;
+      final matchId = state.matchQueue.queue.first.matchId;
       await state.startMatch(matchId);
 
       // Stub loadGruppenphase for the finishMatch call
@@ -417,7 +413,7 @@ void main() {
       final state = makeState(mockService);
       await state.loadTournamentData('test-tourney');
 
-      final matchId = state.matchQueue.waiting.expand((slot) => slot).first.id;
+      final matchId = state.matchQueue.queue.first.matchId;
       await state.startMatch(matchId);
 
       // Make loadGruppenphase return null
@@ -449,7 +445,7 @@ void main() {
       final state = makeState(mockService);
       await state.loadTournamentData('test-tourney');
 
-      final matchId = state.matchQueue.waiting.expand((slot) => slot).first.id;
+      final matchId = state.matchQueue.queue.first.matchId;
       await state.startMatch(matchId);
 
       // Return gruppenphase but fail on save
@@ -500,7 +496,7 @@ void main() {
       expect(state.tournamentStyle, 'groupsAndKnockouts');
       expect(state.selectedRuleset, 'bmt-cup');
       expect(state.matchQueue.playing, isEmpty);
-      expect(state.matchQueue.waiting, isEmpty);
+      expect(state.matchQueue.queue, isEmpty);
     });
   });
 
@@ -683,7 +679,7 @@ void main() {
     test('loadData updates all fields', () {
       final state = makeState(mockService);
       final teams = buildTeams(4);
-      final queue = MatchQueue(waiting: [], playing: []);
+      final queue = MatchQueue(queue: [], playing: []);
       final tabellen = Tabellen();
 
       state.loadData(
@@ -1448,7 +1444,7 @@ void main() {
       final state = makeState(mockService);
       await state.loadTournamentData('test-tourney');
 
-      final matchId = state.matchQueue.waiting.expand((slot) => slot).first.id;
+      final matchId = state.matchQueue.queue.first.matchId;
       await state.startMatch(matchId);
 
       expect(state.getPlayingMatches(), isNotEmpty);
@@ -1493,7 +1489,7 @@ void main() {
     test('loadData with knockouts parameter sets knockouts', () {
       final state = makeState(mockService);
       final teams = buildTeams(4);
-      final queue = MatchQueue(waiting: [], playing: []);
+      final queue = MatchQueue(queue: [], playing: []);
       final tabellen = Tabellen();
       final ko = buildKnockouts(championsRound1: [
         Match(id: 'ko_1', teamId1: 'team_0', teamId2: 'team_1', tableNumber: 1),
@@ -1514,7 +1510,7 @@ void main() {
     test('loadData without knockouts uses empty knockouts', () {
       final state = makeState(mockService);
       final teams = buildTeams(4);
-      final queue = MatchQueue(waiting: [], playing: []);
+      final queue = MatchQueue(queue: [], playing: []);
       final tabellen = Tabellen();
 
       state.loadData(
@@ -1615,7 +1611,7 @@ void main() {
 
       // Push a new match queue with a match in playing
       final updatedQueue = MatchQueue(
-        waiting: [],
+        queue: [],
         playing: [
           Match(id: 'streamed_match', teamId1: 'team_0', teamId2: 'team_1')
         ],
@@ -1758,7 +1754,7 @@ void main() {
       int notifyCount = 0;
       state.addListener(() => notifyCount++);
 
-      final matchId = state.matchQueue.waiting.expand((slot) => slot).first.id;
+      final matchId = state.matchQueue.queue.first.matchId;
       await state.startMatch(matchId);
 
       expect(notifyCount, 1);

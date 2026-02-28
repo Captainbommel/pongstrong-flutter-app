@@ -539,9 +539,8 @@ void main() {
       final queue = await svc.loadMatchQueue();
 
       expect(queue, isNotNull);
-      // waiting is indexed by table number, all matches start in waiting
-      final waitingCount =
-          queue!.waiting.fold<int>(0, (sum, slot) => sum + slot.length);
+      // all matches start in queue
+      final waitingCount = queue!.queue.length;
       expect(waitingCount, greaterThan(0));
       expect(queue.playing, isEmpty);
     });
@@ -552,9 +551,7 @@ void main() {
       final queue = await svc.loadMatchQueue();
 
       expect(queue, isNotNull);
-      expect(queue!.waiting.length, 4); // 4 tables
-      final waitingCount =
-          queue.waiting.fold<int>(0, (sum, slot) => sum + slot.length);
+      final waitingCount = queue!.queue.length;
       expect(waitingCount, 4); // 4 first-round matches
     });
 
@@ -564,8 +561,7 @@ void main() {
       final queue = await svc.loadMatchQueue();
 
       expect(queue, isNotNull);
-      final totalQueued =
-          queue!.waiting.fold<int>(0, (sum, slot) => sum + slot.length);
+      final totalQueued = queue!.queue.length;
       expect(totalQueued, 6); // C(4,2) = 6 matches
     });
   });
@@ -680,8 +676,7 @@ void main() {
       expect(queue, isNotNull);
       // Queue should have slots for at least the max table number (3+)
       // All undone matches should be in the queue
-      final totalQueued =
-          queue!.waiting.fold<int>(0, (sum, slot) => sum + slot.length);
+      final totalQueued = queue!.queue.length;
       // 2 groups × C(4,2) = 12 matches, all undone
       expect(totalQueued, 12);
     });
