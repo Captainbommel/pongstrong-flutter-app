@@ -208,8 +208,12 @@ void main() {
         check(knockouts.conference.rounds, 'Conference');
       });
 
-      test('super cup has 2 matches', () {
-        expect(knockouts.superCup.matches.length, 2);
+      test('super cup has correct match count', () {
+        // 2 matches when both Europa and Conference exist, 1 otherwise
+        final hasEuropa = knockouts.europa.rounds.isNotEmpty;
+        final hasConference = knockouts.conference.rounds.isNotEmpty;
+        final expected = (hasEuropa && hasConference) ? 2 : 1;
+        expect(knockouts.superCup.matches.length, expected);
       });
     });
   }

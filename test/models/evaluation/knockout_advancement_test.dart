@@ -200,7 +200,7 @@ void main() {
           reason: 'N=3 should have empty Conference');
     });
 
-    test('europa winner auto-advances to super cup match 1', () {
+    test('europa winner auto-advances to super cup final match', () {
       // Play Europa to completion
       for (int r = 0; r < ko.europa.rounds.length; r++) {
         for (final m in ko.europa.rounds[r]) {
@@ -214,14 +214,15 @@ void main() {
       final euroWinner = ko.europa.rounds.last[0].getWinnerId();
       expect(euroWinner, isNotNull);
 
-      // With no Conference, Europa winner should auto-advance to match 1
-      expect(ko.superCup.matches[1].teamId1, euroWinner,
-          reason: 'Europa winner should auto-advance to Super Cup match 1');
+      // With no Conference and single-match super cup, Europa winner should
+      // be placed in the only super cup match (index 0).
+      final finalMatch = ko.superCup.matches.last;
+      expect(finalMatch.teamId1, euroWinner,
+          reason: 'Europa winner should auto-advance to Super Cup final');
     });
 
-    test('super cup match 0 should be playable without Conference', () {
-      // With Conference empty, super cup match 0 needs to be handled:
-      // either auto-advance Europa winner, or restructure super cup.
+    test('super cup final should be reachable without Conference', () {
+      // With Conference empty, super cup should have only 1 match.
       // Play Europa to completion
       for (int r = 0; r < ko.europa.rounds.length; r++) {
         for (final m in ko.europa.rounds[r]) {
@@ -232,16 +233,13 @@ void main() {
         ko.update();
       }
 
-      final sc0 = ko.superCup.matches[0];
-      // Super cup match 0 should either:
-      // a) have both teams set (if we find a second team), or
-      // b) the Europa winner should auto-advance to match 1
-      final hasMatch = sc0.teamId1.isNotEmpty && sc0.teamId2.isNotEmpty;
-      final autoAdvanced = ko.superCup.matches[1].teamId1.isNotEmpty;
-
-      expect(hasMatch || autoAdvanced, isTrue,
-          reason: 'With empty Conference, Europa winner must either have an '
-              'opponent in SC match 0 or auto-advance to SC match 1');
+      // With single-match super cup, the Europa winner should be placed
+      // directly in the final (the only super cup match).
+      final finalMatch = ko.superCup.matches.last;
+      final euroWinner = ko.europa.rounds.last[0].getWinnerId();
+      expect(finalMatch.teamId1, euroWinner,
+          reason: 'With empty Conference, Europa winner must be placed '
+              'directly in the super cup final');
     });
   });
 

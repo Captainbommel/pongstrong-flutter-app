@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pongstrong/models/knockout/bracket_seeding.dart';
 import 'package:pongstrong/models/knockout/knockouts.dart';
 
 void main() {
@@ -578,6 +579,172 @@ void main() {
       knockouts.update();
       // Structure unchanged
       expect(knockouts.champions.rounds[0][0].teamId1, isEmpty);
+    });
+  });
+
+  group('Super Cup with single match (1 lower league)', () {
+    test('instantiate(1) creates a single match', () {
+      final superCup = Super();
+      superCup.instantiate(1);
+
+      expect(superCup.matches.length, 1);
+      expect(superCup.matches[0].id, 's-1');
+    });
+
+    test('update advances lone lower-league winner to single super cup match',
+        () {
+      final knockouts = Knockouts(
+        champions: Champions(rounds: createBracketRounds(4, 'c')),
+        europa: Europa(rounds: createBracketRounds(2, 'e')),
+        conference: Conference(), // empty — only 1 lower league
+        superCup: Super()..instantiate(1),
+      );
+
+      // Seed and finish champions bracket enough to pass the guard
+      knockouts.champions.rounds[0][0].teamId1 = 'c1';
+      knockouts.champions.rounds[0][0].teamId2 = 'c2';
+
+      // Finish europa final
+      knockouts.europa.rounds.last[0].teamId1 = 'euroWinner';
+      knockouts.europa.rounds.last[0].teamId2 = 'euroLoser';
+      knockouts.europa.rounds.last[0].score1 = 10;
+      knockouts.europa.rounds.last[0].score2 = 5;
+      knockouts.europa.rounds.last[0].done = true;
+
+      knockouts.update();
+
+      expect(knockouts.superCup.matches[0].teamId1, 'euroWinner');
+    });
+
+    test('update advances champions winner to single super cup match slot 2',
+        () {
+      final knockouts = Knockouts(
+        champions: Champions(rounds: createBracketRounds(4, 'c')),
+        europa: Europa(rounds: createBracketRounds(2, 'e')),
+        conference: Conference(),
+        superCup: Super()..instantiate(1),
+      );
+
+      knockouts.champions.rounds[0][0].teamId1 = 'c1';
+      knockouts.champions.rounds[0][0].teamId2 = 'c2';
+
+      // Europa winner already placed
+      knockouts.superCup.matches[0].teamId1 = 'euroWinner';
+
+      // Finish champions final
+      knockouts.champions.rounds.last[0].teamId1 = 'champWinner';
+      knockouts.champions.rounds.last[0].teamId2 = 'champLoser';
+      knockouts.champions.rounds.last[0].score1 = 10;
+      knockouts.champions.rounds.last[0].score2 = 5;
+      knockouts.champions.rounds.last[0].done = true;
+
+      knockouts.update();
+
+      expect(knockouts.superCup.matches[0].teamId2, 'champWinner');
+    });
+
+    test('clearDependentMatches clears single super cup match from champions',
+        () {
+      final knockouts = Knockouts(
+        champions: Champions(rounds: createBracketRounds(4, 'c')),
+        europa: Europa(rounds: createBracketRounds(2, 'e')),
+        conference: Conference(),
+        superCup: Super()..instantiate(1),
+      );
+
+      // Fill all matches
+      for (final round in knockouts.champions.rounds) {
+        for (final m in round) {
+          m.teamId1 = 'a';
+          m.teamId2 = 'b';
+          m.done = true;
+        }
+      }
+      knockouts.superCup.matches[0].teamId1 = 'x';
+      knockouts.superCup.matches[0].teamId2 = 'y';
+      knockouts.superCup.matches[0].done = true;
+
+      final cleared = knockouts.clearDependentMatches('c1-1');
+
+      // Super cup match 0 should be cleared (champions feeds index 0)
+      expect(knockouts.superCup.matches[0].teamId1, isEmpty);
+      expect(knockouts.superCup.matches[0].done, isFalse);
+      expect(cleared, contains('s-1'));
+    });
+
+    test('clearDependentMatches clears single super cup match from europa', () {
+      final knockouts = Knockouts(
+        champions: Champions(rounds: createBracketRounds(4, 'c')),
+        europa: Europa(rounds: createBracketRounds(2, 'e')),
+        conference: Conference(),
+        superCup: Super()..instantiate(1),
+      );
+
+      for (final round in knockouts.europa.rounds) {
+        for (final m in round) {
+          m.teamId1 = 'a';
+          m.teamId2 = 'b';
+          m.done = true;
+        }
+      }
+      knockouts.superCup.matches[0].teamId1 = 'x';
+      knockouts.superCup.matches[0].teamId2 = 'y';
+      knockouts.superCup.matches[0].done = true;
+
+      final cleared = knockouts.clearDependentMatches('e1-1');
+
+      expect(knockouts.superCup.matches[0].teamId1, isEmpty);
+      expect(knockouts.superCup.matches[0].done, isFalse);
+      expect(cleared, contains('s-1'));
+    });
+
+    test('progress counting is correct with single super cup match', () {
+      final knockouts = Knockouts(
+        champions: Champions(rounds: createBracketRounds(2, 'c')),
+        europa: Europa(rounds: createBracketRounds(2, 'e')),
+        conference: Conference(),
+        superCup: Super()..instantiate(1),
+      );
+
+      int total = 0;
+      int completed = 0;
+      for (final round in knockouts.champions.rounds) {
+        for (final m in round) {
+          total++;
+          if (m.done) completed++;
+        }
+      }
+      for (final round in knockouts.europa.rounds) {
+        for (final m in round) {
+          total++;
+          if (m.done) completed++;
+        }
+      }
+      for (final m in knockouts.superCup.matches) {
+        total++;
+        if (m.done) completed++;
+      }
+
+      // createBracketRounds(2,'c') → 1 match; createBracketRounds(2,'e') → 1 match; 1 super cup
+      expect(total, 3);
+      expect(completed, 0);
+    });
+  });
+
+  group('Super Cup JSON round-trip with 1 match', () {
+    test('serialises and deserialises single-match super cup', () {
+      final knockouts = Knockouts(
+        champions: Champions(rounds: createBracketRounds(2, 'c')),
+        europa: Europa(rounds: createBracketRounds(2, 'e')),
+        conference: Conference(),
+        superCup: Super()..instantiate(1),
+      );
+
+      final json = knockouts.toJson();
+      final restored = Knockouts.fromJson(json);
+
+      expect(restored.superCup.matches.length, 1);
+      expect(restored.superCup.matches[0].id, 's-1');
     });
   });
 }

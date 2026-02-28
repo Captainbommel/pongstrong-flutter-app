@@ -551,9 +551,10 @@ class ImportService {
 
     // ---- 2. Super Cup size -------------------------------------------------
     if (knockouts.superCup.matches.isNotEmpty &&
+        knockouts.superCup.matches.length != 1 &&
         knockouts.superCup.matches.length != 2) {
       errors.add(
-        'Super Cup must have exactly 2 matches but has '
+        'Super Cup must have 1 or 2 matches but has '
         '${knockouts.superCup.matches.length}.',
       );
     }

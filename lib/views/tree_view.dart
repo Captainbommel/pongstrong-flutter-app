@@ -71,11 +71,9 @@ class TreeViewPageState extends State<TreeViewPage>
 
   /// Checks whether the Super Cup has meaningful data.
   bool _superCupHasData(Super superCup) {
-    if (superCup.matches.length < 2) return false;
-    return superCup.matches[0].teamId1.isNotEmpty ||
-        superCup.matches[0].teamId2.isNotEmpty ||
-        superCup.matches[1].teamId1.isNotEmpty ||
-        superCup.matches[1].teamId2.isNotEmpty;
+    if (superCup.matches.isEmpty) return false;
+    return superCup.matches
+        .any((m) => m.teamId1.isNotEmpty || m.teamId2.isNotEmpty);
   }
 
   /// Builds the list of visible bracket entries based on actual data.
@@ -740,29 +738,51 @@ class TreeViewPageState extends State<TreeViewPage>
   }
 
   Widget _buildSuperCupTree(Knockouts knockouts) {
-    if (knockouts.superCup.matches.length < 2) return _noDataPlaceholder;
+    if (knockouts.superCup.matches.isEmpty) return _noDataPlaceholder;
 
     final graph = Graph()..isTree = true;
-    final winnerNode = Node.Id('winner');
-    final semiFinalNode = Node.Id('semi_final');
-    final finalNode = Node.Id('final');
-    graph.addEdge(winnerNode, finalNode);
-    graph.addEdge(finalNode, semiFinalNode);
 
-    return _buildGraphView(
-      graph: graph,
-      config: _defaultTreeConfig(),
-      color: TreeColors.hotpink,
-      nodeBuilder: (nodeId) => switch (nodeId) {
-        'winner' =>
-          _buildWinnerNode(knockouts.superCup.matches[1], TreeColors.hotpink),
-        'semi_final' =>
-          _buildMatchNode(knockouts.superCup.matches[0], TreeColors.hotpink),
-        'final' =>
-          _buildMatchNode(knockouts.superCup.matches[1], TreeColors.hotpink),
-        _ => const SizedBox.shrink(),
-      },
-    );
+    if (knockouts.superCup.matches.length >= 2) {
+      // Two-match layout: semifinal → final → winner
+      final winnerNode = Node.Id('winner');
+      final semiFinalNode = Node.Id('semi_final');
+      final finalNode = Node.Id('final');
+      graph.addEdge(winnerNode, finalNode);
+      graph.addEdge(finalNode, semiFinalNode);
+
+      return _buildGraphView(
+        graph: graph,
+        config: _defaultTreeConfig(),
+        color: TreeColors.hotpink,
+        nodeBuilder: (nodeId) => switch (nodeId) {
+          'winner' =>
+            _buildWinnerNode(knockouts.superCup.matches[1], TreeColors.hotpink),
+          'semi_final' =>
+            _buildMatchNode(knockouts.superCup.matches[0], TreeColors.hotpink),
+          'final' =>
+            _buildMatchNode(knockouts.superCup.matches[1], TreeColors.hotpink),
+          _ => const SizedBox.shrink(),
+        },
+      );
+    } else {
+      // Single-match layout: final → winner
+      final winnerNode = Node.Id('winner');
+      final finalNode = Node.Id('final');
+      graph.addEdge(winnerNode, finalNode);
+
+      return _buildGraphView(
+        graph: graph,
+        config: _defaultTreeConfig(),
+        color: TreeColors.hotpink,
+        nodeBuilder: (nodeId) => switch (nodeId) {
+          'winner' =>
+            _buildWinnerNode(knockouts.superCup.matches[0], TreeColors.hotpink),
+          'final' =>
+            _buildMatchNode(knockouts.superCup.matches[0], TreeColors.hotpink),
+          _ => const SizedBox.shrink(),
+        },
+      );
+    }
   }
 
   // ─── Shared graph helpers ───

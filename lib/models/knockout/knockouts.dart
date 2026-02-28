@@ -58,7 +58,14 @@ typedef Champions = KnockoutBracket;
 typedef Europa = KnockoutBracket;
 typedef Conference = KnockoutBracket;
 
-/// The Super Cup bracket with two fixed matches.
+/// The Super Cup bracket with one or two matches.
+///
+/// When two lower leagues exist (Europa + Conference), the Super Cup has
+/// two matches: a semifinal (s-1) between their winners and a final (s-2)
+/// between the semifinal winner and the Champions winner.
+///
+/// When only one lower league exists, the Super Cup has a single match
+/// (s-1) — the final between that league's winner and the Champions winner.
 class Super {
   /// The super cup matches.
   List<Match> matches;
@@ -66,11 +73,10 @@ class Super {
   Super({List<Match>? matches}) : matches = matches ?? [];
 
   /// Creates match stubs for the super cup.
-  void instantiate() {
-    matches = [
-      Match(id: 's-1'),
-      Match(id: 's-2'),
-    ];
+  ///
+  /// [count] is the number of matches to create (1 or 2).
+  void instantiate([int count = 2]) {
+    matches = List.generate(count, (i) => Match(id: 's-${i + 1}'));
   }
 
   /// Serialises the super cup to a JSON list.
@@ -243,14 +249,23 @@ class Knockouts {
       }
     }
 
-    // Check each bracket and handle super cup cascading
+    // Check each bracket and handle super cup cascading.
+    // With 2 matches: champions→[1], europa/conference→[0,1].
+    // With 1 match:   all brackets→[0].
+    final bool hasTwoSuperMatches = superCup.matches.length >= 2;
     final brackets = [
-      (champions.rounds, [1]), // Champions final → clear super cup match 1
-      (europa.rounds, [0, 1]), // Europa final → clear super cup matches 0, 1
+      (
+        champions.rounds,
+        hasTwoSuperMatches ? [1] : [0],
+      ),
+      (
+        europa.rounds,
+        hasTwoSuperMatches ? [0, 1] : [0],
+      ),
       (
         conference.rounds,
-        [0, 1]
-      ), // Conference final → clear super cup matches 0, 1
+        hasTwoSuperMatches ? [0, 1] : [0],
+      ),
     ];
 
     for (final (rounds, superCupIndices) in brackets) {
@@ -328,60 +343,71 @@ class Knockouts {
 
   void _updateSuperCup() {
     // Guard against empty super cup (e.g. KO-only mode)
-    if (superCup.matches.length < 2) return;
+    if (superCup.matches.isEmpty) return;
 
-    // Determine how many lower leagues feed into super cup match 0.
-    final hasEuropa = europa.rounds.isNotEmpty;
-    final hasConference = conference.rounds.isNotEmpty;
-    final leagueCount = (hasEuropa ? 1 : 0) + (hasConference ? 1 : 0);
+    // ── Single-match Super Cup (1 lower league or none) ───────────────
+    if (superCup.matches.length == 1) {
+      final finalMatch = superCup.matches[0];
 
-    // When only one lower league exists, super cup match 0 has no opponent —
-    // auto-advance the lone league winner directly to match 1.
-    if (leagueCount <= 1) {
-      Match? soleLeagueFinal;
-      if (hasEuropa && europa.rounds.last.isNotEmpty) {
-        soleLeagueFinal = europa.rounds.last[0];
-      } else if (hasConference && conference.rounds.last.isNotEmpty) {
-        soleLeagueFinal = conference.rounds.last[0];
+      // Move the lone lower-league winner into slot 1
+      for (final rounds in [europa.rounds, conference.rounds]) {
+        if (rounds.isNotEmpty && rounds.last.isNotEmpty) {
+          final leagueFinal = rounds.last[0];
+          if (leagueFinal.done) {
+            final winnerId = leagueFinal.getWinnerId();
+            if (winnerId != null &&
+                winnerId.isNotEmpty &&
+                finalMatch.teamId1.isEmpty &&
+                winnerId != finalMatch.teamId2) {
+              finalMatch.teamId1 = winnerId;
+            }
+          }
+        }
       }
-      if (soleLeagueFinal != null && soleLeagueFinal.done) {
-        final winnerId = soleLeagueFinal.getWinnerId();
+
+      // Move champions winner into slot 2
+      if (champions.rounds.isNotEmpty &&
+          champions.rounds.last.isNotEmpty &&
+          champions.rounds.last[0].done) {
+        final winnerId = champions.rounds.last[0].getWinnerId();
         if (winnerId != null &&
             winnerId.isNotEmpty &&
-            superCup.matches[1].teamId1.isEmpty) {
-          superCup.matches[1].teamId1 = winnerId;
+            finalMatch.teamId2.isEmpty &&
+            finalMatch.teamId1.isNotEmpty) {
+          finalMatch.teamId2 = winnerId;
         }
       }
-    } else {
-      // Two lower leagues: play super cup match 0 between their winners.
+      return;
+    }
 
-      // Update the first super cup match if done
-      if (superCup.matches[0].done) {
-        final winnerId = superCup.matches[0].getWinnerId();
+    // ── Two-match Super Cup (2 lower leagues) ────────────────────────
+
+    // Update the first super cup match if done
+    if (superCup.matches[0].done) {
+      final winnerId = superCup.matches[0].getWinnerId();
+      if (winnerId != null && winnerId.isNotEmpty) {
+        superCup.matches[1].teamId1 = winnerId;
+      }
+    }
+
+    // Move league winners to the super cup match 0
+    final leagueFinals = <Match>[];
+    if (europa.rounds.isNotEmpty && europa.rounds.last.isNotEmpty) {
+      leagueFinals.add(europa.rounds.last[0]);
+    }
+    if (conference.rounds.isNotEmpty && conference.rounds.last.isNotEmpty) {
+      leagueFinals.add(conference.rounds.last[0]);
+    }
+    for (final leagueFinal in leagueFinals) {
+      if (leagueFinal.done) {
+        final winnerId = leagueFinal.getWinnerId();
         if (winnerId != null && winnerId.isNotEmpty) {
-          superCup.matches[1].teamId1 = winnerId;
-        }
-      }
-
-      // Move league winners to the super cup match 0
-      final leagueFinals = <Match>[];
-      if (hasEuropa && europa.rounds.last.isNotEmpty) {
-        leagueFinals.add(europa.rounds.last[0]);
-      }
-      if (hasConference && conference.rounds.last.isNotEmpty) {
-        leagueFinals.add(conference.rounds.last[0]);
-      }
-      for (final leagueFinal in leagueFinals) {
-        if (leagueFinal.done) {
-          final winnerId = leagueFinal.getWinnerId();
-          if (winnerId != null && winnerId.isNotEmpty) {
-            final firstMatch = superCup.matches[0];
-            if (firstMatch.teamId1.isEmpty && winnerId != firstMatch.teamId2) {
-              firstMatch.teamId1 = winnerId;
-            } else if (firstMatch.teamId2.isEmpty &&
-                winnerId != firstMatch.teamId1) {
-              firstMatch.teamId2 = winnerId;
-            }
+          final firstMatch = superCup.matches[0];
+          if (firstMatch.teamId1.isEmpty && winnerId != firstMatch.teamId2) {
+            firstMatch.teamId1 = winnerId;
+          } else if (firstMatch.teamId2.isEmpty &&
+              winnerId != firstMatch.teamId1) {
+            firstMatch.teamId2 = winnerId;
           }
         }
       }

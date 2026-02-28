@@ -562,7 +562,7 @@ Knockouts evaluateGroups(Tabellen tabellen,
     conference: Conference(
       rounds: fBracket > 0 ? createBracketRounds(fBracket, 'f') : [],
     ),
-    superCup: Super()..instantiate(),
+    superCup: Super()..instantiate((eBracket > 0 && fBracket > 0) ? 2 : 1),
   );
 
   // ── seed each bracket ─────────────────────────────────────────────────

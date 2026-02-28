@@ -271,7 +271,11 @@ void main() {
         champions: KnockoutBracket(),
         europa: KnockoutBracket(),
         conference: KnockoutBracket(),
-        superCup: Super(matches: [Match(id: 's-1')]), // only 1!
+        superCup: Super(matches: [
+          Match(id: 's-1'),
+          Match(id: 's-2'),
+          Match(id: 's-3'),
+        ]), // 3 is invalid (only 1 or 2 allowed)
       );
 
       final errors = ImportService.validateSnapshot(
@@ -282,7 +286,7 @@ void main() {
         knockouts: knockouts,
       );
       expect(errors.any((e) => e.contains('Super Cup')), isTrue);
-      expect(errors.any((e) => e.contains('2 matches')), isTrue);
+      expect(errors.any((e) => e.contains('1 or 2 matches')), isTrue);
     });
 
     test('super cup with 3 matches is invalid', () {
@@ -908,7 +912,11 @@ void main() {
         champions: brokenChampions,
         europa: KnockoutBracket(),
         conference: KnockoutBracket(),
-        superCup: Super(matches: [Match(id: 's-1')]), // wrong size
+        superCup: Super(matches: [
+          Match(id: 's-1'),
+          Match(id: 's-2'),
+          Match(id: 's-3'),
+        ]), // wrong size (3 is invalid)
       );
 
       final errors = ImportService.validateSnapshot(
