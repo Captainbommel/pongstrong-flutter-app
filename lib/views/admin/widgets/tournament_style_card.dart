@@ -162,56 +162,58 @@ class TournamentStyleCard extends StatelessWidget {
                   ],
                 ),
               ),
-            // Split tables option
-            if (isKnockoutStarted)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                child: Text(
-                  splitTables
-                      ? 'Tische werden auf Ligen aufgeteilt'
-                      : 'Tische werden gemeinsam genutzt',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: GroupPhaseColors.steelblue,
-                  ),
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: Checkbox(
-                        value: splitTables,
-                        onChanged: (val) =>
-                            onSplitTablesChanged?.call(val ?? false),
-                        activeColor: GroupPhaseColors.steelblue,
-                        side: const BorderSide(
-                          color: GroupPhaseColors.steelblue,
-                          width: 2,
-                        ),
-                      ),
+            // Split tables option (only relevant for groups + knockouts)
+            if (selectedStyle == TournamentStyle.groupsAndKnockouts) ...[
+              if (isKnockoutStarted)
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  child: Text(
+                    splitTables
+                        ? 'Tische werden auf Ligen aufgeteilt'
+                        : 'Tische werden gemeinsam genutzt',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: GroupPhaseColors.steelblue,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => onSplitTablesChanged?.call(!splitTables),
-                        child: const Text(
-                          'Tische auf Ligen aufteilen',
-                          style: TextStyle(
-                            fontSize: 13,
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: Checkbox(
+                          value: splitTables,
+                          onChanged: (val) =>
+                              onSplitTablesChanged?.call(val ?? false),
+                          activeColor: GroupPhaseColors.steelblue,
+                          side: const BorderSide(
                             color: GroupPhaseColors.steelblue,
+                            width: 2,
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => onSplitTablesChanged?.call(!splitTables),
+                          child: const Text(
+                            'Tische auf Ligen aufteilen',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: GroupPhaseColors.steelblue,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+            ],
             const Divider(),
             const SizedBox(height: 8),
             Padding(
