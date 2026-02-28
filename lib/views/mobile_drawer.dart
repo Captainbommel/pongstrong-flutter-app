@@ -44,18 +44,27 @@ class MobileDrawer extends StatelessWidget {
       key: const Key('MobileDrawer'),
       child: Column(
         children: <Widget>[
-          const SizedBox(height: 8),
+          const DrawerHeader(
+            decoration: BoxDecoration(
+              color: GroupPhaseColors.cupred,
+            ),
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: Text(
+                'Pongstrong',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
           ListTile(
             title: const Text('Spielfeld'),
             onTap: () => Provider.of<AppState>(context, listen: false)
                 .setViewAndCloseDrawer(AppView.playingField),
-            trailing: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.sports_handball_rounded),
-                Icon(Icons.sports_bar_rounded),
-              ],
-            ),
+            trailing: const Icon(Icons.sports_handball_rounded),
           ),
           if (showGroupPhase)
             ListTile(
@@ -82,10 +91,10 @@ class MobileDrawer extends StatelessWidget {
             height: 20,
             thickness: 5,
             indent: 0,
-            color: FieldColors.springgreen,
+            color: GroupPhaseColors.cupred,
           ),
           ListTile(
-            title: const Text('Turnier wechseln'),
+            title: const Text('Verlassen'),
             onTap: () async {
               final confirmed = await showConfirmationDialog(
                 context,
@@ -102,7 +111,7 @@ class MobileDrawer extends StatelessWidget {
                     .clearSelectedTournament();
               }
             },
-            trailing: const Icon(Icons.swap_horiz_rounded),
+            trailing: const Icon(Icons.exit_to_app_rounded),
           ),
           const Spacer(),
           // Join code + Admin, pinned to bottom
@@ -112,28 +121,8 @@ class MobileDrawer extends StatelessWidget {
               final isAdmin = authState.isAdmin;
               return Column(
                 children: [
-                  // For admins: code above Turnierverwaltung
-                  if (isAdmin && code != null)
-                    _buildJoinCodeWidget(context, code),
-                  if (isAdmin)
-                    ListTile(
-                      title: const Text(
-                        'Turnierverwaltung',
-                        style: TextStyle(
-                          color: GroupPhaseColors.cupred,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      onTap: () => Provider.of<AppState>(context, listen: false)
-                          .setViewAndCloseDrawer(AppView.adminPanel),
-                      trailing: const Icon(
-                        Icons.settings,
-                        color: GroupPhaseColors.cupred,
-                      ),
-                    ),
-                  // For non-admins: code at the very bottom
-                  if (!isAdmin && code != null)
-                    _buildJoinCodeWidget(context, code),
+                  if (code != null) _buildJoinCodeTile(context, code),
+                  if (isAdmin) _buildAdminTile(context),
                 ],
               );
             },
@@ -143,39 +132,38 @@ class MobileDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildJoinCodeWidget(BuildContext context, String code) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: InkWell(
-        onTap: () {
-          Clipboard.setData(ClipboardData(text: code));
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: GroupPhaseColors.cupred.withAlpha(20),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: GroupPhaseColors.cupred.withAlpha(60)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                code,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4,
-                  color: GroupPhaseColors.cupred,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(Icons.copy, size: 16, color: GroupPhaseColors.cupred),
-            ],
-          ),
+  Widget _buildAdminTile(BuildContext context) {
+    return ListTile(
+      title: const Text(
+        'Turnierverwaltung',
+        style: TextStyle(
+          color: GroupPhaseColors.cupred,
+          fontWeight: FontWeight.bold,
         ),
+      ),
+      onTap: () => Provider.of<AppState>(context, listen: false)
+          .setViewAndCloseDrawer(AppView.adminPanel),
+      trailing: const Icon(
+        Icons.settings,
+        color: GroupPhaseColors.cupred,
+      ),
+    );
+  }
+
+  Widget _buildJoinCodeTile(BuildContext context, String code) {
+    return ListTile(
+      title: Text(
+        code,
+        style: const TextStyle(
+          color: GroupPhaseColors.cupred,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 4,
+        ),
+      ),
+      onTap: () => Clipboard.setData(ClipboardData(text: code)),
+      trailing: const Icon(
+        Icons.copy,
+        color: GroupPhaseColors.cupred,
       ),
     );
   }
