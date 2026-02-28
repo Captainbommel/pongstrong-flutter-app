@@ -148,10 +148,19 @@ class _LandingPageState extends State<LandingPage> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 940;
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: GroupPhaseColors.cupred,
+          selectionColor: GroupPhaseColors.cupred.withAlpha(80),
+          selectionHandleColor: GroupPhaseColors.cupred,
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: AppColors.surface,
+        body: SafeArea(
+          child: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
+        ),
       ),
     );
   }

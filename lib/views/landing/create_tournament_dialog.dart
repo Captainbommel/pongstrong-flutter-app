@@ -214,154 +214,166 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
 
     final isAlreadyLoggedIn = authState.isEmailUser;
 
-    return Dialog(
-      insetPadding: isWide
-          ? const EdgeInsets.symmetric(horizontal: 40, vertical: 24)
-          : const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: Container(
-        width: isWide ? 500 : double.infinity,
-        constraints: const BoxConstraints(maxHeight: 700),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: const BoxDecoration(
-                color: GroupPhaseColors.cupred,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(4),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.add_circle, color: AppColors.textOnColored),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Neues Turnier erstellen',
-                      style: TextStyle(
-                        color: AppColors.textOnColored,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon:
-                        const Icon(Icons.close, color: AppColors.textOnColored),
-                  ),
-                ],
-              ),
-            ),
-            // Step indicator
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  _buildStepIndicator(0, 'Details'),
-                  _buildStepConnector(0),
-                  _buildStepIndicator(
-                      1, isAlreadyLoggedIn ? 'Bestätigen' : 'Konto'),
-                ],
-              ),
-            ),
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: _currentStep == 0
-                    ? _buildDetailsStep()
-                    : isAlreadyLoggedIn
-                        ? _buildConfirmStep(authState)
-                        : _buildAccountStep(),
-              ),
-            ),
-            // Error message
-            if (_error != null)
+    return Theme(
+      data: Theme.of(context).copyWith(
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: GroupPhaseColors.cupred,
+          selectionColor: GroupPhaseColors.cupred.withAlpha(80),
+          selectionHandleColor: GroupPhaseColors.cupred,
+        ),
+      ),
+      child: Dialog(
+        insetPadding: isWide
+            ? const EdgeInsets.symmetric(horizontal: 40, vertical: 24)
+            : const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Container(
+          width: isWide ? 500 : double.infinity,
+          constraints: const BoxConstraints(maxHeight: 700),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.errorLight,
-                    borderRadius: BorderRadius.circular(8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: const BoxDecoration(
+                  color: GroupPhaseColors.cupred,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(4),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: AppColors.error),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: const TextStyle(color: AppColors.error),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.add_circle,
+                        color: AppColors.textOnColored),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Neues Turnier erstellen',
+                        style: TextStyle(
+                          color: AppColors.textOnColored,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close,
+                          color: AppColors.textOnColored),
+                    ),
+                  ],
+                ),
+              ),
+              // Step indicator
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  children: [
+                    _buildStepIndicator(0, 'Details'),
+                    _buildStepConnector(0),
+                    _buildStepIndicator(
+                        1, isAlreadyLoggedIn ? 'Bestätigen' : 'Konto'),
+                  ],
+                ),
+              ),
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: _currentStep == 0
+                      ? _buildDetailsStep()
+                      : isAlreadyLoggedIn
+                          ? _buildConfirmStep(authState)
+                          : _buildAccountStep(),
+                ),
+              ),
+              // Error message
+              if (_error != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.errorLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: AppColors.error),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _error!,
+                            style: const TextStyle(color: AppColors.error),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            // Actions
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: AppColors.grey200),
+              // Actions
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: AppColors.grey200),
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (_currentStep > 0)
-                    TextButton(
-                      onPressed: _previousStep,
-                      style: TextButton.styleFrom(
-                        foregroundColor: GroupPhaseColors.cupred,
-                      ),
-                      child: const Text('Zurück'),
-                    )
-                  else
-                    const SizedBox(),
-                  if (_currentStep == 0)
-                    TextButton(
-                      onPressed: _nextStep,
-                      style: TextButton.styleFrom(
-                        foregroundColor: GroupPhaseColors.cupred,
-                      ),
-                      child: const Text('Weiter'),
-                    )
-                  else
-                    _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                  GroupPhaseColors.cupred),
-                            ),
-                          )
-                        : TextButton(
-                            onPressed: isAlreadyLoggedIn
-                                ? () =>
-                                    _createTournamentAsLoggedInUser(authState)
-                                : _createTournament,
-                            style: TextButton.styleFrom(
-                              foregroundColor: GroupPhaseColors.cupred,
-                            ),
-                            child: Text(
-                              isVerySmall ? 'Erstellen' : 'Turnier erstellen',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (_currentStep > 0)
+                      TextButton(
+                        onPressed: _previousStep,
+                        style: TextButton.styleFrom(
+                          foregroundColor: GroupPhaseColors.cupred,
+                        ),
+                        child: const Text('Zurück'),
+                      )
+                    else
+                      const SizedBox(),
+                    if (_currentStep == 0)
+                      TextButton(
+                        onPressed: _nextStep,
+                        style: TextButton.styleFrom(
+                          foregroundColor: GroupPhaseColors.cupred,
+                        ),
+                        child: const Text('Weiter'),
+                      )
+                    else
+                      _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    GroupPhaseColors.cupred),
+                              ),
+                            )
+                          : TextButton(
+                              onPressed: isAlreadyLoggedIn
+                                  ? () =>
+                                      _createTournamentAsLoggedInUser(authState)
+                                  : _createTournament,
+                              style: TextButton.styleFrom(
+                                foregroundColor: GroupPhaseColors.cupred,
+                              ),
+                              child: Text(
+                                isVerySmall ? 'Erstellen' : 'Turnier erstellen',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
-                          ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
