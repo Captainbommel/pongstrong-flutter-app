@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/models/groups/tabellen.dart' as tabellen;
 import 'package:pongstrong/models/match/match.dart';
+import 'package:pongstrong/models/match/scoring.dart';
 import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
@@ -502,7 +503,7 @@ class _MatchCard extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              score.toString(),
+              displayScore(score),
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,

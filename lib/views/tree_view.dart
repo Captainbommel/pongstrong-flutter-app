@@ -635,7 +635,7 @@ class TreeViewPageState extends State<TreeViewPage>
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (match.done) Text('$score'),
+        if (match.done) Text(displayScore(score)),
       ],
     );
   }

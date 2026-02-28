@@ -78,6 +78,15 @@ int? determineWinner(int score1, int score2) {
   return null;
 }
 
+/// Returns a display-friendly string for a score value.
+///
+/// Deathcup scores (-1 and -2) are shown as `'D'` instead of the
+/// raw negative integer.
+String displayScore(int score) {
+  if (score < 0) return 'D';
+  return score.toString();
+}
+
 /// Validates whether a pair of scores represents a legal match result.
 ///
 /// Accepts normal wins (10-x), overtime (16/19), deathcup (-1/-2),
