@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pongstrong/models/team.dart';
-import 'package:pongstrong/views/admin/team_edit_controller.dart';
+import 'package:pongstrong/views/admin/teams_management/team_edit_controller.dart';
 
 void main() {
   group('TeamEditController', () {

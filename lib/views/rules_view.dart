@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pongstrong/utils/colors.dart';
 
+//TODO: Consider using flutter_markdown_plus to render the rules with markdown formatting
+
 /// Displays the tournament rules loaded from the bundled asset file.
 ///
 /// Uses a [StatefulWidget] to cache the [Future] so that the asset is only

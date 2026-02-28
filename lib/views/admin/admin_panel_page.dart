@@ -4,7 +4,7 @@ import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/views/admin/admin_panel_dialogs.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
-import 'package:pongstrong/views/admin/teams_management_page.dart';
+import 'package:pongstrong/views/admin/teams_management/teams_management_page.dart';
 import 'package:pongstrong/views/admin/widgets/admin_widgets.dart';
 import 'package:pongstrong/widgets/error_banner.dart';
 import 'package:provider/provider.dart';

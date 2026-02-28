@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pongstrong/utils/colors.dart';
-import 'package:pongstrong/views/admin/team_edit_controller.dart';
+import 'package:pongstrong/views/admin/teams_management/team_edit_controller.dart';
 
 /// Callback signatures for team row actions.
 typedef TeamRowCallback = void Function(int index);

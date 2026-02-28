@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:pongstrong/views/admin/admin_panel_state.dart';
-import 'package:pongstrong/views/admin/team_edit_controller.dart';
-import 'package:pongstrong/views/admin/team_form_dialog.dart';
-import 'package:pongstrong/views/admin/team_row_widget.dart';
-import 'package:pongstrong/views/admin/team_snapshot.dart';
+import 'package:pongstrong/views/admin/teams_management/team_edit_controller.dart';
+import 'package:pongstrong/views/admin/teams_management/team_form_dialog.dart';
+import 'package:pongstrong/views/admin/teams_management/team_row_widget.dart';
+import 'package:pongstrong/views/admin/teams_management/team_snapshot.dart';
 import 'package:provider/provider.dart';
+
+//TODO: Split into multiple files
 
 /// A dedicated page for managing teams and group assignments.
 /// Provides inline editing for better UX.

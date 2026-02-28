@@ -1,4 +1,4 @@
-import 'package:pongstrong/views/admin/team_edit_controller.dart';
+import 'package:pongstrong/views/admin/teams_management/team_edit_controller.dart';
 
 /// Lightweight immutable snapshot of a [TeamEditController]'s data.
 ///

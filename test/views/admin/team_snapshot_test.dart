@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pongstrong/views/admin/team_edit_controller.dart';
-import 'package:pongstrong/views/admin/team_snapshot.dart';
+import 'package:pongstrong/views/admin/teams_management/team_edit_controller.dart';
+import 'package:pongstrong/views/admin/teams_management/team_snapshot.dart';
 
 void main() {
   // =========================================================================
