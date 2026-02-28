@@ -315,13 +315,18 @@ class _LandingPageState extends State<LandingPage> {
               color: GroupPhaseColors.cupred,
             ),
             const SizedBox(width: 16),
-            Text(
-              'PONGSTRONG',
-              style: TextStyle(
-                fontSize: isLarge ? 48 : 32,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                letterSpacing: 2,
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'PONGSTRONG',
+                  style: TextStyle(
+                    fontSize: isLarge ? 48 : 32,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                    letterSpacing: 2,
+                  ),
+                ),
               ),
             ),
           ],
@@ -365,7 +370,6 @@ class _LandingPageState extends State<LandingPage> {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
@@ -380,11 +384,14 @@ class _LandingPageState extends State<LandingPage> {
                 ),
               ),
               const SizedBox(width: 16),
-              Text(
-                feature['text']! as String,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textPrimary,
+              Flexible(
+                child: Text(
+                  feature['text']! as String,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -822,7 +829,13 @@ class _LandingPageState extends State<LandingPage> {
       child: ElevatedButton.icon(
         onPressed: _showCreateTournamentDialog,
         icon: const Icon(Icons.add_circle_outline),
-        label: const Text('Neues Turnier erstellen'),
+        label: const Text(
+          'Neues Turnier erstellen',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: GroupPhaseColors.cupred,
           foregroundColor: AppColors.textOnColored,
@@ -832,10 +845,6 @@ class _LandingPageState extends State<LandingPage> {
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-          ),
-          textStyle: TextStyle(
-            fontSize: isLarge ? 18 : 16,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ),

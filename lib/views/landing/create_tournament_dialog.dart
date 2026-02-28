@@ -32,7 +32,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   String? _error;
-  bool _isLoginMode = false;
+  bool _isLoginMode = true;
 
   @override
   void dispose() {
@@ -116,55 +116,6 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
         ],
       ),
     );
-  }
-
-  static const _loadingIndicator = SizedBox(
-    width: 20,
-    height: 20,
-    child: CircularProgressIndicator(
-        strokeWidth: 2, color: AppColors.textOnColored),
-  );
-
-  Widget _actionButton({
-    required VoidCallback? onPressed,
-    required String label,
-    required IconData icon,
-    required bool isVerySmall,
-    Color backgroundColor = GroupPhaseColors.cupred,
-    bool isOutlined = false,
-    bool isLoading = false,
-  }) {
-    const fg = AppColors.textOnColored;
-    final child = isLoading ? _loadingIndicator : null;
-
-    if (isOutlined) {
-      final style = OutlinedButton.styleFrom(
-        foregroundColor: backgroundColor,
-        side: BorderSide(color: backgroundColor),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      );
-      return isVerySmall
-          ? OutlinedButton(
-              onPressed: onPressed, style: style, child: Text(label))
-          : OutlinedButton.icon(
-              onPressed: onPressed,
-              icon: Icon(icon),
-              label: Text(label),
-              style: style);
-    }
-    final style = ElevatedButton.styleFrom(
-      backgroundColor: backgroundColor,
-      foregroundColor: fg,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    );
-    return isVerySmall
-        ? ElevatedButton(
-            onPressed: onPressed, style: style, child: child ?? Text(label))
-        : ElevatedButton.icon(
-            onPressed: onPressed,
-            icon: child ?? Icon(icon),
-            label: Text(label),
-            style: style);
   }
 
   /// Shared logic: create the tournament on Firestore and handle result.
@@ -258,7 +209,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth > 400;
-    final isVerySmall = screenWidth < 390;
+    final isVerySmall = !isWide;
     final authState = Provider.of<AuthState>(context);
 
     final isAlreadyLoggedIn = authState.isEmailUser;
@@ -269,13 +220,13 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
           : const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
         width: isWide ? 500 : double.infinity,
-        constraints: const BoxConstraints(maxHeight: 650),
+        constraints: const BoxConstraints(maxHeight: 700),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: const BoxDecoration(
                 color: GroupPhaseColors.cupred,
                 borderRadius: BorderRadius.vertical(
@@ -306,7 +257,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
             ),
             // Step indicator
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 children: [
                   _buildStepIndicator(0, 'Details'),
@@ -319,7 +270,8 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
             // Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: _currentStep == 0
                     ? _buildDetailsStep()
                     : isAlreadyLoggedIn
@@ -363,35 +315,49 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   if (_currentStep > 0)
-                    _actionButton(
+                    TextButton(
                       onPressed: _previousStep,
-                      label: 'Zurück',
-                      icon: Icons.arrow_back,
-                      isVerySmall: isVerySmall,
-                      isOutlined: true,
+                      style: TextButton.styleFrom(
+                        foregroundColor: GroupPhaseColors.cupred,
+                      ),
+                      child: const Text('Zurück'),
                     )
                   else
                     const SizedBox(),
                   if (_currentStep == 0)
-                    _actionButton(
+                    TextButton(
                       onPressed: _nextStep,
-                      label: 'Weiter',
-                      icon: Icons.arrow_forward,
-                      isVerySmall: isVerySmall,
+                      style: TextButton.styleFrom(
+                        foregroundColor: GroupPhaseColors.cupred,
+                      ),
+                      child: const Text('Weiter'),
                     )
                   else
-                    _actionButton(
-                      onPressed: _isLoading
-                          ? null
-                          : isAlreadyLoggedIn
-                              ? () => _createTournamentAsLoggedInUser(authState)
-                              : _createTournament,
-                      label: isVerySmall ? 'Erstellen' : 'Turnier erstellen',
-                      icon: Icons.check,
-                      isVerySmall: isVerySmall,
-                      backgroundColor: AppColors.success,
-                      isLoading: _isLoading,
-                    ),
+                    _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  GroupPhaseColors.cupred),
+                            ),
+                          )
+                        : TextButton(
+                            onPressed: isAlreadyLoggedIn
+                                ? () =>
+                                    _createTournamentAsLoggedInUser(authState)
+                                : _createTournament,
+                            style: TextButton.styleFrom(
+                              foregroundColor: GroupPhaseColors.cupred,
+                            ),
+                            child: Text(
+                              isVerySmall ? 'Erstellen' : 'Turnier erstellen',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                 ],
               ),
             ),
@@ -488,6 +454,10 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
         _buildInfoBox(
           'Dieses Passwort teilst du mit allen Spielern, damit sie dem Turnier beitreten können.',
         ),
+        const SizedBox(height: 12),
+        _buildInfoBox(
+          'Dein Turnier erhält zusätzlich einen Beitrittscode, mit dem Spieler das Turnier finden können.',
+        ),
       ],
     );
   }
@@ -527,7 +497,6 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
               _buildSummaryItem(
                   'Turniername', _tournamentNameController.text.trim()),
               _buildSummaryItem('Ersteller', authState.userEmail ?? ''),
-              _buildSummaryItem('Passwort', '••••••'),
             ],
           ),
         ),
@@ -543,10 +512,18 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: AppColors.textDisabled)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+          const SizedBox(width: 16),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+              textAlign: TextAlign.end,
+            ),
+          ),
         ],
       ),
     );
@@ -556,38 +533,35 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                _isLoginMode ? 'Anmelden' : 'Konto erstellen',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.grey100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Text(
+                'Turnier:',
+                style: TextStyle(color: AppColors.textDisabled),
               ),
-            ),
-            Flexible(
-              child: TextButton(
-                onPressed: () => setState(() {
-                  _isLoginMode = !_isLoginMode;
-                  _error = null;
-                }),
-                style: TextButton.styleFrom(
-                  foregroundColor: GroupPhaseColors.steelblue,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                ),
+              const SizedBox(width: 12),
+              Flexible(
                 child: Text(
-                  _isLoginMode
-                      ? 'Neues Konto erstellen'
-                      : 'Ich habe bereits ein Konto',
-                  textAlign: TextAlign.end,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
+                  _tournamentNameController.text.trim(),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          _isLoginMode ? 'Anmelden' : 'Konto erstellen',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
@@ -596,7 +570,7 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
               : 'Erstelle ein Konto um dein Turnier zu verwalten',
           style: const TextStyle(color: AppColors.textDisabled),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         TextField(
           controller: _emailController,
           cursorColor: GroupPhaseColors.cupred,
@@ -624,25 +598,22 @@ class _CreateTournamentDialogState extends State<CreateTournamentDialog> {
                 () => _obscureConfirmPassword = !_obscureConfirmPassword),
           ),
         ],
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.grey100,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Zusammenfassung',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              _buildSummaryItem(
-                  'Turniername', _tournamentNameController.text.trim()),
-              _buildSummaryItem('Turnier-Passwort', '••••••'),
-            ],
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => setState(() {
+              _isLoginMode = !_isLoginMode;
+              _error = null;
+            }),
+            style: TextButton.styleFrom(
+              foregroundColor: GroupPhaseColors.steelblue,
+            ),
+            child: Text(
+              _isLoginMode
+                  ? 'Neues Konto erstellen'
+                  : 'Ich habe bereits ein Konto',
+            ),
           ),
         ),
       ],
