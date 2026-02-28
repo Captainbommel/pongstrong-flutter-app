@@ -98,8 +98,6 @@ class KnockoutBracketSlide extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Winner badge inline
-                  ..._buildInlineWinnerBadge(bracket),
                 ],
               ),
             ),
@@ -118,41 +116,6 @@ class KnockoutBracketSlide extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildInlineWinnerBadge(KnockoutBracket bracket) {
-    final lastRound = bracket.rounds.last;
-    if (lastRound.isEmpty || !lastRound[0].done) return [];
-
-    final winnerId = lastRound[0].getWinnerId();
-    if (winnerId == null) return [];
-
-    final winnerName = data.getTeam(winnerId)?.name ?? winnerId;
-
-    return [
-      const SizedBox(width: 16),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.white.withAlpha(40),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🏆 ', style: TextStyle(fontSize: 18)),
-            Text(
-              winnerName,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    ];
-  }
-
   Widget _buildBracketView(KnockoutBracket bracket, Color color) {
     final roundNames = _roundNames(bracket.rounds.length);
 
@@ -160,26 +123,20 @@ class KnockoutBracketSlide extends StatelessWidget {
       builder: (context, constraints) {
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (int r = 0; r < bracket.rounds.length; r++) ...[
-                _buildRound(
-                  bracket.rounds[r],
-                  roundNames[r],
-                  color,
-                  constraints.maxHeight,
-                ),
-                if (r < bracket.rounds.length - 1)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Icon(
-                      Icons.chevron_right,
-                      color: color.withAlpha(60),
-                      size: 32,
-                    ),
+          child: SizedBox(
+            height: constraints.maxHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (int r = 0; r < bracket.rounds.length; r++)
+                  _buildRound(
+                    bracket.rounds[r],
+                    roundNames[r],
+                    color,
+                    constraints.maxHeight,
                   ),
               ],
-            ],
+            ),
           ),
         );
       },

@@ -52,15 +52,19 @@ class UpcomingMatchesSlide extends StatelessWidget {
                     spacing: 24,
                     runSpacing: 24,
                     alignment: WrapAlignment.center,
-                    children: upcoming.map((match) {
+                    children: upcoming.asMap().entries.map((entry) {
+                      final i = entry.key;
+                      final match = entry.value;
                       final team1 =
                           data.getTeam(match.teamId1)?.name ?? match.teamId1;
                       final team2 =
                           data.getTeam(match.teamId2)?.name ?? match.teamId2;
+                      final color = TableColors.forIndex(i);
 
                       return _UpcomingCard(
                         team1: team1,
                         team2: team2,
+                        color: color,
                       );
                     }).toList(),
                   ),
@@ -86,10 +90,12 @@ class UpcomingMatchesSlide extends StatelessWidget {
 class _UpcomingCard extends StatelessWidget {
   final String team1;
   final String team2;
+  final Color color;
 
   const _UpcomingCard({
     required this.team1,
     required this.team2,
+    required this.color,
   });
 
   @override
@@ -99,7 +105,7 @@ class _UpcomingCard extends StatelessWidget {
       child: Card(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15.0),
-          side: const BorderSide(width: 3, color: GroupPhaseColors.steelblue),
+          side: BorderSide(width: 3, color: color),
         ),
         clipBehavior: Clip.antiAlias,
         elevation: 4,
@@ -109,11 +115,11 @@ class _UpcomingCard extends StatelessWidget {
           children: [
             // Header
             Container(
-              color: GroupPhaseColors.steelblue,
+              color: color,
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: const Center(
                 child: Text(
-                  'Vorbereiten!',
+                  'Vorbereiten',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -153,7 +159,7 @@ class _UpcomingCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w300,
-                        color: GroupPhaseColors.steelblue.withAlpha(150),
+                        color: color.withAlpha(150),
                       ),
                     ),
                   ),

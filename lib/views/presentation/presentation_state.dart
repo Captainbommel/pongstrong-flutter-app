@@ -357,6 +357,20 @@ class PresentationState extends ChangeNotifier {
     _detectGroupDecided(data);
   }
 
+  /// Returns the trophy accent color for a bracket winner event.
+  static Color _trophyColor(BracketKey key) {
+    switch (key) {
+      case BracketKey.gold:
+        return const Color(0xFFFFD700); // Gold
+      case BracketKey.silver:
+        return const Color(0xFFC0C0C0); // Silver
+      case BracketKey.bronze:
+        return const Color(0xFFCD7F32); // Bronze
+      case BracketKey.extra:
+        return TreeColors.hotpink;
+    }
+  }
+
   /// Build descriptive body text for a finished match.
   /// "X schlägt Y mit Z : Z" or "X und Y trennen sich Z : Z".
   String _matchResultBody(String team1, String team2, Match match) {
@@ -418,6 +432,7 @@ class PresentationState extends ChangeNotifier {
                 headline: '$bracketName Sieger!',
                 body: '🏆 $winnerName 🏆',
                 context: bracketName,
+                color: _trophyColor(key),
               ));
             } else {
               _eventQueue.add(PresentationEvent(

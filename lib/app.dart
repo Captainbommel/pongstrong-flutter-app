@@ -192,7 +192,26 @@ class _AppShellState extends State<AppShell> {
                 ),
               ),
             ),
-            // Join code badge + Admin button, aligned to the right
+            // Presentation mode button - available to authenticated participants on desktop
+            if (hasStarted && (authState.isParticipant || authState.isAdmin))
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Tooltip(
+                  message: 'Präsentationsmodus',
+                  child: IconButton(
+                    onPressed: () => PresentationScreen.open(
+                      context,
+                      tournamentData,
+                    ),
+                    icon: const Icon(
+                      Icons.slideshow,
+                      color: GroupPhaseColors.steelblue,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            // Join code badge, aligned to the right
             if (tournamentData.joinCode != null)
               Padding(
                 padding: const EdgeInsets.only(left: 16),
@@ -222,25 +241,6 @@ class _AppShellState extends State<AppShell> {
                           color: GroupPhaseColors.cupred,
                         ),
                       ),
-                    ),
-                  ),
-                ),
-              ),
-            // Presentation mode button - available to authenticated participants on desktop
-            if (hasStarted && (authState.isParticipant || authState.isAdmin))
-              Padding(
-                padding: const EdgeInsets.only(left: 16),
-                child: Tooltip(
-                  message: 'Präsentationsmodus (Beamer)',
-                  child: IconButton(
-                    onPressed: () => PresentationScreen.open(
-                      context,
-                      tournamentData,
-                    ),
-                    icon: const Icon(
-                      Icons.slideshow,
-                      color: GroupPhaseColors.steelblue,
-                      size: 24,
                     ),
                   ),
                 ),
