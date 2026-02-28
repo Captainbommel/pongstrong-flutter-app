@@ -11,7 +11,7 @@ import 'package:pongstrong/views/playing_field/playing_field_view.dart';
 import 'package:pongstrong/views/presentation/presentation_screen.dart';
 import 'package:pongstrong/views/rules_view.dart';
 import 'package:pongstrong/views/teams_view.dart';
-import 'package:pongstrong/views/tree_view.dart';
+import 'package:pongstrong/views/tree_view/tree_view.dart';
 import 'package:pongstrong/widgets/confirmation_dialog.dart';
 import 'package:provider/provider.dart';
 
