@@ -562,8 +562,8 @@ class TreeViewPageState extends State<TreeViewPage>
           Provider.of<TournamentDataState>(context, listen: false);
       final success = await tournamentData.editMatchScore(
         match.id,
-        result['score1']!,
-        result['score2']!,
+        result.score1,
+        result.score2,
         -1,
         isKnockout: true,
       );

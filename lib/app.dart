@@ -10,7 +10,7 @@ import 'package:pongstrong/views/mobile_drawer.dart';
 import 'package:pongstrong/views/playing_field/playing_field_view.dart';
 import 'package:pongstrong/views/presentation/presentation_screen.dart';
 import 'package:pongstrong/views/rules_view.dart';
-import 'package:pongstrong/views/teams_view.dart';
+import 'package:pongstrong/views/standings/standings_view.dart';
 import 'package:pongstrong/views/tree_view/tree_view.dart';
 import 'package:pongstrong/widgets/confirmation_dialog.dart';
 import 'package:provider/provider.dart';
@@ -35,7 +35,7 @@ class _AppShellState extends State<AppShell> {
 
   // Keep desktop views alive to preserve state when switching between views
   final _desktopPlayingField = const PlayingFieldView();
-  final _desktopGroupPhase = const TeamsView();
+  final _desktopStandings = const StandingsView();
   final _desktopTournamentTree = const TreeViewPage();
   final _desktopRules = const RulesView();
   final _desktopAdminPanel = const AdminPanelPage();
@@ -275,7 +275,7 @@ class _AppShellState extends State<AppShell> {
         index: AppView.values.indexOf(appState.currentView),
         children: [
           _desktopPlayingField,
-          _desktopGroupPhase,
+          _desktopStandings,
           _desktopTournamentTree,
           _desktopRules,
           _desktopAdminPanel,
@@ -330,7 +330,7 @@ class _AppShellState extends State<AppShell> {
     // Build page list dynamically (must match availableViews order)
     final pages = <Widget>[
       _buildPageWithHint(const PlayingFieldView(), showHint: true),
-      if (showGroupPhase) const TeamsView(),
+      if (showGroupPhase) const StandingsView(),
       if (showTournamentTree)
         TreeViewPage(
           onExploreChanged: (exploring) {

@@ -5,12 +5,13 @@ import 'package:pongstrong/utils/colors.dart';
 import 'package:pongstrong/views/playing_field/match_dialogs.dart';
 import 'package:pongstrong/widgets/info_banner.dart';
 
+/// Score result returned by [MatchEditDialog.show].
+typedef MatchScore = ({int score1, int score2});
+
 /// Dialog for editing a match score.
 ///
 /// Shows two score input fields with team names and validates scores using
 /// [isValid]. In knockout mode, warns that editing resets subsequent matches.
-///
-/// Returns `{'score1': int, 'score2': int}` on confirm, or `null` on dismiss.
 class MatchEditDialog extends StatefulWidget {
   final Match match;
   final String team1Name;
@@ -25,14 +26,15 @@ class MatchEditDialog extends StatefulWidget {
     this.isKnockout = false,
   });
 
-  static Future<Map<String, int>?> show(
+  /// Returns a [MatchScore] on confirm, or `null` on dismiss.
+  static Future<MatchScore?> show(
     BuildContext context, {
     required Match match,
     required String team1Name,
     required String team2Name,
     bool isKnockout = false,
   }) {
-    return showDialog<Map<String, int>>(
+    return showDialog<MatchScore>(
       context: context,
       builder: (_) => MatchEditDialog(
         match: match,
@@ -235,10 +237,10 @@ class _MatchEditDialogState extends State<MatchEditDialog> {
         return;
       }
 
-      Navigator.of(context).pop({
-        'score1': score1,
-        'score2': score2,
-      });
+      Navigator.of(context).pop((
+        score1: score1,
+        score2: score2,
+      ));
     }
   }
 }
