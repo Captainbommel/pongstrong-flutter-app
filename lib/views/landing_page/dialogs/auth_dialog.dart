@@ -5,17 +5,17 @@ import 'package:pongstrong/utils/input_decoration_helpers.dart';
 import 'package:pongstrong/utils/snackbar_helper.dart';
 import 'package:provider/provider.dart';
 
-/// Login dialog for returning tournament creators
-class LoginDialog extends StatefulWidget {
+/// Dialog for logging in or registering as a tournament creator.
+class AuthDialog extends StatefulWidget {
   final VoidCallback? onLoginSuccess;
 
-  const LoginDialog({super.key, this.onLoginSuccess});
+  const AuthDialog({super.key, this.onLoginSuccess});
 
   @override
-  State<LoginDialog> createState() => _LoginDialogState();
+  State<AuthDialog> createState() => _AuthDialogState();
 }
 
-class _LoginDialogState extends State<LoginDialog> {
+class _AuthDialogState extends State<AuthDialog> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();

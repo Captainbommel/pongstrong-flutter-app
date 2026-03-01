@@ -9,7 +9,7 @@ import 'package:pongstrong/state/auth_state.dart';
 import 'package:pongstrong/state/tournament_data_state.dart';
 import 'package:pongstrong/state/tournament_selection_state.dart';
 import 'package:pongstrong/utils/app_logger.dart';
-import 'package:pongstrong/views/landing/landing_page.dart';
+import 'package:pongstrong/views/landing_page/landing_page_view.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
